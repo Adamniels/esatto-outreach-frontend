@@ -20,26 +20,16 @@
           <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search..."
-            class="search-input"
-          />
+          <input v-model="searchQuery" type="text" placeholder="Search..." class="search-input" />
         </div>
       </div>
       
       <div class="action-controls">
-        <button
-          @click="showCreateModal = true"
-          class="btn btn-success"
-        >
-          Add New
-        </button>
+        <button @click="showCreateModal = true" class="btn btn-success">Add New</button>
       </div>
     </div>
 
-    <!-- Main Table - Clean Prody style -->
+    <!-- Main Table -->
     <div class="prospects-table-container">
       <div v-if="loading" class="loading-state">
         <svg class="loading-icon animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,78 +37,58 @@
         </svg>
         <p class="loading-text">Laddar prospects...</p>
       </div>
-      
+
       <div v-else-if="error" class="error-state">
         <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
         <p class="error-message">{{ error }}</p>
-        <button 
-          @click="fetchProspects"
-          class="btn btn-secondary mt-3"
-        >
-          Försök igen
-        </button>
+        <button @click="fetchProspects" class="btn btn-secondary mt-3">Försök igen</button>
       </div>
 
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-white border-b border-gray-200">
+        <table class="prospects-table">
+          <colgroup>
+            <col class="col-id" />
+            <col class="col-company" />
+            <col class="col-contact" />
+            <col class="col-email" />
+            <col class="col-status" />
+            <col class="col-actions" />
+          </colgroup>
+          <thead class="prospects-thead">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Deals
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Value
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Source
-              </th>
+              <th class="table-header">ID</th>
+              <th class="table-header">Company</th>
+              <th class="table-header">Contact</th>
+              <th class="table-header">Email</th>
+              <th class="table-header">Status</th>
+              <th class="table-header actions-header"> </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-100">
-            <tr v-for="(prospect, index) in filteredProspects" :key="prospect.id" class="hover:bg-gray-50 transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ String(index + 1).padStart(2, '0') }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ prospect.companyName }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                    <span class="text-xs font-medium text-gray-600">{{ (prospect.contactName || prospect.companyName).charAt(0).toUpperCase() }}</span>
+          <tbody class="prospects-tbody">
+            <tr v-for="prospect in filteredProspects" :key="prospect.id" class="table-row">
+              <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
+              <td class="table-cell company-cell">{{ prospect.companyName }}</td>
+              <td class="table-cell contact-cell">
+                <div class="contact-inner">
+                  <div class="avatar">
+                    <span class="avatar-letter">{{ (prospect.contactName || '-').charAt(0).toUpperCase() }}</span>
                   </div>
-                  <div class="text-sm font-medium text-gray-900">{{ prospect.contactName || prospect.companyName }}</div>
+                  <div class="contact-name">{{ prospect.contactName || '-' }}</div>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ prospect.contactEmail || '-' }}
+              <td class="table-cell email-cell">{{ prospect.contactEmail || '-' }}</td>
+              <td class="table-cell status-cell">
+                <span :class="['status-badge', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                ${{ Math.floor(Math.random() * 10000).toLocaleString() }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  :class="getStatusColor(prospect.status)"
-                  class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
-                >
-                  {{ getStatusLabel(prospect.status) }}
-                </span>
+              <td class="table-cell actions-cell">
+                <button @click="openCompanyModal(prospect)" class="view-btn">View</button>
               </td>
             </tr>
           </tbody>
         </table>
-        
+
         <div v-if="filteredProspects.length === 0" class="text-center py-12">
           <p class="text-gray-500">Inga prospects hittades</p>
           <p class="text-gray-400 text-sm mt-1">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
@@ -126,108 +96,88 @@
       </div>
     </div>
 
-    <!-- Clean Modal -->
+    <!-- Create / Edit Modal -->
     <div v-if="showCreateModal" class="modal-overlay">
       <div class="modal-container">
         <div class="modal-backdrop" @click="closeModal"></div>
-        
         <div class="modal-content">
           <div class="modal-header">
             <div class="header-title-container">
-              <h3 class="modal-title">
-                {{ editingProspect ? 'Edit Prospect' : 'Add New Prospect' }}
-              </h3>
-              <button @click="closeModal" class="modal-close-btn">
-                <span class="sr-only">Close</span>
-                ✕
-              </button>
+              <h3 class="modal-title">{{ editingProspect ? 'Edit Prospect' : 'Add New Prospect' }}</h3>
+              <button @click="closeModal" class="modal-close-btn">✕</button>
             </div>
           </div>
-          
           <div class="modal-body">
             <form @submit.prevent="saveProspect" class="form-container">
               <div class="form-group">
                 <label class="form-label required">Company Name</label>
-                <input
-                  v-model="formData.companyName"
-                  type="text"
-                  required
-                  class="form-input"
-                  placeholder="e.g. Acme Corp"
-                />
+                <input v-model="formData.companyName" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
               </div>
-              
               <div class="form-group">
                 <label class="form-label">Website</label>
-                <input
-                  v-model="formData.domain"
-                  type="url"
-                  class="form-input"
-                  placeholder="https://acme.com"
-                />
+                <input v-model="formData.domain" type="url" class="form-input" placeholder="https://acme.com" />
               </div>
-              
               <div class="form-group">
                 <label class="form-label">Contact Person</label>
-                <input
-                  v-model="formData.contactName"
-                  type="text"
-                  class="form-input"
-                  placeholder="John Doe"
-                />
+                <input v-model="formData.contactName" type="text" class="form-input" placeholder="John Doe" />
               </div>
-              
               <div class="form-group">
                 <label class="form-label">Email</label>
-                <input
-                  v-model="formData.contactEmail"
-                  type="email"
-                  class="form-input"
-                  placeholder="john@acme.com"
-                />
+                <input v-model="formData.contactEmail" type="email" class="form-input" placeholder="john@acme.com" />
               </div>
-              
               <div v-if="editingProspect" class="form-group">
                 <label class="form-label">Status</label>
-                <select 
-                  v-model="formData.status"
-                  class="form-select"
-                >
-                  <option v-for="(label, status) in statusLabels" :key="status" :value="Number(status)">
-                    {{ label }}
-                  </option>
+                <select v-model="formData.status" class="form-select">
+                  <option v-for="(label, status) in statusLabels" :key="status" :value="Number(status)">{{ label }}</option>
                 </select>
               </div>
-              
               <div class="form-group">
                 <label class="form-label">Notes</label>
-                <textarea
-                  v-model="formData.notes"
-                  rows="3"
-                  class="form-textarea"
-                  placeholder="Notes about this prospect..."
-                ></textarea>
+                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Notes about this prospect..."></textarea>
               </div>
             </form>
           </div>
-          
           <div class="modal-footer">
-            <button
-              @click="closeModal"
-              :disabled="isSubmitting"
-              class="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            <button
-              @click="saveProspect"
-              :disabled="isSubmitting"
-              class="btn btn-success"
-              :class="{ 'btn-loading': isSubmitting }"
-            >
+            <button @click="closeModal" :disabled="isSubmitting" class="btn btn-secondary">Cancel</button>
+            <button @click="saveProspect" :disabled="isSubmitting" class="btn btn-success" :class="{ 'btn-loading': isSubmitting }">
               <span v-if="isSubmitting" class="loading-spinner"></span>
               {{ isSubmitting ? 'Saving...' : (editingProspect ? 'Update' : 'Create') }}
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Details / Email Generation Modal -->
+    <div v-if="showCompanyModal" class="modal-overlay" @keydown.esc="closeCompanyModal">
+      <div class="modal-container">
+        <div class="modal-backdrop" @click="closeCompanyModal"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="header-title-container">
+              <h3 class="modal-title">Företagsdetaljer</h3>
+              <button @click="closeCompanyModal" class="modal-close-btn">✕</button>
+            </div>
+          </div>
+          <div class="modal-body">
+            <div style="padding:1rem;">
+              <p class="text-sm text-gray-600">Företag: <strong>{{ companyProspect?.companyName }}</strong></p>
+              <p class="text-sm text-gray-600">Kontakt: <strong>{{ companyProspect?.contactName || '-' }}</strong></p>
+              <p class="text-sm text-gray-600">E-post sparad: <strong>{{ companyProspect?.contactEmail || '-' }}</strong></p>
+              <div style="margin-top:0.75rem;">
+                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ generatedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
+                <button v-if="generatedEmail" @click="clearGeneratedEmail" class="btn btn-secondary ml-2">Rensa genererad</button>
+                <button v-if="generatedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success ml-2">Spara till prospect</button>
+              </div>
+              <div v-if="generatedEmail" style="margin-top:1rem;">
+                <label class="form-label">Förhandsgranskning</label>
+                <textarea readonly class="form-textarea" rows="8">{{ generatedEmail }}</textarea>
+              </div>
+              <div v-else style="margin-top:1rem; color:#6b7280;">Ingen genererad mejl än.</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="closeCompanyModal" class="btn btn-secondary">Stäng</button>
           </div>
         </div>
       </div>
@@ -395,12 +345,16 @@ const statusLabels: Record<number, string> = {
   4: 'Arkiverad'
 }
 
-const statusColors: Record<number, string> = {
-  0: 'bg-blue-50 text-blue-700 border border-blue-200',
-  1: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-  2: 'bg-purple-50 text-purple-700 border border-purple-200', 
-  3: 'bg-green-50 text-green-700 border border-green-200',
-  4: 'bg-gray-50 text-gray-700 border border-gray-200'
+// Status -> local CSS class names
+const getStatusClass = (status: number) => {
+  switch (status) {
+    case 0: return 'status-new'
+    case 1: return 'status-investigated'
+    case 2: return 'status-emailed'
+    case 3: return 'status-replied'
+    case 4: return 'status-archived'
+    default: return 'status-unknown'
+  }
 }
 
 const formatDate = (dateString: string) => {
@@ -412,12 +366,79 @@ const formatDate = (dateString: string) => {
 }
 
 const getStatusLabel = (status: number) => statusLabels[status] || 'Okänd'
-const getStatusColor = (status: number) => statusColors[status] || 'bg-gray-100 text-gray-800'
+// removed Tailwind status color mapping; use getStatusClass() instead
 
 // Load data
 onMounted(() => {
   fetchProspects()
 })
+
+// Company modal state + helpers
+const showCompanyModal = ref(false)
+const companyProspect = ref<Prospect | null>(null)
+const isGenerating = ref(false)
+const generatedEmail = ref<string | null>(null)
+
+const storageKey = (id: string) => `generatedEmail_${id}`
+
+const openCompanyModal = (prospect: Prospect) => {
+  companyProspect.value = prospect
+  showCompanyModal.value = true
+  try {
+    const saved = localStorage.getItem(storageKey(prospect.id))
+    generatedEmail.value = saved ? saved : null
+  } catch (e) {
+    generatedEmail.value = null
+  }
+}
+
+const closeCompanyModal = () => {
+  showCompanyModal.value = false
+  companyProspect.value = null
+  generatedEmail.value = null
+}
+
+const generateEmail = async () => {
+  if (!companyProspect.value) return
+  isGenerating.value = true
+  await new Promise(r => setTimeout(r, 400))
+
+  const name = companyProspect.value.contactName || 'Hej'
+  const company = companyProspect.value.companyName || ''
+  const domain = companyProspect.value.domain ? ` (${companyProspect.value.domain})` : ''
+
+  const subject = `Hej ${name} — kort fråga om ${company}`
+  const body = `Hej ${name},\n\nJag heter [Ditt namn] och jobbar med outreach för ${company}${domain}. Jag ville bara höra om ni är intresserade av att diskutera möjligheter att samarbeta kring [kort pitch här].\n\nHälsningar,\n[Ditt namn]`
+
+  generatedEmail.value = `Subject: ${subject}\n\n${body}`
+  try { localStorage.setItem(storageKey(companyProspect.value.id), generatedEmail.value) } catch (e) {}
+  isGenerating.value = false
+}
+
+const clearGeneratedEmail = () => {
+  if (!companyProspect.value) return
+  try { localStorage.removeItem(storageKey(companyProspect.value.id)) } catch (e) {}
+  generatedEmail.value = null
+}
+
+const saveEmailToProspect = async () => {
+  if (!companyProspect.value || !generatedEmail.value) return
+  const current = companyProspect.value.contactEmail
+  if (current && !confirm('Det finns redan en e-post sparad för denna kontakt. Vill du skriva över den?')) return
+
+  try {
+    isGenerating.value = true
+    await api.put(`/prospects/${companyProspect.value.id}`, { contactEmail: generatedEmail.value })
+    await fetchProspects()
+    const updated = prospects.value.find(p => p.id === companyProspect.value?.id) || null
+    companyProspect.value = updated
+    isGenerating.value = false
+    alert('E-post sparad till prospect')
+  } catch (err: any) {
+    isGenerating.value = false
+    alert(err.response?.data?.error || 'Kunde inte spara e-post på prospect')
+  }
+}
 </script>
 
 <style scoped>
@@ -696,5 +717,103 @@ onMounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Center table cells for the prospects table so rows look balanced */
+/* Table layout: fixed so columns can be evenly distributed. Reduce padding so content
+   isn't pushed far from the left edge and columns have equal spacing. */
+.prospects-table-container .min-w-full {
+  width: 100%;
+  table-layout: auto; /* allow columns to size naturally */
+}
+
+.prospects-table-container table th,
+.prospects-table-container table td {
+  vertical-align: middle;
+  word-break: break-word;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+}
+
+/* Action column (view button) should be right aligned and not wrap */
+.prospects-table-container td.text-right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Center avatar + name inside the contact cell */
+.prospects-table-container td .flex.items-center {
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Ensure status badges are centered and aligned */
+.prospects-table-container td .inline-flex {
+  margin-left: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Local table styles (no Tailwind) */
+.prospects-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* natural sizing */
+}
+.prospects-thead {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+.table-header {
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+.prospects-tbody .table-row {
+  transition: background-color 0.15s ease;
+}
+.prospects-tbody .table-row:hover {
+  background: #f9fafb;
+}
+.table-cell { padding: 0.75rem; vertical-align: middle; }
+.id-cell { color: #111827; font-size: 0.9rem; }
+.company-cell { font-weight: 600; color: #111827; }
+.col-id { width: 1%; } /* let ID column shrink to minimal width without fixing pixels */
+.id-text { display:block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contact-inner { display: flex; align-items: center; gap: 0.5rem; }
+.avatar { width: 36px; height: 36px; border-radius: 9999px; background: #e5e7eb; display:flex; align-items:center; justify-content:center; }
+.avatar-letter { font-size: 0.75rem; color:#374151; font-weight:600 }
+.contact-name { color:#111827 }
+.email-cell { color:#6b7280 }
+.status-badge { display:inline-block; padding: 0.25rem 0.5rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
+.status-new { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe }
+.status-investigated { background:#fffbeb; color:#92400e; border:1px solid #fde68a }
+.status-emailed { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe }
+.status-replied { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0 }
+.status-archived { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb }
+.status-unknown { background:#fafafa; color:#374151; border:1px solid #e5e7eb }
+.actions-cell { text-align: right; white-space:nowrap }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; }
+.btn-success { background: #10b981; color: white; border-color: #10b981; }
+.btn-success:hover { background:#059669 }
+.btn-secondary { background: #f3f4f6; color:#111827; border-color:#e5e7eb }
+.view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
+.view-btn:hover { background:#1e40af; border-color:#1e40af }
+
+/* Responsive fallback: on small screens revert to auto layout and a bit less padding */
+@media (max-width: 640px) {
+  .prospects-table-container .min-w-full {
+    table-layout: auto;
+  }
+
+  .prospects-table-container table th,
+  .prospects-table-container table td {
+    width: auto;
+    padding: 0.5rem 0.6rem;
+    text-align: left; /* easier to read on small screens */
+  }
 }
 </style>
