@@ -25,7 +25,7 @@
       </div>
       
       <div class="action-controls">
-        <button @click="showCreateModal = true" class="btn btn-success">Add New</button>
+        <button @click="openCreateModal" class="btn btn-success">Add New</button>
       </div>
     </div>
 
@@ -83,7 +83,10 @@
                 <span :class="['status-badge', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
               </td>
               <td class="table-cell actions-cell">
-                <button @click="openCompanyModal(prospect)" class="view-btn">View</button>
+                <div class="action-buttons">
+                  <button @click="openCompanyModal(prospect)" class="view-btn">View</button>
+                  <button @click="editProspect(prospect)" class="edit-btn">Edit</button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -160,20 +163,70 @@
             </div>
           </div>
           <div class="modal-body">
-            <div style="padding:1rem;">
-              <p class="text-sm text-gray-600">Företag: <strong>{{ companyProspect?.companyName }}</strong></p>
-              <p class="text-sm text-gray-600">Kontakt: <strong>{{ companyProspect?.contactName || '-' }}</strong></p>
-              <p class="text-sm text-gray-600">E-post sparad: <strong>{{ companyProspect?.contactEmail || '-' }}</strong></p>
-              <div style="margin-top:0.75rem;">
-                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ generatedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
-                <button v-if="generatedEmail" @click="clearGeneratedEmail" class="btn btn-secondary ml-2">Rensa genererad</button>
-                <button v-if="generatedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success ml-2">Spara till prospect</button>
+            <div class="company-info-wrapper">
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Företag</span>
+                  <span class="detail-value">{{ companyProspect?.companyName || '-' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kontakt</span>
+                  <span class="detail-value">{{ companyProspect?.contactName || '-' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">E-post</span>
+                  <span class="detail-value">{{ companyProspect?.contactEmail || '-' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Webbplats</span>
+                  <span class="detail-value">
+                    <template v-if="companyProspect?.domain">
+                      <a :href="formatDomainUrl(companyProspect.domain)" target="_blank" rel="noopener" class="detail-link">{{ companyProspect.domain }}</a>
+                    </template>
+                    <template v-else>-</template>
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Status</span>
+                  <span class="detail-value">{{ companyProspect ? getStatusLabel(companyProspect.status) : '-' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Skapad</span>
+                  <span class="detail-value">{{ formatDateTime(companyProspect?.createdUtc) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Uppdaterad</span>
+                  <span class="detail-value">{{ formatDateTime(companyProspect?.updatedUtc) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">LinkedIn</span>
+                  <span class="detail-value">
+                    <template v-if="companyProspect?.linkedinUrl">
+                      <a :href="companyProspect.linkedinUrl" target="_blank" rel="noopener" class="detail-link">Visa profil</a>
+                    </template>
+                    <template v-else>-</template>
+                  </span>
+                </div>
               </div>
-              <div v-if="generatedEmail" style="margin-top:1rem;">
+
+              <div class="notes-section">
+                <span class="detail-label">Anteckningar</span>
+                <p class="notes-value">{{ (companyProspect?.notes && companyProspect.notes.trim()) ? companyProspect.notes : 'Inga anteckningar sparade.' }}</p>
+              </div>
+
+              <div class="section-divider"></div>
+
+              <div class="email-actions">
+                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ generatedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
+                <button v-if="generatedEmail" @click="clearGeneratedEmail" class="btn btn-secondary">Rensa genererad</button>
+                <button v-if="generatedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success">Spara till prospect</button>
+              </div>
+
+              <div v-if="generatedEmail" class="generated-preview">
                 <label class="form-label">Förhandsgranskning</label>
                 <textarea readonly class="form-textarea" rows="8">{{ generatedEmail }}</textarea>
               </div>
-              <div v-else style="margin-top:1rem; color:#6b7280;">Ingen genererad mejl än.</div>
+              <div v-else class="no-generated">Ingen genererad mejl än.</div>
             </div>
           </div>
           <div class="modal-footer">
@@ -203,6 +256,16 @@ interface Prospect {
   updatedUtc?: string
 }
 
+interface ProspectFormData {
+  companyName: string
+  domain: string
+  contactName: string
+  contactEmail: string
+  linkedinUrl: string
+  notes: string
+  status: number
+}
+
 // State
 const prospects = ref<Prospect[]>([])
 const loading = ref(false)
@@ -213,7 +276,7 @@ const showCreateModal = ref(false)
 const editingProspect = ref<Prospect | null>(null)
 const isSubmitting = ref(false)
 
-const formData = ref({
+const createEmptyForm = (): ProspectFormData => ({
   companyName: '',
   domain: '',
   contactName: '',
@@ -222,6 +285,8 @@ const formData = ref({
   notes: '',
   status: 0
 })
+
+const formData = ref<ProspectFormData>(createEmptyForm())
 
 // API
 const api = axios.create({
@@ -285,6 +350,12 @@ const editProspect = (prospect: Prospect) => {
   showCreateModal.value = true
 }
 
+const openCreateModal = () => {
+  editingProspect.value = null
+  formData.value = createEmptyForm()
+  showCreateModal.value = true
+}
+
 const confirmDelete = async (prospect: Prospect) => {
   if (confirm(`Är du säker på att du vill ta bort "${prospect.companyName}"?`)) {
     try {
@@ -299,15 +370,7 @@ const confirmDelete = async (prospect: Prospect) => {
 const closeModal = () => {
   showCreateModal.value = false
   editingProspect.value = null
-  formData.value = {
-    companyName: '',
-    domain: '',
-    contactName: '',
-    contactEmail: '',
-    linkedinUrl: '',
-    notes: '',
-    status: 0
-  }
+  formData.value = createEmptyForm()
 }
 
 const clearFilters = () => {
@@ -367,6 +430,24 @@ const formatDate = (dateString: string) => {
 
 const getStatusLabel = (status: number) => statusLabels[status] || 'Okänd'
 // removed Tailwind status color mapping; use getStatusClass() instead
+
+const formatDateTime = (dateString?: string) => {
+  if (!dateString) return '-'
+  const parsed = new Date(dateString)
+  if (Number.isNaN(parsed.getTime())) return '-'
+  return parsed.toLocaleString('sv-SE', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatDomainUrl = (domain: string) => {
+  if (!domain) return '#'
+  return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
+}
 
 // Load data
 onMounted(() => {
@@ -447,7 +528,7 @@ const saveEmailToProspect = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 1.5rem;
+  padding: 1.75rem 2rem;
   min-height: 100vh;
 }
 
@@ -455,7 +536,7 @@ const saveEmailToProspect = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.75rem;
   background-color: white;
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -513,6 +594,7 @@ const saveEmailToProspect = async () => {
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 1.25rem 1.5rem 1.5rem;
 }
 
 .loading-state,
@@ -758,8 +840,9 @@ const saveEmailToProspect = async () => {
 /* Local table styles (no Tailwind) */
 .prospects-table {
   width: 100%;
-  border-collapse: collapse;
-  table-layout: auto; /* natural sizing */
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 .prospects-thead {
   background: #ffffff;
@@ -778,30 +861,53 @@ const saveEmailToProspect = async () => {
 .prospects-tbody .table-row:hover {
   background: #f9fafb;
 }
-.table-cell { padding: 0.75rem; vertical-align: middle; }
+.table-cell { padding: 0.75rem 0.7rem; vertical-align: middle; }
 .id-cell { color: #111827; font-size: 0.9rem; }
 .company-cell { font-weight: 600; color: #111827; }
-.col-id { width: 1%; } /* let ID column shrink to minimal width without fixing pixels */
-.id-text { display:block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-id { width: 18%; min-width: 12rem; }
+.col-company { width: 22%; }
+.col-contact { width: 18%; }
+.col-email { width: 18%; }
+.col-status { width: 10%; }
+.col-actions { width: 14%; }
+.id-text { display:block; width: 100%; overflow-wrap: anywhere; }
 .contact-inner { display: flex; align-items: center; gap: 0.5rem; }
 .avatar { width: 36px; height: 36px; border-radius: 9999px; background: #e5e7eb; display:flex; align-items:center; justify-content:center; }
 .avatar-letter { font-size: 0.75rem; color:#374151; font-weight:600 }
 .contact-name { color:#111827 }
 .email-cell { color:#6b7280 }
-.status-badge { display:inline-block; padding: 0.25rem 0.5rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
+.status-cell { text-align: center; }
+.status-cell .status-badge { margin: 0 auto; }
+.status-badge { display:inline-block; padding: 0.3rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
 .status-new { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe }
 .status-investigated { background:#fffbeb; color:#92400e; border:1px solid #fde68a }
 .status-emailed { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe }
 .status-replied { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0 }
 .status-archived { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb }
 .status-unknown { background:#fafafa; color:#374151; border:1px solid #e5e7eb }
-.actions-cell { text-align: right; white-space:nowrap }
+.actions-cell { text-align: right; white-space:nowrap; padding-right:0.55rem; padding-left:0.3rem; }
+.action-buttons { display:flex; align-items:center; justify-content:flex-end; gap:0.35rem; width:100%; }
+.company-info-wrapper { display:flex; flex-direction:column; gap:1.25rem; padding:1.25rem 0.5rem 1.5rem; color:#1f2937; }
+.detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.75rem 1.5rem; }
+.detail-item { display:flex; flex-direction:column; gap:0.25rem; }
+.detail-label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; }
+.detail-value { font-size:0.9rem; color:#111827; word-break:break-word; }
+.detail-link { color:#2563eb; text-decoration:none; font-weight:600; }
+.detail-link:hover { text-decoration:underline; }
+.notes-section { background:#f9fafb; border-radius:0.5rem; padding:0.85rem 1rem; border:1px solid #e5e7eb; }
+.notes-value { margin-top:0.5rem; font-size:0.9rem; color:#374151; white-space:pre-wrap; }
+.section-divider { height:1px; background:#e5e7eb; }
+.email-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
+.generated-preview { display:flex; flex-direction:column; gap:0.5rem; }
+.no-generated { color:#6b7280; font-size:0.875rem; }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; }
 .btn-success { background: #10b981; color: white; border-color: #10b981; }
 .btn-success:hover { background:#059669 }
 .btn-secondary { background: #f3f4f6; color:#111827; border-color:#e5e7eb }
 .view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
+.edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
+.edit-btn:hover { background:#e0e7ff; border-color:#a5b4fc; }
 
 /* Responsive fallback: on small screens revert to auto layout and a bit less padding */
 @media (max-width: 640px) {
@@ -814,6 +920,10 @@ const saveEmailToProspect = async () => {
     width: auto;
     padding: 0.5rem 0.6rem;
     text-align: left; /* easier to read on small screens */
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
