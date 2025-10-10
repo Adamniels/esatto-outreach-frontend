@@ -217,14 +217,14 @@
               <div class="section-divider"></div>
 
               <div class="email-actions">
-                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ generatedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
-                <button v-if="generatedEmail" @click="clearGeneratedEmail" class="btn btn-secondary">Rensa genererad</button>
-                <button v-if="generatedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success">Spara till prospect</button>
+                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ hasGeneratedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
+                <button v-if="hasGeneratedEmail" @click="clearGeneratedEmail" class="btn btn-secondary">Rensa genererad</button>
+                <button v-if="hasGeneratedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success">Spara till prospect</button>
               </div>
 
-              <div v-if="generatedEmail" class="generated-preview">
+              <div v-if="hasGeneratedEmail" class="generated-preview">
                 <label class="form-label">Förhandsgranskning</label>
-                <textarea readonly class="form-textarea" rows="8">{{ generatedEmail }}</textarea>
+                <textarea readonly class="form-textarea" rows="8">{{ generatedEmailPreview }}</textarea>
               </div>
               <div v-else class="no-generated">Ingen genererad mejl än.</div>
             </div>
@@ -240,21 +240,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-
-// Types
-interface Prospect {
-  id: string
-  companyName: string
-  domain?: string
-  contactName?: string
-  contactEmail?: string
-  linkedinUrl?: string
-  notes?: string
-  status: number
-  createdUtc: string
-  updatedUtc?: string
-}
+import { prospectsAPI } from '@/services/prospects'
+import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus, type EmailDraft } from '@/types/prospect'
 
 interface ProspectFormData {
   companyName: string
@@ -263,7 +250,7 @@ interface ProspectFormData {
   contactEmail: string
   linkedinUrl: string
   notes: string
-  status: number
+  status: ProspectStatus
 }
 
 // State
@@ -276,6 +263,8 @@ const showCreateModal = ref(false)
 const editingProspect = ref<Prospect | null>(null)
 const isSubmitting = ref(false)
 
+const statusLabels = STATUS_LABELS
+
 const createEmptyForm = (): ProspectFormData => ({
   companyName: '',
   domain: '',
@@ -283,24 +272,30 @@ const createEmptyForm = (): ProspectFormData => ({
   contactEmail: '',
   linkedinUrl: '',
   notes: '',
-  status: 0
+  status: 0 as ProspectStatus
 })
 
 const formData = ref<ProspectFormData>(createEmptyForm())
-
-// API
-const api = axios.create({
-  baseURL: 'http://localhost:5000',
-  headers: { 'Content-Type': 'application/json' }
-})
 
 // Functions
 const fetchProspects = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.get('/prospects')
-    prospects.value = response.data
+    prospects.value = await prospectsAPI.getAll()
+    if (companyProspect.value) {
+      const updated = prospects.value.find(p => p.id === companyProspect.value?.id)
+      if (updated) {
+        companyProspect.value = updated
+        const draft = draftFromProspect(updated)
+        if (draft) {
+          generatedEmail.value = draft
+          storeDraft(updated.id, draft)
+        } else {
+          clearStoredDraft(updated.id)
+        }
+      }
+    }
   } catch (err: any) {
     error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
   } finally {
@@ -313,18 +308,22 @@ const saveProspect = async () => {
   
   isSubmitting.value = true
   try {
-    const data = {
-      ...formData.value,
+    const basePayload = {
+      companyName: formData.value.companyName.trim(),
       domain: formData.value.domain || undefined,
       contactName: formData.value.contactName || undefined,
       contactEmail: formData.value.contactEmail || undefined,
+      linkedinUrl: formData.value.linkedinUrl || undefined,
       notes: formData.value.notes || undefined
     }
-    
+
     if (editingProspect.value) {
-      await api.put(`/prospects/${editingProspect.value.id}`, data)
+      await prospectsAPI.update(editingProspect.value.id, {
+        ...basePayload,
+        status: formData.value.status
+      })
     } else {
-      await api.post('/prospects', data)
+      await prospectsAPI.create(basePayload)
     }
     
     await fetchProspects()
@@ -359,7 +358,7 @@ const openCreateModal = () => {
 const confirmDelete = async (prospect: Prospect) => {
   if (confirm(`Är du säker på att du vill ta bort "${prospect.companyName}"?`)) {
     try {
-      await api.delete(`/prospects/${prospect.id}`)
+      await prospectsAPI.delete(prospect.id)
       await fetchProspects()
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Kunde inte ta bort prospect'
@@ -399,15 +398,6 @@ const filteredProspects = computed(() => {
   return filtered
 })
 
-// Status helpers
-const statusLabels: Record<number, string> = {
-  0: 'Ny',
-  1: 'Undersökt', 
-  2: 'E-post skickad',
-  3: 'Svarat',
-  4: 'Arkiverad'
-}
-
 // Status -> local CSS class names
 const getStatusClass = (status: number) => {
   switch (status) {
@@ -420,15 +410,7 @@ const getStatusClass = (status: number) => {
   }
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('sv-SE', {
-    year: 'numeric',
-    month: 'short', 
-    day: 'numeric'
-  })
-}
-
-const getStatusLabel = (status: number) => statusLabels[status] || 'Okänd'
+const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Okänd'
 // removed Tailwind status color mapping; use getStatusClass() instead
 
 const formatDateTime = (dateString?: string) => {
@@ -449,6 +431,90 @@ const formatDomainUrl = (domain: string) => {
   return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
 }
 
+function pickString(source: Record<string, unknown>, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+  return undefined
+}
+
+function extractEmailDraft(payload: unknown): EmailDraft | null {
+  if (!payload) return null
+
+  if (typeof payload === 'string') {
+    const plain = payload.trim()
+    return plain ? { mailBodyPlain: plain } : null
+  }
+
+  if (typeof payload === 'object') {
+    const data = payload as Record<string, unknown>
+
+    let mailTitle = pickString(data, ['mailTitle', 'MailTitle'])
+    let mailBodyPlain = pickString(data, ['mailBodyPlain', 'MailBodyPlain'])
+    let mailBodyHTML = pickString(data, ['mailBodyHTML', 'MailBodyHTML'])
+
+    if (!mailTitle) {
+      mailTitle = pickString(data, ['subject', 'title', 'mail_title'])
+    }
+
+    if (!mailBodyPlain) {
+      mailBodyPlain = pickString(data, ['draft', 'email', 'body', 'text', 'content', 'MailBodyPlain', 'mail_body_plain'])
+    }
+
+    if (!mailBodyHTML) {
+      mailBodyHTML = pickString(data, ['html', 'mailBodyHTML', 'MailBodyHTML', 'mail_body_html'])
+    }
+
+    if (mailTitle || mailBodyPlain || mailBodyHTML) {
+      return { mailTitle, mailBodyPlain, mailBodyHTML }
+    }
+  }
+
+  return null
+}
+
+function htmlToPlainText(html: string) {
+  return html
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\s*\/p\s*>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function draftHasContent(draft: EmailDraft | null | undefined): draft is EmailDraft {
+  if (!draft) return false
+  return Boolean(
+    (draft.mailTitle && draft.mailTitle.trim()) ||
+    (draft.mailBodyPlain && draft.mailBodyPlain.trim()) ||
+    (draft.mailBodyHTML && draft.mailBodyHTML.trim())
+  )
+}
+
+function formatDraftPreview(draft: EmailDraft | null): string {
+  if (!draftHasContent(draft)) return ''
+  const parts: string[] = []
+
+  if (draft.mailTitle && draft.mailTitle.trim()) {
+    parts.push(`Subject: ${draft.mailTitle.trim()}`)
+  }
+
+  let body = draft.mailBodyPlain?.trim() ?? ''
+  if (!body && draft.mailBodyHTML) {
+    body = htmlToPlainText(draft.mailBodyHTML)
+  }
+
+  if (body) {
+    if (parts.length) parts.push('')
+    parts.push(body)
+  }
+
+  return parts.join('\n')
+}
+
 // Load data
 onMounted(() => {
   fetchProspects()
@@ -458,18 +524,57 @@ onMounted(() => {
 const showCompanyModal = ref(false)
 const companyProspect = ref<Prospect | null>(null)
 const isGenerating = ref(false)
-const generatedEmail = ref<string | null>(null)
+const generatedEmail = ref<EmailDraft | null>(null)
 
 const storageKey = (id: string) => `generatedEmail_${id}`
+
+function loadDraftFromStorage(id: string): EmailDraft | null {
+  try {
+    const stored = localStorage.getItem(storageKey(id))
+    if (!stored) return null
+    try {
+      return extractEmailDraft(JSON.parse(stored))
+    } catch (e) {
+      return extractEmailDraft(stored)
+    }
+  } catch (e) {
+    return null
+  }
+}
+
+function storeDraft(id: string, draft: EmailDraft) {
+  if (!draftHasContent(draft)) return
+  try { localStorage.setItem(storageKey(id), JSON.stringify(draft)) } catch (e) {}
+}
+
+function clearStoredDraft(id: string) {
+  try { localStorage.removeItem(storageKey(id)) } catch (e) {}
+}
+
+function draftFromProspect(prospect: Prospect | null): EmailDraft | null {
+  if (!prospect) return null
+  const { mailTitle, mailBodyPlain, mailBodyHTML } = prospect
+  if (!mailTitle && !mailBodyPlain && !mailBodyHTML) return null
+  return {
+    mailTitle: mailTitle?.trim() || undefined,
+    mailBodyPlain: mailBodyPlain?.trim() || undefined,
+    mailBodyHTML: mailBodyHTML?.trim() || undefined
+  }
+}
+
+const hasGeneratedEmail = computed(() => draftHasContent(generatedEmail.value))
+const generatedEmailPreview = computed(() => formatDraftPreview(generatedEmail.value))
 
 const openCompanyModal = (prospect: Prospect) => {
   companyProspect.value = prospect
   showCompanyModal.value = true
-  try {
-    const saved = localStorage.getItem(storageKey(prospect.id))
-    generatedEmail.value = saved ? saved : null
-  } catch (e) {
-    generatedEmail.value = null
+
+  const serverDraft = draftFromProspect(prospect)
+  if (serverDraft) {
+    generatedEmail.value = serverDraft
+    storeDraft(prospect.id, serverDraft)
+  } else {
+    generatedEmail.value = loadDraftFromStorage(prospect.id)
   }
 }
 
@@ -481,43 +586,77 @@ const closeCompanyModal = () => {
 
 const generateEmail = async () => {
   if (!companyProspect.value) return
+  const prospectId = companyProspect.value.id
   isGenerating.value = true
-  await new Promise(r => setTimeout(r, 400))
+  try {
+    const response = await prospectsAPI.generateEmailDraft(companyProspect.value.id)
+    const draft = extractEmailDraft(response)
 
-  const name = companyProspect.value.contactName || 'Hej'
-  const company = companyProspect.value.companyName || ''
-  const domain = companyProspect.value.domain ? ` (${companyProspect.value.domain})` : ''
+    if (!draft) {
+      throw new Error('Ingen mejltext genererades')
+    }
 
-  const subject = `Hej ${name} — kort fråga om ${company}`
-  const body = `Hej ${name},\n\nJag heter [Ditt namn] och jobbar med outreach för ${company}${domain}. Jag ville bara höra om ni är intresserade av att diskutera möjligheter att samarbeta kring [kort pitch här].\n\nHälsningar,\n[Ditt namn]`
-
-  generatedEmail.value = `Subject: ${subject}\n\n${body}`
-  try { localStorage.setItem(storageKey(companyProspect.value.id), generatedEmail.value) } catch (e) {}
-  isGenerating.value = false
+    generatedEmail.value = draft
+    companyProspect.value = { ...companyProspect.value, ...draft }
+    storeDraft(prospectId, draft)
+    prospects.value = prospects.value.map(p =>
+      p.id === prospectId ? { ...p, ...draft } : p
+    )
+  } catch (err: any) {
+    const message = err.response?.data?.error || err.message || 'Kunde inte generera mejl'
+    alert(message)
+  } finally {
+    isGenerating.value = false
+  }
 }
 
 const clearGeneratedEmail = () => {
   if (!companyProspect.value) return
-  try { localStorage.removeItem(storageKey(companyProspect.value.id)) } catch (e) {}
+  const prospectId = companyProspect.value.id
+  clearStoredDraft(prospectId)
   generatedEmail.value = null
+  companyProspect.value = {
+    ...companyProspect.value,
+    mailTitle: undefined,
+    mailBodyPlain: undefined,
+    mailBodyHTML: undefined
+  }
+  prospects.value = prospects.value.map(p =>
+    p.id === prospectId
+      ? { ...p, mailTitle: undefined, mailBodyPlain: undefined, mailBodyHTML: undefined }
+      : p
+  )
 }
 
 const saveEmailToProspect = async () => {
-  if (!companyProspect.value || !generatedEmail.value) return
-  const current = companyProspect.value.contactEmail
-  if (current && !confirm('Det finns redan en e-post sparad för denna kontakt. Vill du skriva över den?')) return
+  const prospect = companyProspect.value
+  const draft = generatedEmail.value
+  if (!prospect || !draftHasContent(draft)) return
+
+  const existingDraft = draftFromProspect(prospect)
+  if (existingDraft && !confirm('Det finns redan ett mejlutkast sparat. Vill du skriva över det?')) return
 
   try {
     isGenerating.value = true
-    await api.put(`/prospects/${companyProspect.value.id}`, { contactEmail: generatedEmail.value })
+    const updated = await prospectsAPI.update(prospect.id, {
+      mailTitle: draft.mailTitle,
+      mailBodyPlain: draft.mailBodyPlain,
+      mailBodyHTML: draft.mailBodyHTML
+    })
     await fetchProspects()
-    const updated = prospects.value.find(p => p.id === companyProspect.value?.id) || null
-    companyProspect.value = updated
-    isGenerating.value = false
-    alert('E-post sparad till prospect')
+    const refreshed = prospects.value.find(p => p.id === updated.id) || updated
+    companyProspect.value = refreshed
+    generatedEmail.value = draftFromProspect(refreshed)
+    if (generatedEmail.value) {
+      storeDraft(refreshed.id, generatedEmail.value)
+    } else {
+      clearStoredDraft(refreshed.id)
+    }
+    alert('Mejlutkast sparat till prospect')
   } catch (err: any) {
+    alert(err.response?.data?.error || 'Kunde inte spara mejlutkast på prospect')
+  } finally {
     isGenerating.value = false
-    alert(err.response?.data?.error || 'Kunde inte spara e-post på prospect')
   }
 }
 </script>

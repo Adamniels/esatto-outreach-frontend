@@ -20,6 +20,9 @@ export interface Prospect {
   status: ProspectStatus;
   createdUtc: string;
   updatedUtc?: string;
+  mailTitle?: string | null;
+  mailBodyPlain?: string | null;
+  mailBodyHTML?: string | null;
 }
 
 export interface CreateProspectRequest {
@@ -39,6 +42,15 @@ export interface UpdateProspectRequest {
   linkedinUrl?: string;
   notes?: string;
   status?: ProspectStatus;
+  mailTitle?: string;
+  mailBodyPlain?: string;
+  mailBodyHTML?: string;
+}
+
+export interface EmailDraft {
+  mailTitle?: string;
+  mailBodyPlain?: string;
+  mailBodyHTML?: string;
 }
 
 export const statusLabels: Record<ProspectStatus, string> = {

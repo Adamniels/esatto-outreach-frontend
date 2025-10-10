@@ -26,6 +26,12 @@ export const prospectsAPI = {
     return response.data;
   },
 
+  // Generera mejlutkast
+  generateEmailDraft: async (id: string): Promise<unknown> => {
+    const response = await api.post(`/prospects/${id}/email/draft`, {});
+    return response.data;
+  },
+
   // Ta bort prospect
   delete: async (id: string): Promise<void> => {
     await api.delete(`/prospects/${id}`);
