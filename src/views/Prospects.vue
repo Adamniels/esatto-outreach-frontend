@@ -217,14 +217,38 @@
               <div class="section-divider"></div>
 
               <div class="email-actions">
-                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ hasGeneratedEmail ? 'Generera ny' : 'Generera mejl' }}</button>
+                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ hasGeneratedEmailContent ? 'Generera ny' : 'Generera mejl' }}</button>
                 <button v-if="hasGeneratedEmail" @click="clearGeneratedEmail" class="btn btn-secondary">Rensa genererad</button>
-                <button v-if="hasGeneratedEmail" @click="saveEmailToProspect" :disabled="isGenerating" class="btn btn-success">Spara till prospect</button>
+                <button
+                  v-if="hasGeneratedEmail"
+                  @click="saveEmailToProspect"
+                  :disabled="!canSaveGeneratedEmail"
+                  class="btn btn-success"
+                  :class="{ 'btn-loading': isGenerating }"
+                >
+                  Spara till prospect
+                </button>
               </div>
 
               <div v-if="hasGeneratedEmail" class="generated-preview">
-                <label class="form-label">Förhandsgranskning</label>
-                <textarea readonly class="form-textarea" rows="8">{{ generatedEmailPreview }}</textarea>
+                <div class="generated-preview-field">
+                  <label class="form-label">Ämne</label>
+                  <input
+                    v-model="generatedEmailSubject"
+                    class="form-input preview-input"
+                    type="text"
+                    placeholder="Ämne..."
+                  />
+                </div>
+                <div class="generated-preview-field">
+                  <label class="form-label">Meddelande</label>
+                  <textarea
+                    v-model="generatedEmailBody"
+                    class="form-textarea preview-textarea"
+                    rows="10"
+                    placeholder="Skriv eller redigera mejltexten här..."
+                  ></textarea>
+                </div>
               </div>
               <div v-else class="no-generated">Ingen genererad mejl än.</div>
             </div>
@@ -494,27 +518,6 @@ function draftHasContent(draft: EmailDraft | null | undefined): draft is EmailDr
   )
 }
 
-function formatDraftPreview(draft: EmailDraft | null): string {
-  if (!draftHasContent(draft)) return ''
-  const parts: string[] = []
-
-  if (draft.mailTitle && draft.mailTitle.trim()) {
-    parts.push(`Subject: ${draft.mailTitle.trim()}`)
-  }
-
-  let body = draft.mailBodyPlain?.trim() ?? ''
-  if (!body && draft.mailBodyHTML) {
-    body = htmlToPlainText(draft.mailBodyHTML)
-  }
-
-  if (body) {
-    if (parts.length) parts.push('')
-    parts.push(body)
-  }
-
-  return parts.join('\n')
-}
-
 // Load data
 onMounted(() => {
   fetchProspects()
@@ -525,6 +528,7 @@ const showCompanyModal = ref(false)
 const companyProspect = ref<Prospect | null>(null)
 const isGenerating = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
+const originalServerDraft = ref<EmailDraft | null>(null)
 
 const storageKey = (id: string) => `generatedEmail_${id}`
 
@@ -562,14 +566,110 @@ function draftFromProspect(prospect: Prospect | null): EmailDraft | null {
   }
 }
 
-const hasGeneratedEmail = computed(() => draftHasContent(generatedEmail.value))
-const generatedEmailPreview = computed(() => formatDraftPreview(generatedEmail.value))
+function syncDraftState() {
+  const prospect = companyProspect.value
+  if (!prospect) return
+
+  const draft = generatedEmail.value
+  const updatedProspect: Prospect = {
+    ...prospect,
+    mailTitle: draft?.mailTitle ?? undefined,
+    mailBodyPlain: draft?.mailBodyPlain ?? undefined,
+    mailBodyHTML: draft?.mailBodyHTML ?? undefined
+  }
+
+  companyProspect.value = updatedProspect
+  prospects.value = prospects.value.map(p =>
+    p.id === updatedProspect.id
+      ? { ...p, mailTitle: updatedProspect.mailTitle, mailBodyPlain: updatedProspect.mailBodyPlain, mailBodyHTML: updatedProspect.mailBodyHTML }
+      : p
+  )
+
+  if (!draft) {
+    clearStoredDraft(updatedProspect.id)
+    return
+  }
+
+  if (draftHasContent(draft)) {
+    storeDraft(updatedProspect.id, draft)
+  } else {
+    clearStoredDraft(updatedProspect.id)
+  }
+}
+
+const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
+const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
+
+const hasUnsavedChanges = computed(() => {
+  const current = generatedEmail.value
+  const original = originalServerDraft.value
+
+  if (!current && !original) return false
+  if (!current || !original) return true
+
+  const currentTitle = current.mailTitle?.trim() || ''
+  const originalTitle = original.mailTitle?.trim() || ''
+  
+  const currentBody = current.mailBodyPlain?.trim() || ''
+  const originalBody = original.mailBodyPlain?.trim() || ''
+
+  return currentTitle !== originalTitle || currentBody !== originalBody
+})
+
+const canSaveGeneratedEmail = computed(() => 
+  hasGeneratedEmailContent.value && !isGenerating.value && hasUnsavedChanges.value
+)
+
+const generatedEmailSubject = computed({
+  get: () => generatedEmail.value?.mailTitle ?? '',
+  set: value => {
+    const subject = typeof value === 'string' ? value : ''
+    const trimmed = subject.trim()
+    const current = generatedEmail.value ?? {}
+    const next: EmailDraft = {
+      ...current,
+      mailTitle: trimmed ? trimmed : undefined
+    }
+    if (!trimmed) {
+      delete next.mailTitle
+    }
+    generatedEmail.value = draftHasContent(next) ? next : {}
+    syncDraftState()
+  }
+})
+
+const generatedEmailBody = computed({
+  get: () => {
+    const draft = generatedEmail.value
+    if (!draft) return ''
+    if (typeof draft.mailBodyPlain === 'string') return draft.mailBodyPlain
+    if (typeof draft.mailBodyHTML === 'string') return htmlToPlainText(draft.mailBodyHTML)
+    return ''
+  },
+  set: value => {
+    const bodyInput = typeof value === 'string' ? value.replace(/\r\n/g, '\n') : ''
+    const trimmed = bodyInput.trim()
+    const current = generatedEmail.value ?? {}
+    const next: EmailDraft = {
+      ...current,
+      mailBodyPlain: trimmed ? bodyInput : undefined
+    }
+    delete next.mailBodyHTML
+    if (!trimmed) {
+      delete next.mailBodyPlain
+    }
+    generatedEmail.value = draftHasContent(next) ? next : {}
+    syncDraftState()
+  }
+})
 
 const openCompanyModal = (prospect: Prospect) => {
   companyProspect.value = prospect
   showCompanyModal.value = true
 
   const serverDraft = draftFromProspect(prospect)
+  originalServerDraft.value = serverDraft
+  
   if (serverDraft) {
     generatedEmail.value = serverDraft
     storeDraft(prospect.id, serverDraft)
@@ -582,6 +682,7 @@ const closeCompanyModal = () => {
   showCompanyModal.value = false
   companyProspect.value = null
   generatedEmail.value = null
+  originalServerDraft.value = null
 }
 
 const generateEmail = async () => {
@@ -602,6 +703,7 @@ const generateEmail = async () => {
     prospects.value = prospects.value.map(p =>
       p.id === prospectId ? { ...p, ...draft } : p
     )
+    // Don't update originalServerDraft - this is a local change until saved
   } catch (err: any) {
     const message = err.response?.data?.error || err.message || 'Kunde inte generera mejl'
     alert(message)
@@ -615,6 +717,7 @@ const clearGeneratedEmail = () => {
   const prospectId = companyProspect.value.id
   clearStoredDraft(prospectId)
   generatedEmail.value = null
+  originalServerDraft.value = null
   companyProspect.value = {
     ...companyProspect.value,
     mailTitle: undefined,
@@ -646,9 +749,13 @@ const saveEmailToProspect = async () => {
     await fetchProspects()
     const refreshed = prospects.value.find(p => p.id === updated.id) || updated
     companyProspect.value = refreshed
-    generatedEmail.value = draftFromProspect(refreshed)
-    if (generatedEmail.value) {
-      storeDraft(refreshed.id, generatedEmail.value)
+    
+    const savedDraft = draftFromProspect(refreshed)
+    generatedEmail.value = savedDraft
+    originalServerDraft.value = savedDraft
+    
+    if (savedDraft) {
+      storeDraft(refreshed.id, savedDraft)
     } else {
       clearStoredDraft(refreshed.id)
     }
@@ -1038,6 +1145,23 @@ const saveEmailToProspect = async () => {
 .section-divider { height:1px; background:#e5e7eb; }
 .email-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
 .generated-preview { display:flex; flex-direction:column; gap:0.5rem; }
+.generated-preview-field { display:flex; flex-direction:column; gap:0.4rem; }
+.preview-input,
+.preview-textarea {
+  background:#f9fafb;
+  border-color:#e5e7eb;
+  color:#1f2937;
+}
+.preview-input:focus,
+.preview-textarea:focus {
+  border-color:#2563eb;
+  box-shadow:0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.preview-textarea {
+  resize:vertical;
+  min-height:10rem;
+  white-space:pre-wrap;
+}
 .no-generated { color:#6b7280; font-size:0.875rem; }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; }
 .btn-success { background: #10b981; color: white; border-color: #10b981; }
