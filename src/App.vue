@@ -49,8 +49,8 @@
             <h1 class="page-title">{{ pageTitle }}</h1>
           </div>
           <div class="status-indicator">
-            <div class="status-dot status-offline"></div>
-            <span class="status-text">Offline</span>
+            <div class="status-dot" :class="statusClass"></div>
+            <span class="status-text">{{ statusText }}</span>
           </div>
         </div>
       </header>
@@ -66,8 +66,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useBackendStatus } from '@/composables/useBackendStatus'
 
 const route = useRoute()
+const { isOnline, isChecking } = useBackendStatus()
 
 const pageTitle = computed(() => {
   switch (route.path) {
@@ -78,6 +80,16 @@ const pageTitle = computed(() => {
     default:
       return 'Esatto Outreach'
   }
+})
+
+const statusText = computed(() => {
+  if (isChecking.value) return 'Kontrollerar...'
+  return isOnline.value ? 'Online' : 'Offline'
+})
+
+const statusClass = computed(() => {
+  if (isChecking.value) return 'status-checking'
+  return isOnline.value ? 'status-online' : 'status-offline'
 })
 </script>
 
@@ -216,15 +228,38 @@ const pageTitle = computed(() => {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.status-online {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .status-offline {
-  background-color: #f87171;
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.status-checking {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-text {
   font-size: 0.875rem;
   color: #6b7280;
+  font-weight: 500;
 }
 
 .page-content {

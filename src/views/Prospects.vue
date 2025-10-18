@@ -228,6 +228,19 @@
                 >
                   Spara till prospect
                 </button>
+                <button
+                  v-if="canSendEmail"
+                  @click="sendEmailToN8n"
+                  :disabled="isSendingEmail"
+                  class="btn btn-primary"
+                  :class="{ 'btn-loading': isSendingEmail }"
+                >
+                  <svg v-if="!isSendingEmail" class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                  <span v-if="isSendingEmail" class="loading-spinner"></span>
+                  {{ isSendingEmail ? 'Skickar...' : 'Skicka Email till Gmail utkast' }}
+                </button>
               </div>
 
               <div v-if="hasGeneratedEmail" class="generated-preview">
@@ -332,22 +345,31 @@ const saveProspect = async () => {
   
   isSubmitting.value = true
   try {
-    const basePayload = {
-      companyName: formData.value.companyName.trim(),
-      domain: formData.value.domain || undefined,
-      contactName: formData.value.contactName || undefined,
-      contactEmail: formData.value.contactEmail || undefined,
-      linkedinUrl: formData.value.linkedinUrl || undefined,
-      notes: formData.value.notes || undefined
-    }
-
     if (editingProspect.value) {
-      await prospectsAPI.update(editingProspect.value.id, {
-        ...basePayload,
-        status: formData.value.status
-      })
+      // Update: only send changed fields
+      const updatePayload: Record<string, any> = {
+        companyName: formData.value.companyName.trim()
+      }
+      
+      if (formData.value.domain) updatePayload.domain = formData.value.domain
+      if (formData.value.contactName) updatePayload.contactName = formData.value.contactName
+      if (formData.value.contactEmail) updatePayload.contactEmail = formData.value.contactEmail
+      if (formData.value.linkedinUrl) updatePayload.linkedinUrl = formData.value.linkedinUrl
+      if (formData.value.notes) updatePayload.notes = formData.value.notes
+      updatePayload.status = formData.value.status
+      
+      await prospectsAPI.update(editingProspect.value.id, updatePayload)
     } else {
-      await prospectsAPI.create(basePayload)
+      // Create: send all fields
+      const createPayload = {
+        companyName: formData.value.companyName.trim(),
+        domain: formData.value.domain || undefined,
+        contactName: formData.value.contactName || undefined,
+        contactEmail: formData.value.contactEmail || undefined,
+        linkedinUrl: formData.value.linkedinUrl || undefined,
+        notes: formData.value.notes || undefined
+      }
+      await prospectsAPI.create(createPayload)
     }
     
     await fetchProspects()
@@ -527,6 +549,7 @@ onMounted(() => {
 const showCompanyModal = ref(false)
 const companyProspect = ref<Prospect | null>(null)
 const isGenerating = ref(false)
+const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
 
@@ -619,6 +642,20 @@ const hasUnsavedChanges = computed(() => {
 const canSaveGeneratedEmail = computed(() => 
   hasGeneratedEmailContent.value && !isGenerating.value && hasUnsavedChanges.value
 )
+
+const canSendEmail = computed(() => {
+  const prospect = companyProspect.value
+  if (!prospect || !prospect.contactEmail) return false
+  
+  // Check if prospect has saved email content (from server)
+  const hasSavedContent = Boolean(
+    (prospect.mailTitle && prospect.mailTitle.trim()) ||
+    (prospect.mailBodyPlain && prospect.mailBodyPlain.trim()) ||
+    (prospect.mailBodyHTML && prospect.mailBodyHTML.trim())
+  )
+  
+  return hasSavedContent && !isSendingEmail.value
+})
 
 const generatedEmailSubject = computed({
   get: () => generatedEmail.value?.mailTitle ?? '',
@@ -741,11 +778,13 @@ const saveEmailToProspect = async () => {
 
   try {
     isGenerating.value = true
-    const updated = await prospectsAPI.update(prospect.id, {
-      mailTitle: draft.mailTitle,
-      mailBodyPlain: draft.mailBodyPlain,
-      mailBodyHTML: draft.mailBodyHTML
-    })
+    // Only send fields that are actually set (not undefined)
+    const updatePayload: Record<string, any> = {}
+    if (draft.mailTitle !== undefined) updatePayload.mailTitle = draft.mailTitle
+    if (draft.mailBodyPlain !== undefined) updatePayload.mailBodyPlain = draft.mailBodyPlain
+    if (draft.mailBodyHTML !== undefined) updatePayload.mailBodyHTML = draft.mailBodyHTML
+    
+    const updated = await prospectsAPI.update(prospect.id, updatePayload)
     await fetchProspects()
     const refreshed = prospects.value.find(p => p.id === updated.id) || updated
     companyProspect.value = refreshed
@@ -764,6 +803,50 @@ const saveEmailToProspect = async () => {
     alert(err.response?.data?.error || 'Kunde inte spara mejlutkast på prospect')
   } finally {
     isGenerating.value = false
+  }
+}
+
+const sendEmailToN8n = async () => {
+  const prospect = companyProspect.value
+  if (!prospect) return
+
+  // Validate that email content exists
+  if (!prospect.contactEmail) {
+    alert('⚠️ Ingen email-adress finns för denna prospect')
+    return
+  }
+
+  const hasContent = Boolean(
+    (prospect.mailTitle && prospect.mailTitle.trim()) ||
+    (prospect.mailBodyPlain && prospect.mailBodyPlain.trim())
+  )
+
+  if (!hasContent) {
+    alert('⚠️ Inget mejlutkast finns sparat. Generera och spara ett mejlutkast först.')
+    return
+  }
+
+  // Confirm before sending
+  const confirmMessage = `Skicka email till ${prospect.contactEmail} för ${prospect.companyName}?`
+  if (!confirm(confirmMessage)) return
+
+  isSendingEmail.value = true
+  try {
+    const result = await prospectsAPI.sendEmail(prospect.id)
+    
+    if (result.success) {
+      alert(`✅ Email skickat till ${prospect.contactEmail}!`)
+      // Optionally refresh to get updated status
+      await fetchProspects()
+    } else {
+      alert(`❌ Kunde inte skicka email: ${result.message || 'Okänt fel'}`)
+    }
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.error || err.message || 'Ett fel uppstod'
+    alert(`❌ Kunde inte skicka email: ${errorMsg}`)
+    console.error('Send email error:', err)
+  } finally {
+    isSendingEmail.value = false
   }
 }
 </script>
@@ -1163,10 +1246,15 @@ const saveEmailToProspect = async () => {
   white-space:pre-wrap;
 }
 .no-generated { color:#6b7280; font-size:0.875rem; }
-.btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; font-size:0.875rem; transition: all 0.15s ease; }
 .btn-success { background: #10b981; color: white; border-color: #10b981; }
 .btn-success:hover { background:#059669 }
+.btn-primary { background: #2563eb; color: white; border-color: #2563eb; }
+.btn-primary:hover { background:#1e40af; }
+.btn-primary:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; opacity: 0.6; }
 .btn-secondary { background: #f3f4f6; color:#111827; border-color:#e5e7eb }
+.btn-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+.btn-loading { opacity: 0.7; cursor: not-allowed; }
 .view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
 .edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }

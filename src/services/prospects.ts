@@ -32,6 +32,12 @@ export const prospectsAPI = {
     return response.data;
   },
 
+  // Skicka email via n8n
+  sendEmail: async (id: string): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post(`/prospects/${id}/email/send`, {});
+    return response.data;
+  },
+
   // Ta bort prospect
   delete: async (id: string): Promise<void> => {
     await api.delete(`/prospects/${id}`);
