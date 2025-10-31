@@ -43,10 +43,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
         <p class="error-message">{{ error }}</p>
-        <button @click="fetchProspects" class="btn btn-secondary mt-3">Försök igen</button>
+        <button @click="fetchProspects" class="btn btn-secondary retry-btn">Försök igen</button>
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <div v-else class="table-container">
         <table class="prospects-table">
           <colgroup>
             <col class="col-id" />
@@ -92,9 +92,9 @@
           </tbody>
         </table>
 
-        <div v-if="filteredProspects.length === 0" class="text-center py-12">
-          <p class="text-gray-500">Inga prospects hittades</p>
-          <p class="text-gray-400 text-sm mt-1">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
+        <div v-if="filteredProspects.length === 0" class="empty-prospects">
+          <p class="empty-prospects-title">Inga prospects hittades</p>
+          <p class="empty-prospects-subtitle">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
         </div>
       </div>
     </div>
@@ -467,6 +467,31 @@ onMounted(() => {
   color: #374151;
   font-weight: 500;
   margin-bottom: 0.75rem;
+}
+
+.retry-btn {
+  margin-top: 0.75rem;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.empty-prospects {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.empty-prospects-title {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-prospects-subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
 }
 
 /* Modal Styles */

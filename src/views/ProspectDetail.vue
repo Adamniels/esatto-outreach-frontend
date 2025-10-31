@@ -54,7 +54,7 @@
           <span class="info-label">Status:</span>
           <span class="info-value">
             <span :class="['status-badge', `status-${prospect.status}`]">
-              {{ prospect.status }}
+              {{ statusLabels[prospect.status as ProspectStatus] || 'Okänd' }}
             </span>
           </span>
         </div>
@@ -138,7 +138,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Prospect, EmailDraft } from '../types/prospect'
+import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
+import { statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
 
 const route = useRoute()

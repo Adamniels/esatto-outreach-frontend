@@ -1,33 +1,33 @@
 <template>
-  <div class="min-h-screen bg-gray-100 flex">
+  <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md flex-shrink-0">
-      <div class="p-6">
-        <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span class="text-white font-bold text-sm">E</span>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <div class="logo-icon">
+            <span class="logo-text">E</span>
           </div>
-          <h1 class="text-xl font-bold text-gray-900">Esatto Outreach</h1>
+          <h1 class="app-title">Esatto Outreach</h1>
         </div>
       </div>
       
-      <nav class="mt-6">
-        <div class="px-3">
+      <nav class="nav-menu">
+        <div class="nav-container">
           <router-link
             to="/"
-            class="flex items-center px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 mb-1"
-            :class="{ 'bg-blue-100 text-blue-700': $route.name === 'Dashboard' }"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.name === 'Dashboard' }"
           >
-            <ChartBarIcon class="w-5 h-5 mr-3" />
+            <ChartBarIcon class="nav-icon" />
             Dashboard
           </router-link>
           
           <router-link
             to="/prospects"
-            class="flex items-center px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 mb-1"
-            :class="{ 'bg-blue-100 text-blue-700': $route.name === 'Prospects' }"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.name === 'Prospects' }"
           >
-            <BuildingOfficeIcon class="w-5 h-5 mr-3" />
+            <BuildingOfficeIcon class="nav-icon" />
             Prospects
           </router-link>
         </div>
@@ -35,23 +35,23 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col">
+    <main class="main-content">
       <!-- Top Header -->
-      <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="px-6 py-4 flex items-center justify-between">
-          <h2 class="text-2xl font-semibold text-gray-900">{{ pageTitle }}</h2>
-          <div class="flex items-center space-x-4">
+      <header class="top-header">
+        <div class="header-content">
+          <h2 class="page-title">{{ pageTitle }}</h2>
+          <div class="header-actions">
             <!-- Health Status -->
-            <div class="flex items-center space-x-2">
-              <div :class="healthStatus === 'ok' ? 'w-2 h-2 bg-green-400 rounded-full' : 'w-2 h-2 bg-red-400 rounded-full'"></div>
-              <span class="text-sm text-gray-600">{{ healthStatus === 'ok' ? 'Online' : 'Offline' }}</span>
+            <div class="health-status">
+              <div :class="healthStatus === 'ok' ? 'status-dot status-online' : 'status-dot status-offline'"></div>
+              <span class="status-text">{{ healthStatus === 'ok' ? 'Online' : 'Offline' }}</span>
             </div>
           </div>
         </div>
       </header>
 
       <!-- Page Content -->
-      <div class="flex-1 p-6">
+      <div class="page-content">
         <slot />
       </div>
     </main>
@@ -93,3 +93,148 @@ onMounted(() => {
   setInterval(checkHealth, 30000);
 });
 </script>
+
+<style scoped>
+/* App Layout Styles */
+.app-layout {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 16rem;
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 2rem;
+  height: 2rem;
+  background-color: #2563eb;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  color: white;
+  font-weight: bold;
+  font-size: 0.875rem;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #111827;
+}
+
+.nav-menu {
+  margin-top: 1.5rem;
+}
+
+.nav-container {
+  padding: 0 0.75rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  color: #374151;
+  border-radius: 0.5rem;
+  margin-bottom: 0.25rem;
+  text-decoration: none;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.nav-link:hover {
+  background-color: #f3f4f6;
+}
+
+.nav-link-active {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.75rem;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-header {
+  background-color: white;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-content {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.health-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.status-online {
+  background-color: #4ade80;
+}
+
+.status-offline {
+  background-color: #f87171;
+}
+
+.status-text {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.page-content {
+  flex: 1;
+  padding: 1.5rem;
+}
+</style>
