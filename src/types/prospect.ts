@@ -53,6 +53,35 @@ export interface EmailDraft {
   mailBodyHTML?: string;
 }
 
+// Chat types
+export interface ChatRequest {
+  userInput: string;
+  useWebSearch?: boolean;
+  temperature?: number;
+  maxOutputTokens?: number;
+}
+
+export interface ChatResponse {
+  aiMessage: string;
+  improvedMail: boolean;
+  mailTitle?: string | null;
+  mailBodyPlain?: string | null;
+  mailBodyHTML?: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  improvedMail?: boolean;
+  mailData?: {
+    mailTitle?: string;
+    mailBodyPlain?: string;
+    mailBodyHTML?: string;
+  };
+}
+
 export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.New]: 'Ny',
   [ProspectStatus.Researched]: 'Undersökt',

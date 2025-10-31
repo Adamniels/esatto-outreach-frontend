@@ -71,64 +71,78 @@
         <p class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
       </div>
 
-      <!-- Email Action Buttons -->
-      <div class="email-actions">
-        <button 
-          @click="generateEmail" 
-          :disabled="isGenerating"
-          class="btn-primary"
-        >
-          {{ isGenerating ? 'Genererar...' : 'Generera Mejl' }}
-        </button>
+      <!-- Email and Chat Section (Two Columns) -->
+      <div class="email-chat-container">
+        <!-- Email Section (Left) -->
+        <div class="email-section">
+          <!-- Email Action Buttons -->
+          <div class="email-actions">
+            <button 
+              @click="generateEmail" 
+              :disabled="isGenerating"
+              class="btn-primary"
+            >
+              {{ isGenerating ? 'Genererar...' : 'Generera Mejl' }}
+            </button>
 
-        <button 
-          v-if="hasGeneratedEmailContent"
-          @click="clearGeneratedEmail"
-          :disabled="isGenerating"
-          class="btn-secondary"
-        >
-          Rensa Mejl
-        </button>
+            <button 
+              v-if="hasGeneratedEmailContent"
+              @click="clearGeneratedEmail"
+              :disabled="isGenerating"
+              class="btn-secondary"
+            >
+              Rensa Mejl
+            </button>
 
-        <button 
-          v-if="canSaveGeneratedEmail"
-          @click="saveEmailToProspect"
-          :disabled="isGenerating"
-          class="btn-success"
-        >
-          Spara Mejl
-        </button>
+            <button 
+              v-if="canSaveGeneratedEmail"
+              @click="saveEmailToProspect"
+              :disabled="isGenerating"
+              class="btn-success"
+            >
+              Spara Mejl
+            </button>
 
-        <button 
-          v-if="canSendEmail"
-          @click="sendEmailToN8n"
-          :disabled="isSendingEmail"
-          class="btn-send"
-        >
-          {{ isSendingEmail ? 'Skickar...' : 'Skicka Mejl via n8n' }}
-        </button>
-      </div>
+            <button 
+              v-if="canSendEmail"
+              @click="sendEmailToN8n"
+              :disabled="isSendingEmail"
+              class="btn-send"
+            >
+              {{ isSendingEmail ? 'Skickar...' : 'Skicka Mejl via n8n' }}
+            </button>
+          </div>
 
-      <!-- Generated Email Preview -->
-      <div v-if="hasGeneratedEmail" class="email-preview">
-        <div class="email-field">
-          <label>Ämne:</label>
-          <textarea 
-            v-model="generatedEmailSubject"
-            placeholder="Email ämne..."
-            rows="2"
-            class="email-input"
-          ></textarea>
+          <!-- Generated Email Preview -->
+          <div v-if="hasGeneratedEmail" class="email-preview">
+            <div class="email-field">
+              <label>Ämne:</label>
+              <textarea 
+                v-model="generatedEmailSubject"
+                placeholder="Email ämne..."
+                rows="2"
+                class="email-input"
+              ></textarea>
+            </div>
+
+            <div class="email-field">
+              <label>Meddelande:</label>
+              <textarea 
+                v-model="generatedEmailBody"
+                placeholder="Email meddelande..."
+                rows="12"
+                class="email-input"
+              ></textarea>
+            </div>
+          </div>
         </div>
 
-        <div class="email-field">
-          <label>Meddelande:</label>
-          <textarea 
-            v-model="generatedEmailBody"
-            placeholder="Email meddelande..."
-            rows="12"
-            class="email-input"
-          ></textarea>
+        <!-- Chat Section (Right) -->
+        <div class="chat-section">
+          <ChatBox 
+            :prospectId="prospect.id" 
+            @emailUpdated="handleEmailUpdated"
+          />
         </div>
       </div>
     </div>
@@ -141,6 +155,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
 import { statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
+import ChatBox from '../components/ChatBox.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -153,6 +168,7 @@ const isGenerating = ref(false)
 const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
+const hasUnsavedChatChanges = ref(false)
 
 // Storage helper
 const storageKey = (id: string) => `generatedEmail_${id}`
@@ -285,6 +301,9 @@ const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
 const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
 
 const hasUnsavedChanges = computed(() => {
+  // Om chatten har gjort ändringar, räknas det alltid som osparade ändringar
+  if (hasUnsavedChatChanges.value) return true
+  
   const current = generatedEmail.value
   const original = originalServerDraft.value
 
@@ -410,6 +429,8 @@ const generateEmail = async () => {
     generatedEmail.value = draft
     prospect.value = { ...prospect.value, ...draft }
     storeDraft(prospectId, draft)
+    // Återställ chat-flaggan när nytt mejl genereras
+    hasUnsavedChatChanges.value = false
   } catch (err: any) {
     const message = err.response?.data?.error || err.message || 'Kunde inte generera mejl'
     alert(message)
@@ -424,6 +445,7 @@ const clearGeneratedEmail = () => {
   clearStoredDraft(prospectId)
   generatedEmail.value = null
   originalServerDraft.value = null
+  hasUnsavedChatChanges.value = false
   prospect.value = {
     ...prospect.value,
     mailTitle: undefined,
@@ -453,6 +475,9 @@ const saveEmailToProspect = async () => {
     const savedDraft = draftFromProspect(updated)
     generatedEmail.value = savedDraft
     originalServerDraft.value = savedDraft
+    
+    // Återställ chat-ändringar flaggan efter sparning
+    hasUnsavedChatChanges.value = false
     
     if (savedDraft) {
       storeDraft(updated.id, savedDraft)
@@ -508,6 +533,28 @@ const sendEmailToN8n = async () => {
   }
 }
 
+// Handle email update from chat
+function handleEmailUpdated(data: { mailTitle?: string; mailBodyPlain?: string; mailBodyHTML?: string }) {
+  if (!generatedEmail.value) {
+    generatedEmail.value = {}
+  }
+  
+  if (data.mailTitle !== undefined) {
+    generatedEmail.value.mailTitle = data.mailTitle
+  }
+  if (data.mailBodyPlain !== undefined) {
+    generatedEmail.value.mailBodyPlain = data.mailBodyPlain
+  }
+  if (data.mailBodyHTML !== undefined) {
+    generatedEmail.value.mailBodyHTML = data.mailBodyHTML
+  }
+  
+  syncDraftState()
+  
+  // Markera att chatten har gjort ändringar som behöver sparas
+  hasUnsavedChatChanges.value = true
+}
+
 // Load prospect on mount
 onMounted(() => {
   fetchProspect()
@@ -542,6 +589,29 @@ onMounted(() => {
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
   padding: 2rem;
+}
+
+.email-chat-container {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .email-chat-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.email-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-section {
+  display: flex;
 }
 
 .detail-header {

@@ -1,5 +1,5 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse } from '@/types/prospect';
 
 export const prospectsAPI = {
   // Lista alla prospects
@@ -41,6 +41,17 @@ export const prospectsAPI = {
   // Ta bort prospect
   delete: async (id: string): Promise<void> => {
     await api.delete(`/prospects/${id}`);
+  },
+
+  // Chatta om prospect
+  chat: async (id: string, data: ChatRequest): Promise<ChatResponse> => {
+    const response = await api.post(`/prospects/${id}/chat`, data);
+    return response.data;
+  },
+
+  // Återställ chat-konversation
+  resetChat: async (id: string): Promise<void> => {
+    await api.post(`/prospects/${id}/chat/reset`);
   }
 };
 
