@@ -47,7 +47,7 @@
       </div>
 
       <div v-if="isLoading" class="message message-assistant">
-        <div class="message-avatar">🤖</div>
+        <div class="message-avatar">Ai</div>
         <div class="message-content">
           <div class="typing-indicator">
             <span></span>
