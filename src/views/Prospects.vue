@@ -86,6 +86,7 @@
                 <div class="action-buttons">
                   <button @click="router.push(`/prospects/${prospect.id}`)" class="view-btn">View</button>
                   <button @click="editProspect(prospect)" class="edit-btn">Edit</button>
+                  <button @click="confirmDelete(prospect)" class="delete-btn">Delete</button>
                 </div>
               </td>
             </tr>
@@ -724,11 +725,11 @@ onMounted(() => {
 .id-cell { color: #111827; font-size: 0.9rem; }
 .company-cell { font-weight: 600; color: #111827; }
 .col-id { width: 18%; min-width: 12rem; }
-.col-company { width: 22%; }
-.col-contact { width: 18%; }
-.col-email { width: 18%; }
+.col-company { width: 20%; }
+.col-contact { width: 16%; }
+.col-email { width: 16%; }
 .col-status { width: 10%; }
-.col-actions { width: 14%; }
+.col-actions { width: 20%; }
 .id-text { display:block; width: 100%; overflow-wrap: anywhere; }
 .contact-inner { display: flex; align-items: center; gap: 0.5rem; }
 .avatar { width: 36px; height: 36px; border-radius: 9999px; background: #e5e7eb; display:flex; align-items:center; justify-content:center; }
@@ -789,6 +790,8 @@ onMounted(() => {
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
 .edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
 .edit-btn:hover { background:#e0e7ff; border-color:#a5b4fc; }
+.delete-btn { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
+.delete-btn:hover { background:#fee2e2; border-color:#fca5a5; }
 
 /* Responsive fallback: on small screens revert to auto layout and a bit less padding */
 @media (max-width: 640px) {
