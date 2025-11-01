@@ -86,10 +86,19 @@
             </button>
 
             <button 
+              v-if="canResetToBackend"
+              @click="resetToBackendVersion"
+              :disabled="isGenerating"
+              class="btn-reset"
+            >
+              Återställ till Sparat
+            </button>
+
+            <button 
               v-if="hasGeneratedEmailContent"
               @click="clearGeneratedEmail"
               :disabled="isGenerating"
-              class="btn-secondary"
+              class="btn-danger"
             >
               Rensa Mejl
             </button>
@@ -140,7 +149,9 @@
         <!-- Chat Section (Right) -->
         <div class="chat-section">
           <ChatBox 
-            :prospectId="prospect.id" 
+            :prospectId="prospect.id"
+            :mailTitle="generatedEmail?.mailTitle"
+            :mailBodyPlain="generatedEmail?.mailBodyPlain"
             @emailUpdated="handleEmailUpdated"
           />
         </div>
@@ -323,6 +334,23 @@ const canSaveGeneratedEmail = computed(() =>
   hasGeneratedEmailContent.value && !isGenerating.value && hasUnsavedChanges.value
 )
 
+const canResetToBackend = computed(() => {
+  // Visa knappen om det finns ett sparat mejl på backend OCH det är olika från nuvarande
+  const serverDraft = originalServerDraft.value
+  if (!serverDraft || !draftHasContent(serverDraft)) return false
+  
+  const current = generatedEmail.value
+  if (!current) return false
+  
+  // Visa bara om det faktiskt är olika
+  const currentTitle = current.mailTitle?.trim() || ''
+  const serverTitle = serverDraft.mailTitle?.trim() || ''
+  const currentBody = current.mailBodyPlain?.trim() || ''
+  const serverBody = serverDraft.mailBodyPlain?.trim() || ''
+  
+  return currentTitle !== serverTitle || currentBody !== serverBody
+})
+
 const canSendEmail = computed(() => {
   const p = prospect.value
   if (!p || !p.contactEmail) return false
@@ -451,6 +479,20 @@ const clearGeneratedEmail = () => {
     mailTitle: undefined,
     mailBodyPlain: undefined,
     mailBodyHTML: undefined
+  }
+}
+
+const resetToBackendVersion = () => {
+  if (!originalServerDraft.value) return
+  
+  if (!confirm('Vill du återställa mejlet till den sparade versionen? Alla ändringar går förlorade.')) return
+  
+  // Återställ till backend-versionen
+  generatedEmail.value = { ...originalServerDraft.value }
+  hasUnsavedChatChanges.value = false
+  
+  if (prospect.value) {
+    storeDraft(prospect.value.id, originalServerDraft.value)
   }
 }
 
@@ -736,7 +778,9 @@ onMounted(() => {
 .btn-primary,
 .btn-secondary,
 .btn-success,
-.btn-send {
+.btn-send,
+.btn-danger,
+.btn-reset {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.375rem;
@@ -782,10 +826,30 @@ onMounted(() => {
   background-color: #6d28d9;
 }
 
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.btn-reset {
+  background-color: #9ca3af;
+  color: white;
+}
+
+.btn-reset:hover:not(:disabled) {
+  background-color: #6b7280;
+}
+
 .btn-primary:disabled,
 .btn-secondary:disabled,
 .btn-success:disabled,
-.btn-send:disabled {
+.btn-send:disabled,
+.btn-danger:disabled,
+.btn-reset:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

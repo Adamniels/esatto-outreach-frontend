@@ -98,6 +98,8 @@ import { prospectsAPI } from '@/services/prospects'
 
 interface Props {
   prospectId: string
+  mailTitle?: string
+  mailBodyPlain?: string
 }
 
 interface Emits {
@@ -197,6 +199,8 @@ async function handleSend() {
   try {
     const request: ChatRequest = {
       userInput: messageText,
+      mailTitle: props.mailTitle,
+      mailBodyPlain: props.mailBodyPlain,
       useWebSearch: useWebSearch.value,
       temperature: 0.7,
       maxOutputTokens: 4000

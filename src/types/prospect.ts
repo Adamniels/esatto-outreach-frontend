@@ -56,6 +56,8 @@ export interface EmailDraft {
 // Chat types
 export interface ChatRequest {
   userInput: string;
+  mailTitle?: string;
+  mailBodyPlain?: string;
   useWebSearch?: boolean;
   temperature?: number;
   maxOutputTokens?: number;
