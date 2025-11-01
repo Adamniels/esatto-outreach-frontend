@@ -48,10 +48,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
         <p class="error-message">Network Error</p>
-        <button 
-          @click="refreshData"
-          class="btn btn-secondary mt-3"
-        >
+        <button @click="refreshData" class="btn btn-secondary retry-btn">
           Försök igen
         </button>
       </div>
@@ -66,35 +63,29 @@
         </router-link>
       </div>
 
-      <div v-else class="overflow-hidden">
+      <div v-else class="table-wrapper">
         <!-- Clean table like in Prody -->
-        <table class="min-w-full">
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="prospect in recentProspects" :key="prospect.id" class="hover:bg-gray-50 transition-colors">
-              <td class="px-6 py-4">
-                <div class="font-medium text-gray-900 text-sm">{{ prospect.companyName }}</div>
-                <div class="text-gray-500 text-xs mt-1">{{ prospect.contactName || 'Ingen kontakt' }}</div>
+        <table class="activity-table">
+          <tbody class="activity-tbody">
+            <tr v-for="prospect in recentProspects" :key="prospect.id" class="activity-row">
+              <td class="activity-cell">
+                <div class="company-name">{{ prospect.companyName }}</div>
+                <div class="contact-info">{{ prospect.contactName || 'Ingen kontakt' }}</div>
               </td>
-              <td class="px-6 py-4 text-right">
-                <span 
-                  :class="getStatusColor(prospect.status)"
-                  class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
-                >
+              <td class="activity-cell-right">
+                <span :class="['status-badge', getStatusClass(prospect.status)]">
                   {{ getStatusLabel(prospect.status) }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right text-sm text-gray-500">
+              <td class="activity-cell-right date-cell">
                 {{ formatDate(prospect.createdUtc) }}
               </td>
             </tr>
           </tbody>
         </table>
         
-        <div class="px-6 py-3 bg-gray-50 border-t border-gray-100">
-          <router-link 
-            to="/prospects"
-            class="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
+        <div class="table-footer">
+          <router-link to="/prospects" class="view-all-link">
             Visa alla prospects →
           </router-link>
         </div>
@@ -105,42 +96,21 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
-
-// Simple types
-interface Prospect {
-  id: string
-  companyName: string
-  domain?: string
-  contactName?: string
-  contactEmail?: string
-  linkedinUrl?: string
-  notes?: string
-  status: number
-  createdUtc: string
-  updatedUtc?: string
-}
+import type { Prospect, ProspectStatus } from '@/types/prospect'
+import { statusLabels, statusColors } from '@/types/prospect'
+import { prospectsAPI } from '@/services/prospects'
 
 // Simple reactive state
 const prospects = ref<Prospect[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-// API client
-const api = axios.create({
-  baseURL: 'http://localhost:5000',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
-
 // Fetch prospects function
 const fetchProspects = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.get('/prospects')
-    prospects.value = response.data
+    prospects.value = await prospectsAPI.getAll()
   } catch (err: any) {
     error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
   } finally {
@@ -169,23 +139,7 @@ const recentProspects = computed(() =>
     .slice(0, 5)
 )
 
-// Status helpers
-const statusLabels: Record<number, string> = {
-  0: 'Ny',
-  1: 'Undersökt',
-  2: 'E-post skickad',
-  3: 'Svarat',
-  4: 'Arkiverad'
-}
-
-const statusColors: Record<number, string> = {
-  0: 'bg-blue-50 text-blue-700 border border-blue-200',
-  1: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-  2: 'bg-purple-50 text-purple-700 border border-purple-200',
-  3: 'bg-green-50 text-green-700 border border-green-200',
-  4: 'bg-gray-50 text-gray-700 border border-gray-200'
-}
-
+// Helper functions using imported constants
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('sv-SE', {
     year: 'numeric',
@@ -194,8 +148,18 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getStatusLabel = (status: number) => statusLabels[status] || 'Okänd'
-const getStatusColor = (status: number) => statusColors[status] || 'bg-gray-100 text-gray-800'
+const getStatusLabel = (status: ProspectStatus) => statusLabels[status] || 'Okänd'
+
+const getStatusClass = (status: ProspectStatus) => {
+  switch (status) {
+    case 0: return 'status-new'
+    case 1: return 'status-researched'
+    case 2: return 'status-emailed'
+    case 3: return 'status-responded'
+    case 4: return 'status-archived'
+    default: return 'status-unknown'
+  }
+}
 
 // Load data on mount
 onMounted(() => {
@@ -345,7 +309,117 @@ onMounted(() => {
   color: #2563eb;
 }
 
-.mt-3 {
+.retry-btn {
   margin-top: 0.75rem;
+}
+
+/* Table styles */
+.table-wrapper {
+  overflow: hidden;
+}
+
+.activity-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.activity-tbody {
+  border-top: 1px solid #f3f4f6;
+}
+
+.activity-row {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.activity-row:hover {
+  background-color: #f9fafb;
+}
+
+.activity-row:not(:last-child) {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.activity-cell {
+  padding: 1rem 1.5rem;
+  text-align: left;
+}
+
+.activity-cell-right {
+  padding: 1rem 1.5rem;
+  text-align: right;
+}
+
+.company-name {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.875rem;
+}
+
+.contact-info {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.date-cell {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-new {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-researched {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-emailed {
+  background-color: #e9d5ff;
+  color: #6b21a8;
+}
+
+.status-responded {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-archived {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.status-unknown {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.table-footer {
+  padding: 0.75rem 1.5rem;
+  background-color: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+}
+
+.view-all-link {
+  font-size: 0.875rem;
+  color: #3b82f6;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease-in-out;
+}
+
+.view-all-link:hover {
+  color: #2563eb;
 }
 </style>

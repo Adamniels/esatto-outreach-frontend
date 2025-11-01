@@ -43,10 +43,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
         <p class="error-message">{{ error }}</p>
-        <button @click="fetchProspects" class="btn btn-secondary mt-3">Försök igen</button>
+        <button @click="fetchProspects" class="btn btn-secondary retry-btn">Försök igen</button>
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <div v-else class="table-container">
         <table class="prospects-table">
           <colgroup>
             <col class="col-id" />
@@ -84,17 +84,18 @@
               </td>
               <td class="table-cell actions-cell">
                 <div class="action-buttons">
-                  <button @click="openCompanyModal(prospect)" class="view-btn">View</button>
+                  <button @click="router.push(`/prospects/${prospect.id}`)" class="view-btn">View</button>
                   <button @click="editProspect(prospect)" class="edit-btn">Edit</button>
+                  <button @click="confirmDelete(prospect)" class="delete-btn">Delete</button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <div v-if="filteredProspects.length === 0" class="text-center py-12">
-          <p class="text-gray-500">Inga prospects hittades</p>
-          <p class="text-gray-400 text-sm mt-1">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
+        <div v-if="filteredProspects.length === 0" class="empty-prospects">
+          <p class="empty-prospects-title">Inga prospects hittades</p>
+          <p class="empty-prospects-subtitle">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
         </div>
       </div>
     </div>
@@ -150,135 +151,16 @@
         </div>
       </div>
     </div>
-
-    <!-- Company Details / Email Generation Modal -->
-    <div v-if="showCompanyModal" class="modal-overlay" @keydown.esc="closeCompanyModal">
-      <div class="modal-container">
-        <div class="modal-backdrop" @click="closeCompanyModal"></div>
-        <div class="modal-content">
-          <div class="modal-header">
-            <div class="header-title-container">
-              <h3 class="modal-title">Företagsdetaljer</h3>
-              <button @click="closeCompanyModal" class="modal-close-btn">✕</button>
-            </div>
-          </div>
-          <div class="modal-body">
-            <div class="company-info-wrapper">
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Företag</span>
-                  <span class="detail-value">{{ companyProspect?.companyName || '-' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Kontakt</span>
-                  <span class="detail-value">{{ companyProspect?.contactName || '-' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">E-post</span>
-                  <span class="detail-value">{{ companyProspect?.contactEmail || '-' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Webbplats</span>
-                  <span class="detail-value">
-                    <template v-if="companyProspect?.domain">
-                      <a :href="formatDomainUrl(companyProspect.domain)" target="_blank" rel="noopener" class="detail-link">{{ companyProspect.domain }}</a>
-                    </template>
-                    <template v-else>-</template>
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Status</span>
-                  <span class="detail-value">{{ companyProspect ? getStatusLabel(companyProspect.status) : '-' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Skapad</span>
-                  <span class="detail-value">{{ formatDateTime(companyProspect?.createdUtc) }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Uppdaterad</span>
-                  <span class="detail-value">{{ formatDateTime(companyProspect?.updatedUtc) }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">LinkedIn</span>
-                  <span class="detail-value">
-                    <template v-if="companyProspect?.linkedinUrl">
-                      <a :href="companyProspect.linkedinUrl" target="_blank" rel="noopener" class="detail-link">Visa profil</a>
-                    </template>
-                    <template v-else>-</template>
-                  </span>
-                </div>
-              </div>
-
-              <div class="notes-section">
-                <span class="detail-label">Anteckningar</span>
-                <p class="notes-value">{{ (companyProspect?.notes && companyProspect.notes.trim()) ? companyProspect.notes : 'Inga anteckningar sparade.' }}</p>
-              </div>
-
-              <div class="section-divider"></div>
-
-              <div class="email-actions">
-                <button @click="generateEmail" :disabled="isGenerating" class="btn btn-success">{{ hasGeneratedEmailContent ? 'Generera ny' : 'Generera mejl' }}</button>
-                <button v-if="hasGeneratedEmail" @click="clearGeneratedEmail" class="btn btn-secondary">Rensa genererad</button>
-                <button
-                  v-if="hasGeneratedEmail"
-                  @click="saveEmailToProspect"
-                  :disabled="!canSaveGeneratedEmail"
-                  class="btn btn-success"
-                  :class="{ 'btn-loading': isGenerating }"
-                >
-                  Spara till prospect
-                </button>
-                <button
-                  v-if="canSendEmail"
-                  @click="sendEmailToN8n"
-                  :disabled="isSendingEmail"
-                  class="btn btn-primary"
-                  :class="{ 'btn-loading': isSendingEmail }"
-                >
-                  <svg v-if="!isSendingEmail" class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                  </svg>
-                  <span v-if="isSendingEmail" class="loading-spinner"></span>
-                  {{ isSendingEmail ? 'Skickar...' : 'Skicka Email till Gmail utkast' }}
-                </button>
-              </div>
-
-              <div v-if="hasGeneratedEmail" class="generated-preview">
-                <div class="generated-preview-field">
-                  <label class="form-label">Ämne</label>
-                  <input
-                    v-model="generatedEmailSubject"
-                    class="form-input preview-input"
-                    type="text"
-                    placeholder="Ämne..."
-                  />
-                </div>
-                <div class="generated-preview-field">
-                  <label class="form-label">Meddelande</label>
-                  <textarea
-                    v-model="generatedEmailBody"
-                    class="form-textarea preview-textarea"
-                    rows="10"
-                    placeholder="Skriv eller redigera mejltexten här..."
-                  ></textarea>
-                </div>
-              </div>
-              <div v-else class="no-generated">Ingen genererad mejl än.</div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button @click="closeCompanyModal" class="btn btn-secondary">Stäng</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { prospectsAPI } from '@/services/prospects'
-import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus, type EmailDraft } from '@/types/prospect'
+import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
+
+const router = useRouter()
 
 interface ProspectFormData {
   companyName: string
@@ -320,19 +202,6 @@ const fetchProspects = async () => {
   error.value = null
   try {
     prospects.value = await prospectsAPI.getAll()
-    if (companyProspect.value) {
-      const updated = prospects.value.find(p => p.id === companyProspect.value?.id)
-      if (updated) {
-        companyProspect.value = updated
-        const draft = draftFromProspect(updated)
-        if (draft) {
-          generatedEmail.value = draft
-          storeDraft(updated.id, draft)
-        } else {
-          clearStoredDraft(updated.id)
-        }
-      }
-    }
   } catch (err: any) {
     error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
   } finally {
@@ -477,378 +346,15 @@ const formatDomainUrl = (domain: string) => {
   return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
 }
 
-function pickString(source: Record<string, unknown>, keys: readonly string[]) {
-  for (const key of keys) {
-    const value = source[key]
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
-  }
-  return undefined
-}
-
-function extractEmailDraft(payload: unknown): EmailDraft | null {
-  if (!payload) return null
-
-  if (typeof payload === 'string') {
-    const plain = payload.trim()
-    return plain ? { mailBodyPlain: plain } : null
-  }
-
-  if (typeof payload === 'object') {
-    const data = payload as Record<string, unknown>
-
-    let mailTitle = pickString(data, ['mailTitle', 'MailTitle'])
-    let mailBodyPlain = pickString(data, ['mailBodyPlain', 'MailBodyPlain'])
-    let mailBodyHTML = pickString(data, ['mailBodyHTML', 'MailBodyHTML'])
-
-    if (!mailTitle) {
-      mailTitle = pickString(data, ['subject', 'title', 'mail_title'])
-    }
-
-    if (!mailBodyPlain) {
-      mailBodyPlain = pickString(data, ['draft', 'email', 'body', 'text', 'content', 'MailBodyPlain', 'mail_body_plain'])
-    }
-
-    if (!mailBodyHTML) {
-      mailBodyHTML = pickString(data, ['html', 'mailBodyHTML', 'MailBodyHTML', 'mail_body_html'])
-    }
-
-    if (mailTitle || mailBodyPlain || mailBodyHTML) {
-      return { mailTitle, mailBodyPlain, mailBodyHTML }
-    }
-  }
-
-  return null
-}
-
-function htmlToPlainText(html: string) {
-  return html
-    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-    .replace(/<\s*\/p\s*>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function draftHasContent(draft: EmailDraft | null | undefined): draft is EmailDraft {
-  if (!draft) return false
-  return Boolean(
-    (draft.mailTitle && draft.mailTitle.trim()) ||
-    (draft.mailBodyPlain && draft.mailBodyPlain.trim()) ||
-    (draft.mailBodyHTML && draft.mailBodyHTML.trim())
-  )
-}
-
 // Load data
 onMounted(() => {
   fetchProspects()
 })
 
 // Company modal state + helpers
-const showCompanyModal = ref(false)
-const companyProspect = ref<Prospect | null>(null)
-const isGenerating = ref(false)
-const isSendingEmail = ref(false)
-const generatedEmail = ref<EmailDraft | null>(null)
-const originalServerDraft = ref<EmailDraft | null>(null)
 
-const storageKey = (id: string) => `generatedEmail_${id}`
 
-function loadDraftFromStorage(id: string): EmailDraft | null {
-  try {
-    const stored = localStorage.getItem(storageKey(id))
-    if (!stored) return null
-    try {
-      return extractEmailDraft(JSON.parse(stored))
-    } catch (e) {
-      return extractEmailDraft(stored)
-    }
-  } catch (e) {
-    return null
-  }
-}
 
-function storeDraft(id: string, draft: EmailDraft) {
-  if (!draftHasContent(draft)) return
-  try { localStorage.setItem(storageKey(id), JSON.stringify(draft)) } catch (e) {}
-}
-
-function clearStoredDraft(id: string) {
-  try { localStorage.removeItem(storageKey(id)) } catch (e) {}
-}
-
-function draftFromProspect(prospect: Prospect | null): EmailDraft | null {
-  if (!prospect) return null
-  const { mailTitle, mailBodyPlain, mailBodyHTML } = prospect
-  if (!mailTitle && !mailBodyPlain && !mailBodyHTML) return null
-  return {
-    mailTitle: mailTitle?.trim() || undefined,
-    mailBodyPlain: mailBodyPlain?.trim() || undefined,
-    mailBodyHTML: mailBodyHTML?.trim() || undefined
-  }
-}
-
-function syncDraftState() {
-  const prospect = companyProspect.value
-  if (!prospect) return
-
-  const draft = generatedEmail.value
-  const updatedProspect: Prospect = {
-    ...prospect,
-    mailTitle: draft?.mailTitle ?? undefined,
-    mailBodyPlain: draft?.mailBodyPlain ?? undefined,
-    mailBodyHTML: draft?.mailBodyHTML ?? undefined
-  }
-
-  companyProspect.value = updatedProspect
-  prospects.value = prospects.value.map(p =>
-    p.id === updatedProspect.id
-      ? { ...p, mailTitle: updatedProspect.mailTitle, mailBodyPlain: updatedProspect.mailBodyPlain, mailBodyHTML: updatedProspect.mailBodyHTML }
-      : p
-  )
-
-  if (!draft) {
-    clearStoredDraft(updatedProspect.id)
-    return
-  }
-
-  if (draftHasContent(draft)) {
-    storeDraft(updatedProspect.id, draft)
-  } else {
-    clearStoredDraft(updatedProspect.id)
-  }
-}
-
-const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
-const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
-
-const hasUnsavedChanges = computed(() => {
-  const current = generatedEmail.value
-  const original = originalServerDraft.value
-
-  if (!current && !original) return false
-  if (!current || !original) return true
-
-  const currentTitle = current.mailTitle?.trim() || ''
-  const originalTitle = original.mailTitle?.trim() || ''
-  
-  const currentBody = current.mailBodyPlain?.trim() || ''
-  const originalBody = original.mailBodyPlain?.trim() || ''
-
-  return currentTitle !== originalTitle || currentBody !== originalBody
-})
-
-const canSaveGeneratedEmail = computed(() => 
-  hasGeneratedEmailContent.value && !isGenerating.value && hasUnsavedChanges.value
-)
-
-const canSendEmail = computed(() => {
-  const prospect = companyProspect.value
-  if (!prospect || !prospect.contactEmail) return false
-  
-  // Check if prospect has saved email content (from server)
-  const hasSavedContent = Boolean(
-    (prospect.mailTitle && prospect.mailTitle.trim()) ||
-    (prospect.mailBodyPlain && prospect.mailBodyPlain.trim()) ||
-    (prospect.mailBodyHTML && prospect.mailBodyHTML.trim())
-  )
-  
-  return hasSavedContent && !isSendingEmail.value
-})
-
-const generatedEmailSubject = computed({
-  get: () => generatedEmail.value?.mailTitle ?? '',
-  set: value => {
-    const subject = typeof value === 'string' ? value : ''
-    const trimmed = subject.trim()
-    const current = generatedEmail.value ?? {}
-    const next: EmailDraft = {
-      ...current,
-      mailTitle: trimmed ? trimmed : undefined
-    }
-    if (!trimmed) {
-      delete next.mailTitle
-    }
-    generatedEmail.value = draftHasContent(next) ? next : {}
-    syncDraftState()
-  }
-})
-
-const generatedEmailBody = computed({
-  get: () => {
-    const draft = generatedEmail.value
-    if (!draft) return ''
-    if (typeof draft.mailBodyPlain === 'string') return draft.mailBodyPlain
-    if (typeof draft.mailBodyHTML === 'string') return htmlToPlainText(draft.mailBodyHTML)
-    return ''
-  },
-  set: value => {
-    const bodyInput = typeof value === 'string' ? value.replace(/\r\n/g, '\n') : ''
-    const trimmed = bodyInput.trim()
-    const current = generatedEmail.value ?? {}
-    const next: EmailDraft = {
-      ...current,
-      mailBodyPlain: trimmed ? bodyInput : undefined
-    }
-    delete next.mailBodyHTML
-    if (!trimmed) {
-      delete next.mailBodyPlain
-    }
-    generatedEmail.value = draftHasContent(next) ? next : {}
-    syncDraftState()
-  }
-})
-
-const openCompanyModal = (prospect: Prospect) => {
-  companyProspect.value = prospect
-  showCompanyModal.value = true
-
-  const serverDraft = draftFromProspect(prospect)
-  originalServerDraft.value = serverDraft
-  
-  if (serverDraft) {
-    generatedEmail.value = serverDraft
-    storeDraft(prospect.id, serverDraft)
-  } else {
-    generatedEmail.value = loadDraftFromStorage(prospect.id)
-  }
-}
-
-const closeCompanyModal = () => {
-  showCompanyModal.value = false
-  companyProspect.value = null
-  generatedEmail.value = null
-  originalServerDraft.value = null
-}
-
-const generateEmail = async () => {
-  if (!companyProspect.value) return
-  const prospectId = companyProspect.value.id
-  isGenerating.value = true
-  try {
-    const response = await prospectsAPI.generateEmailDraft(companyProspect.value.id)
-    const draft = extractEmailDraft(response)
-
-    if (!draft) {
-      throw new Error('Ingen mejltext genererades')
-    }
-
-    generatedEmail.value = draft
-    companyProspect.value = { ...companyProspect.value, ...draft }
-    storeDraft(prospectId, draft)
-    prospects.value = prospects.value.map(p =>
-      p.id === prospectId ? { ...p, ...draft } : p
-    )
-    // Don't update originalServerDraft - this is a local change until saved
-  } catch (err: any) {
-    const message = err.response?.data?.error || err.message || 'Kunde inte generera mejl'
-    alert(message)
-  } finally {
-    isGenerating.value = false
-  }
-}
-
-const clearGeneratedEmail = () => {
-  if (!companyProspect.value) return
-  const prospectId = companyProspect.value.id
-  clearStoredDraft(prospectId)
-  generatedEmail.value = null
-  originalServerDraft.value = null
-  companyProspect.value = {
-    ...companyProspect.value,
-    mailTitle: undefined,
-    mailBodyPlain: undefined,
-    mailBodyHTML: undefined
-  }
-  prospects.value = prospects.value.map(p =>
-    p.id === prospectId
-      ? { ...p, mailTitle: undefined, mailBodyPlain: undefined, mailBodyHTML: undefined }
-      : p
-  )
-}
-
-const saveEmailToProspect = async () => {
-  const prospect = companyProspect.value
-  const draft = generatedEmail.value
-  if (!prospect || !draftHasContent(draft)) return
-
-  const existingDraft = draftFromProspect(prospect)
-  if (existingDraft && !confirm('Det finns redan ett mejlutkast sparat. Vill du skriva över det?')) return
-
-  try {
-    isGenerating.value = true
-    // Only send fields that are actually set (not undefined)
-    const updatePayload: Record<string, any> = {}
-    if (draft.mailTitle !== undefined) updatePayload.mailTitle = draft.mailTitle
-    if (draft.mailBodyPlain !== undefined) updatePayload.mailBodyPlain = draft.mailBodyPlain
-    if (draft.mailBodyHTML !== undefined) updatePayload.mailBodyHTML = draft.mailBodyHTML
-    
-    const updated = await prospectsAPI.update(prospect.id, updatePayload)
-    await fetchProspects()
-    const refreshed = prospects.value.find(p => p.id === updated.id) || updated
-    companyProspect.value = refreshed
-    
-    const savedDraft = draftFromProspect(refreshed)
-    generatedEmail.value = savedDraft
-    originalServerDraft.value = savedDraft
-    
-    if (savedDraft) {
-      storeDraft(refreshed.id, savedDraft)
-    } else {
-      clearStoredDraft(refreshed.id)
-    }
-    alert('Mejlutkast sparat till prospect')
-  } catch (err: any) {
-    alert(err.response?.data?.error || 'Kunde inte spara mejlutkast på prospect')
-  } finally {
-    isGenerating.value = false
-  }
-}
-
-const sendEmailToN8n = async () => {
-  const prospect = companyProspect.value
-  if (!prospect) return
-
-  // Validate that email content exists
-  if (!prospect.contactEmail) {
-    alert('⚠️ Ingen email-adress finns för denna prospect')
-    return
-  }
-
-  const hasContent = Boolean(
-    (prospect.mailTitle && prospect.mailTitle.trim()) ||
-    (prospect.mailBodyPlain && prospect.mailBodyPlain.trim())
-  )
-
-  if (!hasContent) {
-    alert('⚠️ Inget mejlutkast finns sparat. Generera och spara ett mejlutkast först.')
-    return
-  }
-
-  // Confirm before sending
-  const confirmMessage = `Skicka email till ${prospect.contactEmail} för ${prospect.companyName}?`
-  if (!confirm(confirmMessage)) return
-
-  isSendingEmail.value = true
-  try {
-    const result = await prospectsAPI.sendEmail(prospect.id)
-    
-    if (result.success) {
-      alert(`✅ Email skickat till ${prospect.contactEmail}!`)
-      // Optionally refresh to get updated status
-      await fetchProspects()
-    } else {
-      alert(`❌ Kunde inte skicka email: ${result.message || 'Okänt fel'}`)
-    }
-  } catch (err: any) {
-    const errorMsg = err.response?.data?.error || err.message || 'Ett fel uppstod'
-    alert(`❌ Kunde inte skicka email: ${errorMsg}`)
-    console.error('Send email error:', err)
-  } finally {
-    isSendingEmail.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -962,6 +468,31 @@ const sendEmailToN8n = async () => {
   color: #374151;
   font-weight: 500;
   margin-bottom: 0.75rem;
+}
+
+.retry-btn {
+  margin-top: 0.75rem;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.empty-prospects {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.empty-prospects-title {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-prospects-subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
 }
 
 /* Modal Styles */
@@ -1194,11 +725,11 @@ const sendEmailToN8n = async () => {
 .id-cell { color: #111827; font-size: 0.9rem; }
 .company-cell { font-weight: 600; color: #111827; }
 .col-id { width: 18%; min-width: 12rem; }
-.col-company { width: 22%; }
-.col-contact { width: 18%; }
-.col-email { width: 18%; }
+.col-company { width: 20%; }
+.col-contact { width: 16%; }
+.col-email { width: 16%; }
 .col-status { width: 10%; }
-.col-actions { width: 14%; }
+.col-actions { width: 20%; }
 .id-text { display:block; width: 100%; overflow-wrap: anywhere; }
 .contact-inner { display: flex; align-items: center; gap: 0.5rem; }
 .avatar { width: 36px; height: 36px; border-radius: 9999px; background: #e5e7eb; display:flex; align-items:center; justify-content:center; }
@@ -1259,6 +790,8 @@ const sendEmailToN8n = async () => {
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
 .edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
 .edit-btn:hover { background:#e0e7ff; border-color:#a5b4fc; }
+.delete-btn { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
+.delete-btn:hover { background:#fee2e2; border-color:#fca5a5; }
 
 /* Responsive fallback: on small screens revert to auto layout and a bit less padding */
 @media (max-width: 640px) {

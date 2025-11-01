@@ -53,6 +53,37 @@ export interface EmailDraft {
   mailBodyHTML?: string;
 }
 
+// Chat types
+export interface ChatRequest {
+  userInput: string;
+  mailTitle?: string;
+  mailBodyPlain?: string;
+  useWebSearch?: boolean;
+  temperature?: number;
+  maxOutputTokens?: number;
+}
+
+export interface ChatResponse {
+  aiMessage: string;
+  improvedMail: boolean;
+  mailTitle?: string | null;
+  mailBodyPlain?: string | null;
+  mailBodyHTML?: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  improvedMail?: boolean;
+  mailData?: {
+    mailTitle?: string;
+    mailBodyPlain?: string;
+    mailBodyHTML?: string;
+  };
+}
+
 export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.New]: 'Ny',
   [ProspectStatus.Researched]: 'Undersökt',
@@ -61,10 +92,12 @@ export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.Archived]: 'Arkiverad'
 };
 
+// Status colors are now handled by CSS classes instead of inline Tailwind
+// Use getStatusClass() function in components to get the appropriate CSS class
 export const statusColors: Record<ProspectStatus, string> = {
-  [ProspectStatus.New]: 'bg-blue-100 text-blue-800',
-  [ProspectStatus.Researched]: 'bg-yellow-100 text-yellow-800',
-  [ProspectStatus.Emailed]: 'bg-purple-100 text-purple-800',
-  [ProspectStatus.Responded]: 'bg-green-100 text-green-800',
-  [ProspectStatus.Archived]: 'bg-gray-100 text-gray-800'
+  [ProspectStatus.New]: 'status-new',
+  [ProspectStatus.Researched]: 'status-researched',
+  [ProspectStatus.Emailed]: 'status-emailed',
+  [ProspectStatus.Responded]: 'status-responded',
+  [ProspectStatus.Archived]: 'status-archived'
 };
