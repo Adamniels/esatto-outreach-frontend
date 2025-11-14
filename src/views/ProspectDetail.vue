@@ -65,6 +65,18 @@
         </div>
       </div>
 
+      <!-- Soft Company Data Section -->
+      <div class="soft-data-section">
+        <h3>Mjuk Företagsdata</h3>
+        <SoftDataButton
+          :prospectId="prospect.id"
+          :softData="prospect.softCompanyData"
+          :loading="isGeneratingSoftData"
+          @generate="handleGenerateSoftData"
+          @view="showSoftDataModal = true"
+        />
+      </div>
+
       <!-- Notes Section -->
       <div class="notes-section">
         <h3>Anteckningar</h3>
@@ -156,6 +168,14 @@
           />
         </div>
       </div>
+
+      <!-- Soft Company Data Modal -->
+      <SoftCompanyDataModal
+        :show="showSoftDataModal"
+        :softData="prospect.softCompanyData"
+        :loading="isGeneratingSoftData"
+        @close="showSoftDataModal = false"
+      />
     </div>
   </div>
 </template>
@@ -167,9 +187,15 @@ import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
 import { statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
 import ChatBox from '../components/ChatBox.vue'
+import SoftDataButton from '../components/SoftDataButton.vue'
+import SoftCompanyDataModal from '../components/SoftCompanyDataModal.vue'
+import { useSoftCompanyData } from '../composables/useSoftCompanyData'
 
 const route = useRoute()
 const router = useRouter()
+
+// Composables
+const { generateSoftData } = useSoftCompanyData()
 
 // State
 const loading = ref(true)
@@ -180,6 +206,10 @@ const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
 const hasUnsavedChatChanges = ref(false)
+
+// Soft Company Data State
+const showSoftDataModal = ref(false)
+const isGeneratingSoftData = ref(false)
 
 // Storage helper
 const storageKey = (id: string) => `generatedEmail_${id}`
@@ -408,6 +438,35 @@ const generatedEmailBody = computed({
 })
 
 // Actions
+async function handleGenerateSoftData() {
+  if (!prospect.value) return
+  
+  isGeneratingSoftData.value = true
+  error.value = null
+  
+  console.log('ProspectDetail: Starting soft data generation for', prospect.value.id)
+  
+  try {
+    const softData = await generateSoftData(prospect.value.id)
+    
+    console.log('ProspectDetail: Received soft data', softData)
+    
+    // Update the prospect with the new soft data
+    if (prospect.value && softData) {
+      prospect.value.softCompanyData = softData
+      console.log('ProspectDetail: Updated prospect with soft data')
+    }
+    
+    // Automatically show the modal after generation
+    showSoftDataModal.value = true
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Kunde inte generera mjuk företagsdata'
+    console.error('Error generating soft company data:', err)
+  } finally {
+    isGeneratingSoftData.value = false
+  }
+}
+
 async function fetchProspect() {
   const id = route.params.id as string
   if (!id) {
@@ -420,6 +479,13 @@ async function fetchProspect() {
     loading.value = true
     error.value = null
     prospect.value = await prospectsAPI.getById(id)
+    
+    console.log('ProspectDetail: Loaded prospect', {
+      id: prospect.value.id,
+      companyName: prospect.value.companyName,
+      hasSoftData: !!prospect.value.softCompanyData,
+      softDataKeys: prospect.value.softCompanyData ? Object.keys(prospect.value.softCompanyData) : null
+    })
 
     const serverDraft = draftFromProspect(prospect.value)
     originalServerDraft.value = serverDraft
@@ -766,6 +832,21 @@ onMounted(() => {
   font-size: 0.875rem;
   color: #6b7280;
   white-space: pre-wrap;
+}
+
+.soft-data-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f0f9ff;
+  border-radius: 0.375rem;
+  border: 1px solid #bfdbfe;
+}
+
+.soft-data-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
 }
 
 .email-actions {

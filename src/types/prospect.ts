@@ -23,6 +23,7 @@ export interface Prospect {
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  softCompanyData?: SoftCompanyDataDto | null;
 }
 
 export interface CreateProspectRequest {
@@ -101,3 +102,54 @@ export const statusColors: Record<ProspectStatus, string> = {
   [ProspectStatus.Responded]: 'status-responded',
   [ProspectStatus.Archived]: 'status-archived'
 };
+
+// Soft Company Data Types
+export interface PersonalizationHook {
+  text: string;
+  source: string;
+  date: string;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+export interface CompanyEvent {
+  title: string;
+  date: string;
+  type: string;
+  url: string;
+}
+
+export interface NewsItem {
+  headline: string;
+  date: string;
+  source: string;
+  url: string;
+}
+
+export interface SocialActivity {
+  platform: string;
+  text: string;
+  date: string;
+  url: string;
+}
+
+export interface SoftCompanyDataDto {
+  id: string;
+  prospectId: string;
+  hooksJson?: string | null;
+  recentEventsJson?: string | null;
+  newsItemsJson?: string | null;
+  socialActivityJson?: string | null;
+  sourcesJson?: string | null;
+  researchedAt: string;
+  createdUtc: string;
+  updatedUtc?: string | null;
+}
+
+export interface ParsedSoftCompanyData {
+  hooks: PersonalizationHook[];
+  events: CompanyEvent[];
+  news: NewsItem[];
+  socialActivity: SocialActivity[];
+  sources: string[];
+  researchedAt: Date;
+}

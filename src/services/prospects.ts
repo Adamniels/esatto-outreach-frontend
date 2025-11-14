@@ -1,5 +1,5 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto } from '@/types/prospect';
 
 export const prospectsAPI = {
   // Lista alla prospects
@@ -52,6 +52,12 @@ export const prospectsAPI = {
   // Återställ chat-konversation
   resetChat: async (id: string): Promise<void> => {
     await api.post(`/prospects/${id}/chat/reset`);
+  },
+
+  // Generera soft company data (research via OpenAI web search)
+  generateSoftCompanyData: async (id: string): Promise<SoftCompanyDataDto> => {
+    const response = await api.post(`/prospects/${id}/soft-data/generate`);
+    return response.data;
   }
 };
 
