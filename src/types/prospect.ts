@@ -2,9 +2,10 @@
 export const ProspectStatus = {
   New: 0,
   Researched: 1,
-  Emailed: 2,
-  Responded: 3,
-  Archived: 4
+  Drafted: 2,
+  Emailed: 3,
+  Responded: 4,
+  Archived: 5
 } as const;
 
 export type ProspectStatus = typeof ProspectStatus[keyof typeof ProspectStatus];
@@ -88,7 +89,8 @@ export interface ChatMessage {
 export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.New]: 'Ny',
   [ProspectStatus.Researched]: 'Undersökt',
-  [ProspectStatus.Emailed]: 'E-post skickad',
+  [ProspectStatus.Drafted]: 'Utkast',
+  [ProspectStatus.Emailed]: 'Mejlad',
   [ProspectStatus.Responded]: 'Svarat',
   [ProspectStatus.Archived]: 'Arkiverad'
 };
@@ -98,6 +100,7 @@ export const statusLabels: Record<ProspectStatus, string> = {
 export const statusColors: Record<ProspectStatus, string> = {
   [ProspectStatus.New]: 'status-new',
   [ProspectStatus.Researched]: 'status-researched',
+  [ProspectStatus.Drafted]: 'status-drafted',
   [ProspectStatus.Emailed]: 'status-emailed',
   [ProspectStatus.Responded]: 'status-responded',
   [ProspectStatus.Archived]: 'status-archived'

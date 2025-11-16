@@ -85,7 +85,6 @@
               <td class="table-cell actions-cell">
                 <div class="action-buttons">
                   <button @click="router.push(`/prospects/${prospect.id}`)" class="view-btn">View</button>
-                  <button @click="editProspect(prospect)" class="edit-btn">Edit</button>
                   <button @click="confirmDelete(prospect)" class="delete-btn">Delete</button>
                 </div>
               </td>
@@ -107,7 +106,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <div class="header-title-container">
-              <h3 class="modal-title">{{ editingProspect ? 'Edit Prospect' : 'Add New Prospect' }}</h3>
+              <h3 class="modal-title">Add New Prospect</h3>
               <button @click="closeModal" class="modal-close-btn">✕</button>
             </div>
           </div>
@@ -129,12 +128,6 @@
                 <label class="form-label">Email</label>
                 <input v-model="formData.contactEmail" type="email" class="form-input" placeholder="john@acme.com" />
               </div>
-              <div v-if="editingProspect" class="form-group">
-                <label class="form-label">Status</label>
-                <select v-model="formData.status" class="form-select">
-                  <option v-for="(label, status) in statusLabels" :key="status" :value="Number(status)">{{ label }}</option>
-                </select>
-              </div>
               <div class="form-group">
                 <label class="form-label">Notes</label>
                 <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Notes about this prospect..."></textarea>
@@ -145,7 +138,7 @@
             <button @click="closeModal" :disabled="isSubmitting" class="btn btn-secondary">Cancel</button>
             <button @click="saveProspect" :disabled="isSubmitting" class="btn btn-success" :class="{ 'btn-loading': isSubmitting }">
               <span v-if="isSubmitting" class="loading-spinner"></span>
-              {{ isSubmitting ? 'Saving...' : (editingProspect ? 'Update' : 'Create') }}
+              {{ isSubmitting ? 'Saving...' : 'Create' }}
             </button>
           </div>
         </div>
@@ -155,12 +148,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { prospectsAPI } from '@/services/prospects'
+import { useProspects } from '@/composables/useProspects'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
 
 const router = useRouter()
+
+// Use composable for prospects management
+const { prospects, loading, error, fetchProspects, createProspect, deleteProspect } = useProspects()
 
 interface ProspectFormData {
   companyName: string
@@ -173,13 +169,9 @@ interface ProspectFormData {
 }
 
 // State
-const prospects = ref<Prospect[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const showCreateModal = ref(false)
-const editingProspect = ref<Prospect | null>(null)
 const isSubmitting = ref(false)
 
 const statusLabels = STATUS_LABELS
@@ -197,51 +189,23 @@ const createEmptyForm = (): ProspectFormData => ({
 const formData = ref<ProspectFormData>(createEmptyForm())
 
 // Functions
-const fetchProspects = async () => {
-  loading.value = true
-  error.value = null
-  try {
-    prospects.value = await prospectsAPI.getAll()
-  } catch (err: any) {
-    error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
-  } finally {
-    loading.value = false
-  }
-}
-
 const saveProspect = async () => {
   if (!formData.value.companyName.trim()) return
   
   isSubmitting.value = true
   try {
-    if (editingProspect.value) {
-      // Update: only send changed fields
-      const updatePayload: Record<string, any> = {
-        companyName: formData.value.companyName.trim()
-      }
-      
-      if (formData.value.domain) updatePayload.domain = formData.value.domain
-      if (formData.value.contactName) updatePayload.contactName = formData.value.contactName
-      if (formData.value.contactEmail) updatePayload.contactEmail = formData.value.contactEmail
-      if (formData.value.linkedinUrl) updatePayload.linkedinUrl = formData.value.linkedinUrl
-      if (formData.value.notes) updatePayload.notes = formData.value.notes
-      updatePayload.status = formData.value.status
-      
-      await prospectsAPI.update(editingProspect.value.id, updatePayload)
-    } else {
-      // Create: send all fields
-      const createPayload = {
-        companyName: formData.value.companyName.trim(),
-        domain: formData.value.domain || undefined,
-        contactName: formData.value.contactName || undefined,
-        contactEmail: formData.value.contactEmail || undefined,
-        linkedinUrl: formData.value.linkedinUrl || undefined,
-        notes: formData.value.notes || undefined
-      }
-      await prospectsAPI.create(createPayload)
+    // Create: send all fields
+    const createPayload = {
+      companyName: formData.value.companyName.trim(),
+      domain: formData.value.domain || undefined,
+      contactName: formData.value.contactName || undefined,
+      contactEmail: formData.value.contactEmail || undefined,
+      linkedinUrl: formData.value.linkedinUrl || undefined,
+      notes: formData.value.notes || undefined
     }
+    await createProspect(createPayload)
     
-    await fetchProspects()
+    closeModal()
     closeModal()
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Kunde inte spara prospect'
@@ -250,22 +214,7 @@ const saveProspect = async () => {
   }
 }
 
-const editProspect = (prospect: Prospect) => {
-  editingProspect.value = prospect
-  formData.value = {
-    companyName: prospect.companyName,
-    domain: prospect.domain || '',
-    contactName: prospect.contactName || '',
-    contactEmail: prospect.contactEmail || '',
-    linkedinUrl: prospect.linkedinUrl || '',
-    notes: prospect.notes || '',
-    status: prospect.status
-  }
-  showCreateModal.value = true
-}
-
 const openCreateModal = () => {
-  editingProspect.value = null
   formData.value = createEmptyForm()
   showCreateModal.value = true
 }
@@ -273,17 +222,15 @@ const openCreateModal = () => {
 const confirmDelete = async (prospect: Prospect) => {
   if (confirm(`Är du säker på att du vill ta bort "${prospect.companyName}"?`)) {
     try {
-      await prospectsAPI.delete(prospect.id)
-      await fetchProspects()
+      await deleteProspect(prospect.id)
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Kunde inte ta bort prospect'
+      // Error already handled by composable
     }
   }
 }
 
 const closeModal = () => {
   showCreateModal.value = false
-  editingProspect.value = null
   formData.value = createEmptyForm()
 }
 
@@ -318,9 +265,10 @@ const getStatusClass = (status: number) => {
   switch (status) {
     case 0: return 'status-new'
     case 1: return 'status-investigated'
-    case 2: return 'status-emailed'
-    case 3: return 'status-replied'
-    case 4: return 'status-archived'
+    case 2: return 'status-drafted'
+    case 3: return 'status-emailed'
+    case 4: return 'status-replied'
+    case 5: return 'status-archived'
     default: return 'status-unknown'
   }
 }
@@ -346,14 +294,7 @@ const formatDomainUrl = (domain: string) => {
   return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
 }
 
-// Load data
-onMounted(() => {
-  fetchProspects()
-})
-
-// Company modal state + helpers
-
-
+// Note: Data loading is handled automatically by useProspects composable
 
 </script>
 
@@ -739,11 +680,12 @@ onMounted(() => {
 .status-cell { text-align: center; }
 .status-cell .status-badge { margin: 0 auto; }
 .status-badge { display:inline-block; padding: 0.3rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
-.status-new { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe }
-.status-investigated { background:#fffbeb; color:#92400e; border:1px solid #fde68a }
-.status-emailed { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe }
-.status-replied { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0 }
-.status-archived { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb }
+.status-new { background:#dbeafe; color:#1e40af; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-investigated { background:#fef3c7; color:#92400e; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-drafted { background:#e0e7ff; color:#4338ca; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-emailed { background:#ddd6fe; color:#5b21b6; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-replied { background:#d1fae5; color:#065f46; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-archived { background:#fee2e2; color:#991b1b; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
 .status-unknown { background:#fafafa; color:#374151; border:1px solid #e5e7eb }
 .actions-cell { text-align: right; white-space:nowrap; padding-right:0.55rem; padding-left:0.3rem; }
 .action-buttons { display:flex; align-items:center; justify-content:flex-end; gap:0.35rem; width:100%; }
@@ -788,8 +730,6 @@ onMounted(() => {
 .btn-loading { opacity: 0.7; cursor: not-allowed; }
 .view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
-.edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
-.edit-btn:hover { background:#e0e7ff; border-color:#a5b4fc; }
 .delete-btn { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
 .delete-btn:hover { background:#fee2e2; border-color:#fca5a5; }
 

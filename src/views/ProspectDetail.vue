@@ -17,42 +17,118 @@
     <div v-else-if="prospect" class="detail-content">
       <!-- Back Button and Title -->
       <div class="detail-header">
-        <h2 class="detail-title">{{ prospect.companyName }}</h2>
-        <button @click="router.push('/prospects')" class="back-button">
-          ← Tillbaka till listan
+        <h2 class="detail-title">{{ isEditing ? formData.companyName : prospect.companyName }}</h2>
+        <div class="header-actions">
+          <button 
+            v-if="!isEditing" 
+            @click="startEditing" 
+            class="btn-edit"
+          >
+            Redigera
+          </button>
+          <button @click="router.push('/prospects')" class="back-button">
+            ← Tillbaka till listan
+          </button>
+        </div>
+      </div>
+
+      <!-- Edit Mode Actions -->
+      <div v-if="isEditing" class="edit-actions">
+        <button 
+          @click="saveChanges" 
+          :disabled="isSaving || !isFormValid"
+          class="btn-save"
+        >
+          {{ isSaving ? 'Sparar...' : 'Spara ändringar' }}
+        </button>
+        <button 
+          @click="cancelEditing" 
+          :disabled="isSaving"
+          class="btn-cancel"
+        >
+          Avbryt
         </button>
       </div>
 
       <!-- Company Information Grid -->
       <div class="company-info-grid">
         <div class="info-row">
-          <span class="info-label">Företagsnamn:</span>
-          <span class="info-value">{{ prospect.companyName }}</span>
+          <label class="info-label">Företagsnamn: <span v-if="isEditing" class="required">*</span></label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.companyName"
+            type="text"
+            class="info-input"
+            :class="{ 'input-error': !formData.companyName?.trim() }"
+            placeholder="Företagsnamn (obligatoriskt)"
+            required
+          />
+          <span v-else class="info-value">{{ prospect.companyName }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Kontaktperson:</span>
-          <span class="info-value">{{ prospect.contactName || 'N/A' }}</span>
+          <label class="info-label">Kontaktperson:</label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.contactName"
+            type="text"
+            class="info-input"
+            placeholder="Kontaktperson"
+          />
+          <span v-else class="info-value">{{ prospect.contactName || 'N/A' }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Email:</span>
-          <span class="info-value">{{ prospect.contactEmail || 'N/A' }}</span>
+          <label class="info-label">Email:</label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.contactEmail"
+            type="email"
+            class="info-input"
+            placeholder="email@example.com"
+          />
+          <span v-else class="info-value">{{ prospect.contactEmail || 'N/A' }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Domän:</span>
-          <span class="info-value">{{ prospect.domain || 'N/A' }}</span>
+          <label class="info-label">Domän:</label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.domain"
+            type="url"
+            class="info-input"
+            placeholder="https://example.com"
+          />
+          <span v-else class="info-value">{{ prospect.domain || 'N/A' }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">LinkedIn:</span>
-          <span class="info-value">{{ prospect.linkedinUrl || 'N/A' }}</span>
+          <label class="info-label">LinkedIn:</label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.linkedinUrl"
+            type="url"
+            class="info-input"
+            placeholder="https://linkedin.com/company/..."
+          />
+          <span v-else class="info-value">{{ prospect.linkedinUrl || 'N/A' }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Status:</span>
-          <span class="info-value">
+          <label class="info-label">Status:</label>
+          <select 
+            v-if="isEditing"
+            v-model="formData.status"
+            class="info-select"
+          >
+            <option :value="0">Ny</option>
+            <option :value="1">Undersökt</option>
+            <option :value="2">Utkast</option>
+            <option :value="3">Mejlad</option>
+            <option :value="4">Svarat</option>
+            <option :value="5">Arkiverad</option>
+          </select>
+          <span v-else class="info-value">
             <span :class="['status-badge', `status-${prospect.status}`]">
               {{ statusLabels[prospect.status as ProspectStatus] || 'Okänd' }}
             </span>
@@ -60,9 +136,22 @@
         </div>
 
         <div class="info-row">
-          <span class="info-label">Skapad:</span>
+          <label class="info-label">Skapad:</label>
           <span class="info-value">{{ new Date(prospect.createdUtc).toLocaleDateString('sv-SE') }}</span>
         </div>
+      </div>
+
+      <!-- Notes Section (Editable) -->
+      <div class="notes-section" :class="{ 'notes-editing': isEditing }">
+        <label class="notes-label">Anteckningar</label>
+        <textarea 
+          v-if="isEditing"
+          v-model="formData.notes"
+          class="notes-textarea"
+          placeholder="Lägg till anteckningar..."
+          rows="4"
+        ></textarea>
+        <p v-else class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
       </div>
 
       <!-- Soft Company Data Section -->
@@ -184,7 +273,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
-import { statusLabels } from '../types/prospect'
+import { ProspectStatus as ProspectStatusEnum, statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
 import ChatBox from '../components/ChatBox.vue'
 import SoftDataButton from '../components/SoftDataButton.vue'
@@ -210,6 +299,19 @@ const hasUnsavedChatChanges = ref(false)
 // Soft Company Data State
 const showSoftDataModal = ref(false)
 const isGeneratingSoftData = ref(false)
+
+// Edit Mode State
+const isEditing = ref(false)
+const isSaving = ref(false)
+const formData = ref({
+  companyName: '',
+  contactName: '',
+  contactEmail: '',
+  domain: '',
+  linkedinUrl: '',
+  status: 0 as ProspectStatus,
+  notes: ''
+})
 
 // Storage helper
 const storageKey = (id: string) => `generatedEmail_${id}`
@@ -338,6 +440,10 @@ function syncDraftState() {
 }
 
 // Computed properties
+const isFormValid = computed(() => {
+  return formData.value.companyName.trim().length > 0
+})
+
 const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
 const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
 
@@ -438,6 +544,84 @@ const generatedEmailBody = computed({
 })
 
 // Actions
+// Edit Mode Actions
+function startEditing() {
+  if (!prospect.value) return
+  
+  // Populate form with current values
+  formData.value = {
+    companyName: prospect.value.companyName,
+    contactName: prospect.value.contactName || '',
+    contactEmail: prospect.value.contactEmail || '',
+    domain: prospect.value.domain || '',
+    linkedinUrl: prospect.value.linkedinUrl || '',
+    status: prospect.value.status,
+    notes: prospect.value.notes || ''
+  }
+  
+  isEditing.value = true
+}
+
+function cancelEditing() {
+  if (hasUnsavedEditChanges()) {
+    if (!confirm('Du har osparade ändringar. Vill du verkligen avbryta?')) {
+      return
+    }
+  }
+  
+  isEditing.value = false
+}
+
+function hasUnsavedEditChanges(): boolean {
+  if (!prospect.value) return false
+  
+  return (
+    formData.value.companyName !== prospect.value.companyName ||
+    formData.value.contactName !== (prospect.value.contactName || '') ||
+    formData.value.contactEmail !== (prospect.value.contactEmail || '') ||
+    formData.value.domain !== (prospect.value.domain || '') ||
+    formData.value.linkedinUrl !== (prospect.value.linkedinUrl || '') ||
+    formData.value.status !== prospect.value.status ||
+    formData.value.notes !== (prospect.value.notes || '')
+  )
+}
+
+async function saveChanges() {
+  if (!prospect.value || !isFormValid.value) return
+  
+  isSaving.value = true
+  error.value = null
+  
+  try {
+    const updatePayload: Record<string, any> = {
+      companyName: formData.value.companyName.trim(),
+      contactName: formData.value.contactName.trim() || undefined,
+      contactEmail: formData.value.contactEmail.trim() || undefined,
+      domain: formData.value.domain.trim() || undefined,
+      linkedinUrl: formData.value.linkedinUrl.trim() || undefined,
+      status: formData.value.status,
+      notes: formData.value.notes.trim() || undefined
+    }
+    
+    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    prospect.value = updated
+    isEditing.value = false
+    
+    // Show success message briefly
+    const successMsg = document.createElement('div')
+    successMsg.textContent = 'Ändringar sparade'
+    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
+    document.body.appendChild(successMsg)
+    setTimeout(() => successMsg.remove(), 3000)
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Kunde inte spara ändringar'
+    alert(`Fel: ${error.value}`)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// Email and Soft Data Actions
 async function handleGenerateSoftData() {
   if (!prospect.value) return
   
@@ -454,7 +638,11 @@ async function handleGenerateSoftData() {
     // Update the prospect with the new soft data
     if (prospect.value && softData) {
       prospect.value.softCompanyData = softData
-      console.log('ProspectDetail: Updated prospect with soft data')
+      // Uppdatera status till Undersökt när research är klar
+      if (prospect.value.status === ProspectStatusEnum.New) {
+        prospect.value.status = ProspectStatusEnum.Researched
+      }
+      console.log('ProspectDetail: Updated prospect with soft data and status')
     }
     
     // Automatically show the modal after generation
@@ -627,14 +815,18 @@ const sendEmailToN8n = async () => {
     const result = await prospectsAPI.sendEmail(p.id)
     
     if (result.success) {
-      alert(`✅ Email skickat till ${p.contactEmail}!`)
+      // Uppdatera status till Utkast när email skickas till n8n
+      if (prospect.value) {
+        prospect.value.status = ProspectStatusEnum.Drafted
+      }
+      alert(`Email skickat till ditt utkast`)
       await fetchProspect()
     } else {
-      alert(`❌ Kunde inte skicka email: ${result.message || 'Okänt fel'}`)
+      alert(`❌ Kunde inte skicka email till ditt utkast: ${result.message || 'Okänt fel'}`)
     }
   } catch (err: any) {
     const errorMsg = err.response?.data?.error || err.message || 'Ett fel uppstod'
-    alert(`❌ Kunde inte skicka email: ${errorMsg}`)
+    alert(`❌ Kunde inte skicka email till ditt utkast: ${errorMsg}`)
     console.error('Send email error:', err)
   } finally {
     isSendingEmail.value = false
@@ -789,43 +981,40 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
+.status-0,
 .status-new {
   background-color: #dbeafe;
   color: #1e40af;
 }
 
-.status-contacted {
+.status-1,
+.status-researched {
   background-color: #fef3c7;
   color: #92400e;
 }
 
-.status-qualified {
+.status-2,
+.status-drafted {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.status-3,
+.status-emailed {
+  background-color: #ddd6fe;
+  color: #5b21b6;
+}
+
+.status-4,
+.status-responded {
   background-color: #d1fae5;
   color: #065f46;
 }
 
-.status-converted {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.status-rejected {
+.status-5,
+.status-archived {
   background-color: #fee2e2;
   color: #991b1b;
-}
-
-.notes-section {
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.375rem;
-}
-
-.notes-section h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
 }
 
 .notes-text {
@@ -965,5 +1154,152 @@ onMounted(() => {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Edit Mode Styles */
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btn-edit {
+  padding: 0.5rem 1rem;
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background-color: #d97706;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #fef3c7;
+  border-radius: 0.375rem;
+  border: 1px solid #fbbf24;
+}
+
+.btn-save {
+  padding: 0.625rem 1.25rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  padding: 0.625rem 1.25rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-input,
+.info-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.info-input:focus,
+.info-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.info-input.input-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.info-input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.notes-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.notes-section.notes-editing {
+  background-color: #eff6ff;
+  border: 2px solid #3b82f6;
+}
+
+.notes-section h3,
+.notes-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>
