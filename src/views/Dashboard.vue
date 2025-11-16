@@ -126,11 +126,11 @@ const refreshData = () => {
 const totalProspects = computed(() => prospects.value.length)
 
 const emailsSent = computed(() => 
-  prospects.value.filter(p => p.status >= 2).length // Emailed (2) or higher
+  prospects.value.filter(p => p.status === 3 || p.status === 4).length // Emailed (3) or Responded (4)
 )
 
 const responses = computed(() => 
-  prospects.value.filter(p => p.status === 3).length // Responded (3)
+  prospects.value.filter(p => p.status === 4).length // Responded (4)
 )
 
 const recentProspects = computed(() => 

@@ -3,24 +3,30 @@
     <!-- Top Controls - Like Prody -->
     <div class="prospects-header">
       <div class="filter-controls">
-        <!-- Filter Controls -->
-        <div class="filter-item">
-          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-          </svg>
-          <span class="filter-label">Filter</span>
-        </div>
-        <div class="filter-item">
-          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
-          </svg>
-          <span class="filter-label">Sort</span>
-        </div>
+        <!-- Filter Dropdown Component -->
+        <FilterDropdown
+          v-model="filterState"
+          :prospects="prospects"
+          @clear="clearFilters"
+        />
+        
+        <!-- Sort Dropdown Component -->
+        <SortDropdown
+          v-model="sortState"
+          @reset="resetSort"
+        />
+        
+        <!-- Search Input -->
         <div class="filter-item">
           <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..." class="search-input" />
+          <input v-model="filterState.search" type="text" placeholder="Sök..." class="search-input" />
+        </div>
+        
+        <!-- Filter Stats -->
+        <div v-if="filterStats.isFiltered" class="filter-stats">
+          <span class="stats-text">{{ filterStats.showing }} av {{ filterStats.total }}</span>
         </div>
       </div>
       
@@ -67,7 +73,7 @@
             </tr>
           </thead>
           <tbody class="prospects-tbody">
-            <tr v-for="prospect in filteredProspects" :key="prospect.id" class="table-row">
+            <tr v-for="prospect in sortedProspects" :key="prospect.id" class="table-row">
               <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
               <td class="table-cell company-cell">{{ prospect.companyName }}</td>
               <td class="table-cell contact-cell">
@@ -92,9 +98,9 @@
           </tbody>
         </table>
 
-        <div v-if="filteredProspects.length === 0" class="empty-prospects">
+        <div v-if="sortedProspects.length === 0" class="empty-prospects">
           <p class="empty-prospects-title">Inga prospects hittades</p>
-          <p class="empty-prospects-subtitle">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
+          <p class="empty-prospects-subtitle">{{ filterStats.isFiltered ? 'Prova att ändra dina filter eller sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
         </div>
       </div>
     </div>
@@ -151,12 +157,25 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProspects } from '@/composables/useProspects'
+import { useProspectFilters } from '@/composables/useProspectFilters'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
+import FilterDropdown from '@/components/FilterDropdown.vue'
+import SortDropdown from '@/components/SortDropdown.vue'
 
 const router = useRouter()
 
 // Use composable for prospects management
 const { prospects, loading, error, fetchProspects, createProspect, deleteProspect } = useProspects()
+
+// Use composable for filtering and sorting
+const {
+  filterState,
+  sortState,
+  sortedProspects,
+  filterStats,
+  clearFilters,
+  resetSort
+} = useProspectFilters(prospects)
 
 interface ProspectFormData {
   companyName: string
@@ -169,8 +188,6 @@ interface ProspectFormData {
 }
 
 // State
-const searchQuery = ref('')
-const selectedStatus = ref('')
 const showCreateModal = ref(false)
 const isSubmitting = ref(false)
 
@@ -234,32 +251,6 @@ const closeModal = () => {
   formData.value = createEmptyForm()
 }
 
-const clearFilters = () => {
-  searchQuery.value = ''
-  selectedStatus.value = ''
-}
-
-// Computed
-const filteredProspects = computed(() => {
-  let filtered = prospects.value
-  
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter((p: Prospect) => 
-      p.companyName.toLowerCase().includes(query) ||
-      (p.contactName && p.contactName.toLowerCase().includes(query)) ||
-      (p.contactEmail && p.contactEmail.toLowerCase().includes(query)) ||
-      (p.domain && p.domain.toLowerCase().includes(query))
-    )
-  }
-  
-  if (selectedStatus.value !== '') {
-    filtered = filtered.filter((p: Prospect) => p.status.toString() === selectedStatus.value)
-  }
-  
-  return filtered
-})
-
 // Status -> local CSS class names
 const getStatusClass = (status: number) => {
   switch (status) {
@@ -322,12 +313,28 @@ const formatDomainUrl = (domain: string) => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .filter-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.filter-stats {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+}
+
+.stats-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .filter-icon {
