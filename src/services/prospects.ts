@@ -54,9 +54,12 @@ export const prospectsAPI = {
     await api.post(`/prospects/${id}/chat/reset`);
   },
 
-  // Generera soft company data (research via OpenAI web search)
-  generateSoftCompanyData: async (id: string): Promise<SoftCompanyDataDto> => {
-    const response = await api.post(`/prospects/${id}/soft-data/generate`);
+  // Generera soft company data (research via AI providers)
+  generateSoftCompanyData: async (id: string, provider?: 'OpenAI' | 'Claude' | 'Hybrid'): Promise<SoftCompanyDataDto> => {
+    const url = provider 
+      ? `/prospects/${id}/soft-data/generate?provider=${provider}`
+      : `/prospects/${id}/soft-data/generate`;
+    const response = await api.post(url);
     return response.data;
   }
 };

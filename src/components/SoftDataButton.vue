@@ -1,5 +1,18 @@
 <template>
   <div class="soft-data-button-container">
+    <!-- Provider selector (always visible) -->
+    <div v-if="!loading" class="provider-selector">
+      <button 
+        v-for="p in providers" 
+        :key="p"
+        @click="selectedProvider = p"
+        :class="['provider-btn', { active: selectedProvider === p }]"
+        :title="`Använd ${p}`"
+      >
+        {{ p }}
+      </button>
+    </div>
+    
     <button 
       @click="handleClick" 
       :disabled="loading"
@@ -17,9 +30,9 @@
     <!-- Refresh button when data exists -->
     <button 
       v-if="hasData && !loading"
-      @click="emit('generate', prospectId)"
+      @click="handleRefresh"
       class="btn-refresh"
-      title="Generera ny mjuk data"
+      :title="`Generera ny mjuk data med ${selectedProvider}`"
     >
       <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -29,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { SoftCompanyDataDto } from '@/types/prospect';
 
 interface Props {
@@ -42,9 +55,13 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  generate: [prospectId: string];
+  generate: [prospectId: string, provider: 'OpenAI' | 'Claude' | 'Hybrid'];
   view: [];
 }>();
+
+// State
+const providers = ['OpenAI', 'Claude', 'Hybrid'] as const;
+const selectedProvider = ref<'OpenAI' | 'Claude' | 'Hybrid'>('Claude');
 
 // Computed properties
 const hasData = computed(() => !!props.softData);
@@ -68,10 +85,14 @@ const handleClick = () => {
   if (props.loading) return;
   
   if (!hasData.value) {
-    emit('generate', props.prospectId);
+    emit('generate', props.prospectId, selectedProvider.value);
   } else {
     emit('view');
   }
+};
+
+const handleRefresh = () => {
+  emit('generate', props.prospectId, selectedProvider.value);
 };
 </script>
 
@@ -81,6 +102,38 @@ const handleClick = () => {
   flex-direction: row;
   gap: 0.5rem;
   align-items: center;
+  position: relative;
+}
+
+/* Provider Selector */
+.provider-selector {
+  display: flex;
+  gap: 0.25rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+}
+
+.provider-btn {
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #6b7280;
+}
+
+.provider-btn:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.provider-btn.active {
+  background-color: #3b82f6;
+  color: white;
 }
 
 .soft-data-btn {

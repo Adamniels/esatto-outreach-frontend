@@ -622,16 +622,16 @@ async function saveChanges() {
 }
 
 // Email and Soft Data Actions
-async function handleGenerateSoftData() {
+async function handleGenerateSoftData(prospectId: string, provider: 'OpenAI' | 'Claude' | 'Hybrid') {
   if (!prospect.value) return
   
   isGeneratingSoftData.value = true
   error.value = null
   
-  console.log('ProspectDetail: Starting soft data generation for', prospect.value.id)
+  console.log('ProspectDetail: Starting soft data generation for', prospect.value.id, 'with provider:', provider)
   
   try {
-    const softData = await generateSoftData(prospect.value.id)
+    const softData = await generateSoftData(prospect.value.id, provider)
     
     console.log('ProspectDetail: Received soft data', softData)
     

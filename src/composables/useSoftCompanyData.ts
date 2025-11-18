@@ -50,12 +50,15 @@ export function useSoftCompanyData() {
   /**
    * Generate soft company data for a prospect
    */
-  const generateSoftData = async (prospectId: string): Promise<SoftCompanyDataDto | null> => {
+  const generateSoftData = async (
+    prospectId: string, 
+    provider?: 'OpenAI' | 'Claude' | 'Hybrid'
+  ): Promise<SoftCompanyDataDto | null> => {
     loading.value = true;
     error.value = null;
 
     try {
-      const data = await prospectsAPI.generateSoftCompanyData(prospectId);
+      const data = await prospectsAPI.generateSoftCompanyData(prospectId, provider);
       return data;
     } catch (err: any) {
       error.value = err.response?.data?.error || err.message || 'Kunde inte generera mjuk företagsdata';
