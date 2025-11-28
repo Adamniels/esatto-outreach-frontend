@@ -1,5 +1,8 @@
 <template>
   <div class="register-container">
+    <div class="logo-header">
+      <img src="/EsattoOutreachLogo2.png" alt="Esatto Outreach" class="logo-image" />
+    </div>
     <div class="register-card">
       <h1>Skapa konto</h1>
       <form @submit.prevent="handleRegister">
@@ -111,96 +114,135 @@ const handleRegister = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #fafafa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  position: relative;
+}
+
+.logo-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.logo-image {
+  height: 400px;
+  width: auto;
+  display: block;
+  margin-top: -120px;
+  margin-left: -70px;
 }
 
 .register-card {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 3rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  border: 1px solid #f0f0f0;
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 2rem;
-  color: #333;
+  margin-bottom: 2.5rem;
+  color: #1a1a1a;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #555;
+  margin-bottom: 0.625rem;
+  color: #1a1a1a;
   font-weight: 500;
+  font-size: 0.95rem;
 }
 
 input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
   font-size: 1rem;
+  transition: all 0.2s ease;
+  background: #fafafa;
 }
 
 input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #ffb3c8;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(255, 179, 200, 0.15);
 }
 
 small {
   display: block;
-  margin-top: 0.25rem;
-  color: #888;
-  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
+  background: #ffebee;
+  color: #c62828;
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  border-left: 4px solid #ef5350;
+  font-size: 0.9rem;
 }
 
 .btn-primary {
   width: 100%;
-  padding: 0.75rem;
-  background: #667eea;
+  padding: 1rem;
+  background: #1a1a1a;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.2s ease;
+  text-transform: none;
+  letter-spacing: 0.3px;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #5568d3;
+  background: #333;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .login-link {
   text-align: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   color: #666;
+  font-size: 0.95rem;
 }
 
 .login-link a {
-  color: #667eea;
+  color: #1a1a1a;
   text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 .login-link a:hover {
+  color: #ff6b9d;
   text-decoration: underline;
 }
 </style>
