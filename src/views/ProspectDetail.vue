@@ -176,6 +176,20 @@
       <div class="email-chat-container">
         <!-- Email Section (Left) -->
         <div class="email-section">
+          <!-- Email Generator Type Selector -->
+          <div class="email-generator-selector">
+            <button 
+              v-for="type in emailGeneratorTypes" 
+              :key="type.value"
+              @click="selectedEmailGeneratorType = type.value"
+              :class="['generator-type-btn', { active: selectedEmailGeneratorType === type.value }]"
+              :disabled="type.value === 'UseCollectedData' && !prospect.softCompanyData"
+              :title="type.value === 'UseCollectedData' && !prospect.softCompanyData ? 'Samla in mjuk data först' : type.label"
+            >
+              {{ type.label }}
+            </button>
+          </div>
+
           <!-- Email Action Buttons -->
           <div class="email-actions">
             <button 
@@ -299,6 +313,13 @@ const hasUnsavedChatChanges = ref(false)
 // Soft Company Data State
 const showSoftDataModal = ref(false)
 const isGeneratingSoftData = ref(false)
+
+// Email Generator Type State
+const emailGeneratorTypes = [
+  { value: 'WebSearch' as const, label: 'Web Search' },
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
+]
+const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
 
 // Edit Mode State
 const isEditing = ref(false)
@@ -701,7 +722,7 @@ const generateEmail = async () => {
   const prospectId = prospect.value.id
   isGenerating.value = true
   try {
-    const response = await prospectsAPI.generateEmailDraft(prospect.value.id)
+    const response = await prospectsAPI.generateEmailDraft(prospect.value.id, selectedEmailGeneratorType.value)
     const draft = extractEmailDraft(response)
 
     if (!draft) {
@@ -1036,6 +1057,44 @@ onMounted(() => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.75rem;
+}
+
+.email-generator-selector {
+  display: flex;
+  gap: 0.25rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  width: fit-content;
+}
+
+.generator-type-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.generator-type-btn:hover:not(:disabled) {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.generator-type-btn.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.generator-type-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .email-actions {

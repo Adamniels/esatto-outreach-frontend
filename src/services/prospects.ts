@@ -27,8 +27,11 @@ export const prospectsAPI = {
   },
 
   // Generera mejlutkast
-  generateEmailDraft: async (id: string): Promise<unknown> => {
-    const response = await api.post(`/prospects/${id}/email/draft`, {});
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
+    const url = type 
+      ? `/prospects/${id}/email/draft?type=${type}`
+      : `/prospects/${id}/email/draft`;
+    const response = await api.post(url, {});
     return response.data;
   },
 
