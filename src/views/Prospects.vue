@@ -35,6 +35,40 @@
       </div>
     </div>
 
+    <!-- Batch Action Toolbar (shown when prospects are selected) -->
+    <div v-if="selectedCount > 0" class="batch-toolbar">
+      <div class="batch-info">
+        <span class="batch-count">{{ selectedCount }} valda</span>
+        <button @click="clearSelection" class="btn-clear-selection">Rensa</button>
+      </div>
+      
+      <!-- Show batch progress button when processing -->
+      <div v-if="isBatchProcessing" class="batch-actions">
+        <button 
+          @click="showBatchProgressModal = true" 
+          class="btn btn-batch-status"
+        >
+          <svg class="icon-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Batch pågår ({{ batchProgress.completed }} / {{ batchProgress.total }})</span>
+        </button>
+      </div>
+      
+      <!-- Show batch action controls when not processing -->
+      <div v-else class="batch-actions">
+        <BatchActionDropdown v-model="batchAction" />
+        
+        <button 
+          @click="runBatchOperation" 
+          :disabled="!batchAction"
+          class="btn btn-primary"
+        >
+          Kör Batch
+        </button>
+      </div>
+    </div>
+
     <!-- Main Table -->
     <div class="prospects-table-container">
       <div v-if="loading" class="loading-state">
@@ -55,6 +89,7 @@
       <div v-else class="table-container">
         <table class="prospects-table">
           <colgroup>
+            <col class="col-select" />
             <col class="col-id" />
             <col class="col-company" />
             <col class="col-contact" />
@@ -64,6 +99,15 @@
           </colgroup>
           <thead class="prospects-thead">
             <tr>
+              <th class="table-header">
+                <input 
+                  type="checkbox" 
+                  :checked="allSelected"
+                  :indeterminate.prop="someSelected"
+                  @change="allSelected ? clearSelection() : selectAll()"
+                  class="checkbox-input"
+                />
+              </th>
               <th class="table-header">ID</th>
               <th class="table-header">Company</th>
               <th class="table-header">Contact</th>
@@ -74,6 +118,14 @@
           </thead>
           <tbody class="prospects-tbody">
             <tr v-for="prospect in sortedProspects" :key="prospect.id" class="table-row">
+              <td class="table-cell select-cell">
+                <input 
+                  type="checkbox" 
+                  :checked="isSelected(prospect.id)"
+                  @change="toggleSelection(prospect.id)"
+                  class="checkbox-input"
+                />
+              </td>
               <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
               <td class="table-cell company-cell">{{ prospect.companyName }}</td>
               <td class="table-cell contact-cell">
@@ -104,6 +156,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Batch Progress Modal -->
+    <BatchProgressModal
+      :show="showBatchProgressModal"
+      :progress="batchProgress"
+      :results="lastBatchResults"
+      @close="closeBatchProgressModal"
+    />
 
     <!-- Create / Edit Modal -->
     <div v-if="showCreateModal" class="modal-overlay">
@@ -158,9 +218,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProspects } from '@/composables/useProspects'
 import { useProspectFilters } from '@/composables/useProspectFilters'
+import { useProspectSelection } from '@/composables/useProspectSelection'
+import { useBatchOperations } from '@/composables/useBatchOperations'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
 import FilterDropdown from '@/components/FilterDropdown.vue'
 import SortDropdown from '@/components/SortDropdown.vue'
+import BatchProgressModal from '@/components/BatchProgressModal.vue'
+import BatchActionDropdown from '@/components/BatchActionDropdown.vue'
 
 const router = useRouter()
 
@@ -177,6 +241,30 @@ const {
   resetSort
 } = useProspectFilters(prospects)
 
+// Use composable for batch selection
+const {
+  selectedIds,
+  selectedCount,
+  selectedProspects,
+  allSelected,
+  someSelected,
+  isSelected,
+  toggleSelection,
+  selectAll,
+  clearSelection
+} = useProspectSelection(sortedProspects)
+
+// Use composable for batch operations
+const {
+  isBatchProcessing,
+  batchProgress,
+  lastBatchResults,
+  resetProgress,
+  runBatchSoftData,
+  runBatchEmailGeneration,
+  runCompleteFlow
+} = useBatchOperations()
+
 interface ProspectFormData {
   companyName: string
   domain: string
@@ -189,7 +277,9 @@ interface ProspectFormData {
 
 // State
 const showCreateModal = ref(false)
+const showBatchProgressModal = ref(false)
 const isSubmitting = ref(false)
+const batchAction = ref('')
 
 const statusLabels = STATUS_LABELS
 
@@ -266,6 +356,60 @@ const getStatusClass = (status: number) => {
 
 const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Okänd'
 // removed Tailwind status color mapping; use getStatusClass() instead
+
+// Batch operations
+const runBatchOperation = async () => {
+  if (!batchAction.value || selectedCount.value === 0) return
+
+  const prospectIds = Array.from(selectedIds.value)
+  const estimatedCost = prospectIds.length * 0.05 // ~5 öre per operation
+  
+  if (estimatedCost > 1 && !confirm(`Detta kommer kosta ungefär ${estimatedCost.toFixed(2)} kr. Fortsätta?`)) {
+    return
+  }
+
+  showBatchProgressModal.value = true
+  resetProgress()
+
+  try {
+    switch (batchAction.value) {
+      case 'soft-data-openai':
+        await runBatchSoftData(prospectIds, 'OpenAI', handleBatchSuccess)
+        break
+      case 'soft-data-claude':
+        await runBatchSoftData(prospectIds, 'Claude', handleBatchSuccess)
+        break
+      case 'soft-data-hybrid':
+        await runBatchSoftData(prospectIds, 'Hybrid', handleBatchSuccess)
+        break
+      case 'email-websearch':
+        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, 'Claude', handleBatchSuccess)
+        break
+      case 'email-collected':
+        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, 'Claude', handleBatchSuccess)
+        break
+      case 'complete-flow':
+        await runCompleteFlow(prospectIds, 'Claude', 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
+        break
+    }
+  } catch (error) {
+    console.error('Batch operation error:', error)
+  }
+
+  // Clear selection after batch completes
+  clearSelection()
+  batchAction.value = ''
+}
+
+const handleBatchSuccess = () => {
+  // Reload prospects to reflect changes
+  fetchProspects()
+}
+
+const closeBatchProgressModal = () => {
+  showBatchProgressModal.value = false
+  // Don't reset progress here - let it persist so the status button shows correct info
+}
 
 const formatDateTime = (dateString?: string) => {
   if (!dateString) return '-'
@@ -370,6 +514,269 @@ const formatDomainUrl = (domain: string) => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Batch Toolbar */
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.batch-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.btn-clear-selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-clear-selection:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.batch-actions .btn-primary {
+  background: white;
+  color: #3b82f6;
+  border: 2px solid white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.batch-actions .btn-primary:hover:not(:disabled) {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.batch-actions .btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.5);
+  color: #9ca3af;
+  border-color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-batch-status {
+  background: white;
+  color: #3b82f6;
+  border: 2px solid white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-batch-status:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-batch-status .icon-spin {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 2s linear infinite;
+}
+
+/* Minimized Batch Indicator */
+.batch-minimized-indicator {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  min-width: 280px;
+}
+
+.batch-minimized-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.indicator-icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.indicator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.indicator-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.indicator-progress {
+  flex-shrink: 0;
+}
+
+.progress-circle {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  stroke: rgba(255, 255, 255, 0.9);
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Minimized Batch Indicator */
+.batch-minimized-indicator {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  min-width: 280px;
+}
+
+.batch-minimized-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.indicator-icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.indicator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.indicator-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.indicator-progress {
+  flex-shrink: 0;
+}
+
+.progress-circle {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  stroke: rgba(255, 255, 255, 0.9);
+  transition: stroke-dashoffset 0.3s ease;
 }
 
 .prospects-table-container {
@@ -685,6 +1092,17 @@ const formatDomainUrl = (domain: string) => {
 .contact-name { color:#111827 }
 .email-cell { color:#6b7280 }
 .status-cell { text-align: center; }
+
+/* Checkbox column */
+.col-select { width: 3%; min-width: 40px; }
+.select-cell { text-align: center; }
+.checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
 .status-cell .status-badge { margin: 0 auto; }
 .status-badge { display:inline-block; padding: 0.3rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
 .status-new { background:#dbeafe; color:#1e40af; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }

@@ -1,6 +1,31 @@
 import api from './api';
 import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto } from '@/types/prospect';
 
+// Batch operation types
+export interface BatchOperationResult<TData> {
+  successes: SuccessResult<TData>[]
+  failures: FailureResult[]
+  totalCount: number
+  successCount: number
+  failureCount: number
+}
+
+export interface SuccessResult<TData> {
+  prospectId: string
+  data: TData
+}
+
+export interface FailureResult {
+  prospectId: string
+  errorMessage: string
+}
+
+export interface EmailDraft {
+  title: string
+  bodyPlain: string
+  bodyHTML: string
+}
+
 export const prospectsAPI = {
   // Lista alla prospects
   getAll: async (): Promise<Prospect[]> => {
@@ -63,6 +88,36 @@ export const prospectsAPI = {
       ? `/prospects/${id}/soft-data/generate?provider=${provider}`
       : `/prospects/${id}/soft-data/generate`;
     const response = await api.post(url);
+    return response.data;
+  },
+
+  // ============ BATCH OPERATIONS ============
+
+  // Batch: Generera soft data för flera prospects
+  generateSoftDataBatch: async (
+    prospectIds: string[],
+    provider?: 'OpenAI' | 'Claude' | 'Hybrid'
+  ): Promise<BatchOperationResult<SoftCompanyDataDto>> => {
+    const response = await api.post('/prospects/batch/soft-data/generate', {
+      prospectIds,
+      provider
+    });
+    return response.data;
+  },
+
+  // Batch: Generera emails för flera prospects
+  generateEmailBatch: async (
+    prospectIds: string[],
+    type?: 'WebSearch' | 'UseCollectedData',
+    autoGenerateSoftData: boolean = true,
+    softDataProvider: string = 'Claude'
+  ): Promise<BatchOperationResult<EmailDraft>> => {
+    const response = await api.post('/prospects/batch/email/generate', {
+      prospectIds,
+      type,
+      autoGenerateSoftData,
+      softDataProvider
+    });
     return response.data;
   }
 };
