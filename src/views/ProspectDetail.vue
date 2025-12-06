@@ -17,7 +17,7 @@
     <div v-else-if="prospect" class="detail-content">
       <!-- Back Button and Title -->
       <div class="detail-header">
-        <h2 class="detail-title">{{ isEditing ? formData.companyName : prospect.companyName }}</h2>
+        <h2 class="detail-title">{{ isEditing ? formData.name : prospect.name }}</h2>
         <div class="header-actions">
           <button 
             v-if="!isEditing" 
@@ -56,62 +56,65 @@
           <label class="info-label">Företagsnamn: <span v-if="isEditing" class="required">*</span></label>
           <input 
             v-if="isEditing"
-            v-model="formData.companyName"
+            v-model="formData.name"
             type="text"
             class="info-input"
-            :class="{ 'input-error': !formData.companyName?.trim() }"
+            :class="{ 'input-error': !formData.name?.trim() }"
             placeholder="Företagsnamn (obligatoriskt)"
             required
           />
-          <span v-else class="info-value">{{ prospect.companyName }}</span>
+          <span v-else class="info-value">{{ prospect.name }}</span>
         </div>
 
         <div class="info-row">
-          <label class="info-label">Kontaktperson:</label>
-          <input 
+          <label class="info-label">Webbplatser:</label>
+          <textarea 
             v-if="isEditing"
-            v-model="formData.contactName"
-            type="text"
-            class="info-input"
-            placeholder="Kontaktperson"
-          />
-          <span v-else class="info-value">{{ prospect.contactName || 'N/A' }}</span>
+            v-model="formData.websitesText"
+            class="info-textarea"
+            rows="2"
+            placeholder="En URL per rad&#10;https://example.com&#10;https://shop.example.com"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.websites.length > 0">
+              <a v-for="(site, idx) in prospect.websites" :key="idx" :href="site.url || '#'" target="_blank" class="website-link">{{ site.url || 'N/A' }}</a>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
-          <label class="info-label">Email:</label>
-          <input 
+          <label class="info-label">Email-adresser:</label>
+          <textarea 
             v-if="isEditing"
-            v-model="formData.contactEmail"
-            type="email"
-            class="info-input"
-            placeholder="email@example.com"
-          />
-          <span v-else class="info-value">{{ prospect.contactEmail || 'N/A' }}</span>
+            v-model="formData.emailsText"
+            class="info-textarea"
+            rows="2"
+            placeholder="En email per rad&#10;john@example.com&#10;support@example.com"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.emailAddresses.length > 0">
+              <a v-for="(email, idx) in prospect.emailAddresses" :key="idx" :href="`mailto:${email.address}`" class="email-link">{{ email.address }}</a>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
-          <label class="info-label">Domän:</label>
-          <input 
+          <label class="info-label">Telefonnummer:</label>
+          <textarea 
             v-if="isEditing"
-            v-model="formData.domain"
-            type="url"
-            class="info-input"
-            placeholder="https://example.com"
-          />
-          <span v-else class="info-value">{{ prospect.domain || 'N/A' }}</span>
-        </div>
-
-        <div class="info-row">
-          <label class="info-label">LinkedIn:</label>
-          <input 
-            v-if="isEditing"
-            v-model="formData.linkedinUrl"
-            type="url"
-            class="info-input"
-            placeholder="https://linkedin.com/company/..."
-          />
-          <span v-else class="info-value">{{ prospect.linkedinUrl || 'N/A' }}</span>
+            v-model="formData.phonesText"
+            class="info-textarea"
+            rows="2"
+            placeholder="Ett nummer per rad&#10;+46 70 123 45 67"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.phoneNumbers.length > 0">
+              <div v-for="(phone, idx) in prospect.phoneNumbers" :key="idx">{{ phone.number }}</div>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
@@ -141,6 +144,36 @@
         </div>
       </div>
 
+      <!-- Tags Section -->
+      <div v-if="prospect.tags && prospect.tags.length > 0" class="capsule-section">
+        <label class="section-label">Tags från Capsule:</label>
+        <div class="tags-list">
+          <span 
+            v-for="tag in prospect.tags" 
+            :key="tag.id"
+            class="tag-badge"
+            :class="{ 'data-tag': tag.dataTag }"
+          >
+            {{ tag.name }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Custom Fields Section -->
+      <div v-if="prospect.customFields && prospect.customFields.length > 0" class="capsule-section">
+        <label class="section-label">Custom Fields från Capsule:</label>
+        <div class="fields-list">
+          <div 
+            v-for="field in prospect.customFields" 
+            :key="field.id"
+            class="field-item"
+          >
+            <strong class="field-name">{{ field.fieldName }}:</strong>
+            <span class="field-value">{{ field.value || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Notes Section (Editable) -->
       <div class="notes-section" :class="{ 'notes-editing': isEditing }">
         <label class="notes-label">Anteckningar</label>
@@ -164,12 +197,6 @@
           @generate="handleGenerateSoftData"
           @view="showSoftDataModal = true"
         />
-      </div>
-
-      <!-- Notes Section -->
-      <div class="notes-section">
-        <h3>Anteckningar</h3>
-        <p class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
       </div>
 
       <!-- Email and Chat Section (Two Columns) -->
@@ -325,14 +352,28 @@ const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSea
 const isEditing = ref(false)
 const isSaving = ref(false)
 const formData = ref({
-  companyName: '',
-  contactName: '',
-  contactEmail: '',
-  domain: '',
-  linkedinUrl: '',
+  name: '',
+  websitesText: '',
+  emailsText: '',
+  phonesText: '',
   status: 0 as ProspectStatus,
   notes: ''
 })
+
+// Helper functions for array conversion
+const splitLines = (text: string): string[] => {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+}
+
+const arrayToText = (arr: Array<{ url?: string | null; address?: string | null; number?: string | null }>): string => {
+  return arr
+    .map(item => item.url || item.address || item.number || '')
+    .filter(Boolean)
+    .join('\n')
+}
 
 // Storage helper
 const storageKey = (id: string) => `generatedEmail_${id}`
@@ -462,7 +503,7 @@ function syncDraftState() {
 
 // Computed properties
 const isFormValid = computed(() => {
-  return formData.value.companyName.trim().length > 0
+  return formData.value.name.trim().length > 0
 })
 
 const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
@@ -510,7 +551,7 @@ const canResetToBackend = computed(() => {
 
 const canSendEmail = computed(() => {
   const p = prospect.value
-  if (!p || !p.contactEmail) return false
+  if (!p || !p.emailAddresses || p.emailAddresses.length === 0) return false
   
   const hasSavedContent = Boolean(
     (p.mailTitle && p.mailTitle.trim()) ||
@@ -571,11 +612,10 @@ function startEditing() {
   
   // Populate form with current values
   formData.value = {
-    companyName: prospect.value.companyName,
-    contactName: prospect.value.contactName || '',
-    contactEmail: prospect.value.contactEmail || '',
-    domain: prospect.value.domain || '',
-    linkedinUrl: prospect.value.linkedinUrl || '',
+    name: prospect.value.name,
+    websitesText: arrayToText(prospect.value.websites),
+    emailsText: arrayToText(prospect.value.emailAddresses),
+    phonesText: arrayToText(prospect.value.phoneNumbers),
     status: prospect.value.status,
     notes: prospect.value.notes || ''
   }
@@ -597,11 +637,10 @@ function hasUnsavedEditChanges(): boolean {
   if (!prospect.value) return false
   
   return (
-    formData.value.companyName !== prospect.value.companyName ||
-    formData.value.contactName !== (prospect.value.contactName || '') ||
-    formData.value.contactEmail !== (prospect.value.contactEmail || '') ||
-    formData.value.domain !== (prospect.value.domain || '') ||
-    formData.value.linkedinUrl !== (prospect.value.linkedinUrl || '') ||
+    formData.value.name !== prospect.value.name ||
+    formData.value.websitesText !== arrayToText(prospect.value.websites) ||
+    formData.value.emailsText !== arrayToText(prospect.value.emailAddresses) ||
+    formData.value.phonesText !== arrayToText(prospect.value.phoneNumbers) ||
     formData.value.status !== prospect.value.status ||
     formData.value.notes !== (prospect.value.notes || '')
   )
@@ -615,11 +654,10 @@ async function saveChanges() {
   
   try {
     const updatePayload: Record<string, any> = {
-      companyName: formData.value.companyName.trim(),
-      contactName: formData.value.contactName.trim() || undefined,
-      contactEmail: formData.value.contactEmail.trim() || undefined,
-      domain: formData.value.domain.trim() || undefined,
-      linkedinUrl: formData.value.linkedinUrl.trim() || undefined,
+      name: formData.value.name.trim(),
+      websites: splitLines(formData.value.websitesText),
+      emailAddresses: splitLines(formData.value.emailsText),
+      phoneNumbers: splitLines(formData.value.phonesText),
       status: formData.value.status,
       notes: formData.value.notes.trim() || undefined
     }
@@ -691,7 +729,7 @@ async function fetchProspect() {
     
     console.log('ProspectDetail: Loaded prospect', {
       id: prospect.value.id,
-      companyName: prospect.value.companyName,
+      name: prospect.value.name,
       hasSoftData: !!prospect.value.softCompanyData,
       softDataKeys: prospect.value.softCompanyData ? Object.keys(prospect.value.softCompanyData) : null
     })
@@ -813,7 +851,8 @@ const sendEmailToN8n = async () => {
   const p = prospect.value
   if (!p) return
 
-  if (!p.contactEmail) {
+  const firstEmail = p.emailAddresses?.[0]?.address
+  if (!p.emailAddresses || p.emailAddresses.length === 0 || !firstEmail) {
     alert('⚠️ Ingen email-adress finns för denna prospect')
     return
   }
@@ -828,7 +867,7 @@ const sendEmailToN8n = async () => {
     return
   }
 
-  const confirmMessage = `Skicka email till ${p.contactEmail} för ${p.companyName}?`
+  const confirmMessage = `Skicka email till ${firstEmail} för ${p.name}?`
   if (!confirm(confirmMessage)) return
 
   isSendingEmail.value = true
@@ -1057,6 +1096,70 @@ onMounted(() => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.75rem;
+}
+
+/* Capsule Tags and Custom Fields */
+.capsule-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.tag-badge.data-tag {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.field-name {
+  color: #6b7280;
+  min-width: 150px;
+}
+
+.field-value {
+  color: #374151;
+  flex: 1;
 }
 
 .email-generator-selector {
@@ -1291,7 +1394,8 @@ onMounted(() => {
 }
 
 .info-input,
-.info-select {
+.info-select,
+.info-textarea {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: 2px solid #d1d5db;
@@ -1300,13 +1404,29 @@ onMounted(() => {
   font-family: inherit;
   transition: all 0.2s;
   background-color: white;
+  resize: vertical;
 }
 
 .info-input:focus,
-.info-select:focus {
+.info-select:focus,
+.info-textarea:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.website-link,
+.email-link {
+  display: block;
+  color: #2563eb;
+  text-decoration: none;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.website-link:hover,
+.email-link:hover {
+  text-decoration: underline;
 }
 
 .info-input.input-error {

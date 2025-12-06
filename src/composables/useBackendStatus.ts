@@ -8,7 +8,7 @@ export function useBackendStatus() {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/prospects', {
+      const response = await axios.get('http://localhost:3000/api/prospects', {
         timeout: 5000,
         validateStatus: (status) => status < 500 // Accept any non-server-error response
       })

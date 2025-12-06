@@ -16,10 +16,9 @@ export function useProspectFilters(prospects: Ref<Prospect[]>) {
     if (filterState.value.search.trim()) {
       const query = filterState.value.search.toLowerCase().trim()
       result = result.filter((p) =>
-        p.companyName.toLowerCase().includes(query) ||
-        p.contactName?.toLowerCase().includes(query) ||
-        p.contactEmail?.toLowerCase().includes(query) ||
-        p.domain?.toLowerCase().includes(query)
+        p.name.toLowerCase().includes(query) ||
+        p.emailAddresses.some(e => e.address?.toLowerCase().includes(query)) ||
+        p.websites.some(w => w.url?.toLowerCase().includes(query))
       )
     }
 
@@ -31,14 +30,14 @@ export function useProspectFilters(prospects: Ref<Prospect[]>) {
     // Filter by hasEmail
     if (filterState.value.hasEmail !== 'all') {
       result = result.filter((p) =>
-        filterState.value.hasEmail ? !!p.contactEmail : !p.contactEmail
+        filterState.value.hasEmail ? p.emailAddresses.length > 0 : p.emailAddresses.length === 0
       )
     }
 
     // Filter by hasContact
     if (filterState.value.hasContact !== 'all') {
       result = result.filter((p) =>
-        filterState.value.hasContact ? !!p.contactName : !p.contactName
+        filterState.value.hasContact ? p.emailAddresses.length > 0 : p.emailAddresses.length === 0
       )
     }
 

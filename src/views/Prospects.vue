@@ -127,16 +127,16 @@
                 />
               </td>
               <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
-              <td class="table-cell company-cell">{{ prospect.companyName }}</td>
+              <td class="table-cell company-cell">{{ prospect.name }}</td>
               <td class="table-cell contact-cell">
                 <div class="contact-inner">
                   <div class="avatar">
-                    <span class="avatar-letter">{{ (prospect.contactName || '-').charAt(0).toUpperCase() }}</span>
+                    <span class="avatar-letter">{{ (prospect.emailAddresses[0]?.address || prospect.name || '-').charAt(0).toUpperCase() }}</span>
                   </div>
-                  <div class="contact-name">{{ prospect.contactName || '-' }}</div>
+                  <div class="contact-name">{{ prospect.emailAddresses[0]?.address || 'Ingen kontakt' }}</div>
                 </div>
               </td>
-              <td class="table-cell email-cell">{{ prospect.contactEmail || '-' }}</td>
+              <td class="table-cell email-cell">{{ prospect.websites[0]?.url || '-' }}</td>
               <td class="table-cell status-cell">
                 <span :class="['status-badge', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
               </td>
@@ -179,24 +179,46 @@
           <div class="modal-body">
             <form @submit.prevent="saveProspect" class="form-container">
               <div class="form-group">
-                <label class="form-label required">Company Name</label>
-                <input v-model="formData.companyName" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
+                <label class="form-label required">Företagsnamn</label>
+                <input v-model="formData.name" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
               </div>
+
               <div class="form-group">
-                <label class="form-label">Website</label>
-                <input v-model="formData.domain" type="url" class="form-input" placeholder="https://acme.com" />
+                <label class="form-label">Webbplatser (en per rad)</label>
+                <textarea 
+                  v-model="formData.websitesText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="https://acme.com&#10;https://shop.acme.com"
+                ></textarea>
+                <small class="form-help">En URL per rad</small>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Contact Person</label>
-                <input v-model="formData.contactName" type="text" class="form-input" placeholder="John Doe" />
+                <label class="form-label">Email-adresser (en per rad)</label>
+                <textarea 
+                  v-model="formData.emailsText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="john@acme.com&#10;support@acme.com"
+                ></textarea>
+                <small class="form-help">En email per rad</small>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Email</label>
-                <input v-model="formData.contactEmail" type="email" class="form-input" placeholder="john@acme.com" />
+                <label class="form-label">Telefonnummer (en per rad)</label>
+                <textarea 
+                  v-model="formData.phonesText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="+46 70 123 45 67"
+                ></textarea>
+                <small class="form-help">Ett nummer per rad</small>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Notes</label>
-                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Notes about this prospect..."></textarea>
+                <label class="form-label">Anteckningar</label>
+                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Anteckningar om denna prospect..."></textarea>
               </div>
             </form>
           </div>
@@ -266,13 +288,11 @@ const {
 } = useBatchOperations()
 
 interface ProspectFormData {
-  companyName: string
-  domain: string
-  contactName: string
-  contactEmail: string
-  linkedinUrl: string
+  name: string
+  websitesText: string
+  emailsText: string
+  phonesText: string
   notes: string
-  status: ProspectStatus
 }
 
 // State
@@ -283,31 +303,36 @@ const batchAction = ref('')
 
 const statusLabels = STATUS_LABELS
 
+// Helper function to split textarea into array
+const splitLines = (text: string): string[] => {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+}
+
 const createEmptyForm = (): ProspectFormData => ({
-  companyName: '',
-  domain: '',
-  contactName: '',
-  contactEmail: '',
-  linkedinUrl: '',
-  notes: '',
-  status: 0 as ProspectStatus
+  name: '',
+  websitesText: '',
+  emailsText: '',
+  phonesText: '',
+  notes: ''
 })
 
 const formData = ref<ProspectFormData>(createEmptyForm())
 
 // Functions
 const saveProspect = async () => {
-  if (!formData.value.companyName.trim()) return
+  if (!formData.value.name.trim()) return
   
   isSubmitting.value = true
   try {
     // Create: send all fields
     const createPayload = {
-      companyName: formData.value.companyName.trim(),
-      domain: formData.value.domain || undefined,
-      contactName: formData.value.contactName || undefined,
-      contactEmail: formData.value.contactEmail || undefined,
-      linkedinUrl: formData.value.linkedinUrl || undefined,
+      name: formData.value.name.trim(),
+      websites: splitLines(formData.value.websitesText),
+      emailAddresses: splitLines(formData.value.emailsText),
+      phoneNumbers: splitLines(formData.value.phonesText),
       notes: formData.value.notes || undefined
     }
     await createProspect(createPayload)
@@ -327,7 +352,7 @@ const openCreateModal = () => {
 }
 
 const confirmDelete = async (prospect: Prospect) => {
-  if (confirm(`Är du säker på att du vill ta bort "${prospect.companyName}"?`)) {
+  if (confirm(`Är du säker på att du vill ta bort "${prospect.name}"?`)) {
     try {
       await deleteProspect(prospect.id)
     } catch (err: any) {

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { authService } from './auth';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -33,7 +33,7 @@ api.interceptors.response.use(
       const refreshToken = authService.getRefreshToken();
       if (refreshToken) {
         try {
-          const response = await axios.post('http://localhost:5000/auth/refresh', {
+          const response = await axios.post('http://localhost:3000/auth/refresh', {
             refreshToken
           });
           

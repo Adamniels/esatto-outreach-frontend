@@ -1,5 +1,5 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto, PendingProspectDto } from '@/types/prospect';
 
 // Batch operation types
 export interface BatchOperationResult<TData> {
@@ -119,6 +119,25 @@ export const prospectsAPI = {
       softDataProvider
     });
     return response.data;
+  },
+
+  // ============ CAPSULE CRM INTEGRATION ============
+
+  // Get pending prospects from Capsule CRM
+  getPending: async (): Promise<PendingProspectDto[]> => {
+    const response = await api.get('/prospects/pending');
+    return response.data;
+  },
+
+  // Claim a pending prospect
+  claimPending: async (id: string): Promise<Prospect> => {
+    const response = await api.post(`/prospects/${id}/claim`);
+    return response.data;
+  },
+
+  // Reject a pending prospect
+  rejectPending: async (id: string): Promise<void> => {
+    await api.post(`/prospects/${id}/pending/reject`);
   }
 };
 

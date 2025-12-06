@@ -1,6 +1,6 @@
 import type { ProspectStatus } from './prospect'
 
-export type SortField = 'companyName' | 'contactName' | 'contactEmail' | 'status' | 'createdUtc'
+export type SortField = 'name' | 'status' | 'createdUtc'
 export type SortDirection = 'asc' | 'desc'
 
 export interface SortOption {
@@ -30,12 +30,10 @@ export interface SortState {
 
 // Predefined sort options
 export const SORT_OPTIONS: SortOption[] = [
-  { value: 'companyName-asc', label: 'Företagsnamn (A-Ö)', field: 'companyName', direction: 'asc' },
-  { value: 'companyName-desc', label: 'Företagsnamn (Ö-A)', field: 'companyName', direction: 'desc' },
+  { value: 'name-asc', label: 'Företagsnamn (A-Ö)', field: 'name', direction: 'asc' },
+  { value: 'name-desc', label: 'Företagsnamn (Ö-A)', field: 'name', direction: 'desc' },
   { value: 'status-asc', label: 'Status (Stigande)', field: 'status', direction: 'asc' },
   { value: 'status-desc', label: 'Status (Fallande)', field: 'status', direction: 'desc' },
-  { value: 'contactName-asc', label: 'Kontakt (A-Ö)', field: 'contactName', direction: 'asc' },
-  { value: 'contactName-desc', label: 'Kontakt (Ö-A)', field: 'contactName', direction: 'desc' },
   { value: 'createdUtc-desc', label: 'Senast skapad', field: 'createdUtc', direction: 'desc' },
   { value: 'createdUtc-asc', label: 'Äldst skapad', field: 'createdUtc', direction: 'asc' },
 ]

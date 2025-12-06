@@ -69,8 +69,8 @@
           <tbody class="activity-tbody">
             <tr v-for="prospect in recentProspects" :key="prospect.id" class="activity-row">
               <td class="activity-cell">
-                <div class="company-name">{{ prospect.companyName }}</div>
-                <div class="contact-info">{{ prospect.contactName || 'Ingen kontakt' }}</div>
+                <div class="company-name">{{ prospect.name }}</div>
+                <div class="contact-info">{{ prospect.emailAddresses[0]?.address || prospect.about || 'Ingen kontakt' }}</div>
               </td>
               <td class="activity-cell-right">
                 <span :class="['status-badge', getStatusClass(prospect.status)]">
@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { Prospect, ProspectStatus } from '@/types/prospect'
-import { statusLabels, statusColors } from '@/types/prospect'
+import { statusLabels } from '@/types/prospect'
 import { prospectsAPI } from '@/services/prospects'
 
 // Simple reactive state

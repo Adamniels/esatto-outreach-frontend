@@ -10,43 +10,103 @@ export const ProspectStatus = {
 
 export type ProspectStatus = typeof ProspectStatus[keyof typeof ProspectStatus];
 
+// Nested types for Capsule CRM data
+export interface WebsiteDto {
+  url?: string | null;
+  service?: string | null;
+  type?: string | null;
+}
+
+export interface EmailAddressDto {
+  address?: string | null;
+  type?: string | null;
+}
+
+export interface PhoneNumberDto {
+  number?: string | null;
+  type?: string | null;
+}
+
+export interface AddressDto {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  type?: string | null;
+}
+
+export interface CapsuleTag {
+  id: number;
+  name: string;
+  dataTag: boolean;
+}
+
+export interface CapsuleCustomField {
+  id: number;
+  fieldName?: string | null;
+  fieldDefinitionId?: number | null;
+  value?: string | null;
+  tagId?: number | null;
+}
+
 export interface Prospect {
   id: string;
-  companyName: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
+  name: string;
+  isFromCapsule: boolean;
+  capsuleId?: number | null;
+  isPending: boolean;
+  about?: string | null;
+  websites: WebsiteDto[];
+  emailAddresses: EmailAddressDto[];
+  phoneNumbers: PhoneNumberDto[];
+  addresses: AddressDto[];
+  tags: CapsuleTag[];
+  customFields: CapsuleCustomField[];
+  pictureURL?: string | null;
+  capsuleCreatedAt?: string | null;
+  capsuleUpdatedAt?: string | null;
+  lastContactedAt?: string | null;
+  notes?: string | null;
   status: ProspectStatus;
   createdUtc: string;
-  updatedUtc?: string;
+  updatedUtc?: string | null;
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  ownerId?: string | null;
   softCompanyData?: SoftCompanyDataDto | null;
 }
 
 export interface CreateProspectRequest {
-  companyName: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
+  name: string;
+  websites?: string[];
+  emailAddresses?: string[];
+  phoneNumbers?: string[];
+  notes?: string | null;
 }
 
 export interface UpdateProspectRequest {
-  companyName?: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
+  name?: string;
+  websites?: string[];
+  emailAddresses?: string[];
+  phoneNumbers?: string[];
+  notes?: string | null;
   status?: ProspectStatus;
-  mailTitle?: string;
-  mailBodyPlain?: string;
-  mailBodyHTML?: string;
+  mailTitle?: string | null;
+  mailBodyPlain?: string | null;
+  mailBodyHTML?: string | null;
+}
+
+export interface PendingProspectDto {
+  id: string;
+  name: string;
+  capsuleId: number;
+  about?: string | null;
+  pictureURL?: string | null;
+  websites: WebsiteDto[];
+  emailAddresses: EmailAddressDto[];
+  createdUtc: string;
 }
 
 export interface EmailDraft {
@@ -93,17 +153,6 @@ export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.Emailed]: 'Mejlad',
   [ProspectStatus.Responded]: 'Svarat',
   [ProspectStatus.Archived]: 'Arkiverad'
-};
-
-// Status colors are now handled by CSS classes instead of inline Tailwind
-// Use getStatusClass() function in components to get the appropriate CSS class
-export const statusColors: Record<ProspectStatus, string> = {
-  [ProspectStatus.New]: 'status-new',
-  [ProspectStatus.Researched]: 'status-researched',
-  [ProspectStatus.Drafted]: 'status-drafted',
-  [ProspectStatus.Emailed]: 'status-emailed',
-  [ProspectStatus.Responded]: 'status-responded',
-  [ProspectStatus.Archived]: 'status-archived'
 };
 
 // Soft Company Data Types

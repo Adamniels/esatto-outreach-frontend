@@ -3,6 +3,7 @@ import { authService } from '../services/auth'
 import Dashboard from '../views/Dashboard.vue'
 import Prospects from '../views/Prospects.vue'
 import ProspectDetail from '../views/ProspectDetail.vue'
+import PendingProspects from '../views/PendingProspects.vue'
 import Settings from '../views/Settings.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
@@ -30,6 +31,12 @@ const routes = [
     path: '/prospects', 
     name: 'Prospects',
     component: Prospects,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/prospects/pending',
+    name: 'PendingProspects',
+    component: PendingProspects,
     meta: { requiresAuth: true }
   },
   {
