@@ -17,42 +17,121 @@
     <div v-else-if="prospect" class="detail-content">
       <!-- Back Button and Title -->
       <div class="detail-header">
-        <h2 class="detail-title">{{ prospect.companyName }}</h2>
-        <button @click="router.push('/prospects')" class="back-button">
-          ← Tillbaka till listan
+        <h2 class="detail-title">{{ isEditing ? formData.name : prospect.name }}</h2>
+        <div class="header-actions">
+          <button 
+            v-if="!isEditing" 
+            @click="startEditing" 
+            class="btn-edit"
+          >
+            Redigera
+          </button>
+          <button @click="router.push('/prospects')" class="back-button">
+            ← Tillbaka till listan
+          </button>
+        </div>
+      </div>
+
+      <!-- Edit Mode Actions -->
+      <div v-if="isEditing" class="edit-actions">
+        <button 
+          @click="saveChanges" 
+          :disabled="isSaving || !isFormValid"
+          class="btn-save"
+        >
+          {{ isSaving ? 'Sparar...' : 'Spara ändringar' }}
+        </button>
+        <button 
+          @click="cancelEditing" 
+          :disabled="isSaving"
+          class="btn-cancel"
+        >
+          Avbryt
         </button>
       </div>
 
       <!-- Company Information Grid -->
       <div class="company-info-grid">
         <div class="info-row">
-          <span class="info-label">Företagsnamn:</span>
-          <span class="info-value">{{ prospect.companyName }}</span>
+          <label class="info-label">Företagsnamn: <span v-if="isEditing" class="required">*</span></label>
+          <input 
+            v-if="isEditing"
+            v-model="formData.name"
+            type="text"
+            class="info-input"
+            :class="{ 'input-error': !formData.name?.trim() }"
+            placeholder="Företagsnamn (obligatoriskt)"
+            required
+          />
+          <span v-else class="info-value">{{ prospect.name }}</span>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Kontaktperson:</span>
-          <span class="info-value">{{ prospect.contactName || 'N/A' }}</span>
+          <label class="info-label">Webbplatser:</label>
+          <textarea 
+            v-if="isEditing"
+            v-model="formData.websitesText"
+            class="info-textarea"
+            rows="2"
+            placeholder="En URL per rad&#10;https://example.com&#10;https://shop.example.com"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.websites.length > 0">
+              <a v-for="(site, idx) in prospect.websites" :key="idx" :href="site.url || '#'" target="_blank" class="website-link">{{ site.url || 'N/A' }}</a>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Email:</span>
-          <span class="info-value">{{ prospect.contactEmail || 'N/A' }}</span>
+          <label class="info-label">Email-adresser:</label>
+          <textarea 
+            v-if="isEditing"
+            v-model="formData.emailsText"
+            class="info-textarea"
+            rows="2"
+            placeholder="En email per rad&#10;john@example.com&#10;support@example.com"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.emailAddresses.length > 0">
+              <a v-for="(email, idx) in prospect.emailAddresses" :key="idx" :href="`mailto:${email.address}`" class="email-link">{{ email.address }}</a>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
-          <span class="info-label">Domän:</span>
-          <span class="info-value">{{ prospect.domain || 'N/A' }}</span>
+          <label class="info-label">Telefonnummer:</label>
+          <textarea 
+            v-if="isEditing"
+            v-model="formData.phonesText"
+            class="info-textarea"
+            rows="2"
+            placeholder="Ett nummer per rad&#10;+46 70 123 45 67"
+          ></textarea>
+          <div v-else class="info-value">
+            <div v-if="prospect.phoneNumbers.length > 0">
+              <div v-for="(phone, idx) in prospect.phoneNumbers" :key="idx">{{ phone.number }}</div>
+            </div>
+            <span v-else>N/A</span>
+          </div>
         </div>
 
         <div class="info-row">
-          <span class="info-label">LinkedIn:</span>
-          <span class="info-value">{{ prospect.linkedinUrl || 'N/A' }}</span>
-        </div>
-
-        <div class="info-row">
-          <span class="info-label">Status:</span>
-          <span class="info-value">
+          <label class="info-label">Status:</label>
+          <select 
+            v-if="isEditing"
+            v-model="formData.status"
+            class="info-select"
+          >
+            <option :value="0">Ny</option>
+            <option :value="1">Undersökt</option>
+            <option :value="2">Utkast</option>
+            <option :value="3">Mejlad</option>
+            <option :value="4">Svarat</option>
+            <option :value="5">Arkiverad</option>
+          </select>
+          <span v-else class="info-value">
             <span :class="['status-badge', `status-${prospect.status}`]">
               {{ statusLabels[prospect.status as ProspectStatus] || 'Okänd' }}
             </span>
@@ -60,21 +139,84 @@
         </div>
 
         <div class="info-row">
-          <span class="info-label">Skapad:</span>
+          <label class="info-label">Skapad:</label>
           <span class="info-value">{{ new Date(prospect.createdUtc).toLocaleDateString('sv-SE') }}</span>
         </div>
       </div>
 
-      <!-- Notes Section -->
-      <div class="notes-section">
-        <h3>Anteckningar</h3>
-        <p class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
+      <!-- Tags Section -->
+      <div v-if="prospect.tags && prospect.tags.length > 0" class="capsule-section">
+        <label class="section-label">Tags från Capsule:</label>
+        <div class="tags-list">
+          <span 
+            v-for="tag in prospect.tags" 
+            :key="tag.id"
+            class="tag-badge"
+            :class="{ 'data-tag': tag.dataTag }"
+          >
+            {{ tag.name }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Custom Fields Section -->
+      <div v-if="prospect.customFields && prospect.customFields.length > 0" class="capsule-section">
+        <label class="section-label">Custom Fields från Capsule:</label>
+        <div class="fields-list">
+          <div 
+            v-for="field in prospect.customFields" 
+            :key="field.id"
+            class="field-item"
+          >
+            <strong class="field-name">{{ field.fieldName }}:</strong>
+            <span class="field-value">{{ field.value || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes Section (Editable) -->
+      <div class="notes-section" :class="{ 'notes-editing': isEditing }">
+        <label class="notes-label">Anteckningar</label>
+        <textarea 
+          v-if="isEditing"
+          v-model="formData.notes"
+          class="notes-textarea"
+          placeholder="Lägg till anteckningar..."
+          rows="4"
+        ></textarea>
+        <p v-else class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
+      </div>
+
+      <!-- Soft Company Data Section -->
+      <div class="soft-data-section">
+        <h3>Mjuk Företagsdata</h3>
+        <SoftDataButton
+          :prospectId="prospect.id"
+          :softData="prospect.softCompanyData"
+          :loading="isGeneratingSoftData"
+          @generate="handleGenerateSoftData"
+          @view="showSoftDataModal = true"
+        />
       </div>
 
       <!-- Email and Chat Section (Two Columns) -->
       <div class="email-chat-container">
         <!-- Email Section (Left) -->
         <div class="email-section">
+          <!-- Email Generator Type Selector -->
+          <div class="email-generator-selector">
+            <button 
+              v-for="type in emailGeneratorTypes" 
+              :key="type.value"
+              @click="selectedEmailGeneratorType = type.value"
+              :class="['generator-type-btn', { active: selectedEmailGeneratorType === type.value }]"
+              :disabled="type.value === 'UseCollectedData' && !prospect.softCompanyData"
+              :title="type.value === 'UseCollectedData' && !prospect.softCompanyData ? 'Samla in mjuk data först' : type.label"
+            >
+              {{ type.label }}
+            </button>
+          </div>
+
           <!-- Email Action Buttons -->
           <div class="email-actions">
             <button 
@@ -156,6 +298,14 @@
           />
         </div>
       </div>
+
+      <!-- Soft Company Data Modal -->
+      <SoftCompanyDataModal
+        :show="showSoftDataModal"
+        :softData="prospect.softCompanyData"
+        :loading="isGeneratingSoftData"
+        @close="showSoftDataModal = false"
+      />
     </div>
   </div>
 </template>
@@ -164,12 +314,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
-import { statusLabels } from '../types/prospect'
+import { ProspectStatus as ProspectStatusEnum, statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
 import ChatBox from '../components/ChatBox.vue'
+import SoftDataButton from '../components/SoftDataButton.vue'
+import SoftCompanyDataModal from '../components/SoftCompanyDataModal.vue'
+import { useSoftCompanyData } from '../composables/useSoftCompanyData'
 
 const route = useRoute()
 const router = useRouter()
+
+// Composables
+const { generateSoftData } = useSoftCompanyData()
 
 // State
 const loading = ref(true)
@@ -180,6 +336,44 @@ const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
 const hasUnsavedChatChanges = ref(false)
+
+// Soft Company Data State
+const showSoftDataModal = ref(false)
+const isGeneratingSoftData = ref(false)
+
+// Email Generator Type State
+const emailGeneratorTypes = [
+  { value: 'WebSearch' as const, label: 'Web Search' },
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
+]
+const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
+
+// Edit Mode State
+const isEditing = ref(false)
+const isSaving = ref(false)
+const formData = ref({
+  name: '',
+  websitesText: '',
+  emailsText: '',
+  phonesText: '',
+  status: 0 as ProspectStatus,
+  notes: ''
+})
+
+// Helper functions for array conversion
+const splitLines = (text: string): string[] => {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+}
+
+const arrayToText = (arr: Array<{ url?: string | null; address?: string | null; number?: string | null }>): string => {
+  return arr
+    .map(item => item.url || item.address || item.number || '')
+    .filter(Boolean)
+    .join('\n')
+}
 
 // Storage helper
 const storageKey = (id: string) => `generatedEmail_${id}`
@@ -308,6 +502,10 @@ function syncDraftState() {
 }
 
 // Computed properties
+const isFormValid = computed(() => {
+  return formData.value.name.trim().length > 0
+})
+
 const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
 const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
 
@@ -353,7 +551,7 @@ const canResetToBackend = computed(() => {
 
 const canSendEmail = computed(() => {
   const p = prospect.value
-  if (!p || !p.contactEmail) return false
+  if (!p || !p.emailAddresses || p.emailAddresses.length === 0) return false
   
   const hasSavedContent = Boolean(
     (p.mailTitle && p.mailTitle.trim()) ||
@@ -408,6 +606,114 @@ const generatedEmailBody = computed({
 })
 
 // Actions
+// Edit Mode Actions
+function startEditing() {
+  if (!prospect.value) return
+  
+  // Populate form with current values
+  formData.value = {
+    name: prospect.value.name,
+    websitesText: arrayToText(prospect.value.websites),
+    emailsText: arrayToText(prospect.value.emailAddresses),
+    phonesText: arrayToText(prospect.value.phoneNumbers),
+    status: prospect.value.status,
+    notes: prospect.value.notes || ''
+  }
+  
+  isEditing.value = true
+}
+
+function cancelEditing() {
+  if (hasUnsavedEditChanges()) {
+    if (!confirm('Du har osparade ändringar. Vill du verkligen avbryta?')) {
+      return
+    }
+  }
+  
+  isEditing.value = false
+}
+
+function hasUnsavedEditChanges(): boolean {
+  if (!prospect.value) return false
+  
+  return (
+    formData.value.name !== prospect.value.name ||
+    formData.value.websitesText !== arrayToText(prospect.value.websites) ||
+    formData.value.emailsText !== arrayToText(prospect.value.emailAddresses) ||
+    formData.value.phonesText !== arrayToText(prospect.value.phoneNumbers) ||
+    formData.value.status !== prospect.value.status ||
+    formData.value.notes !== (prospect.value.notes || '')
+  )
+}
+
+async function saveChanges() {
+  if (!prospect.value || !isFormValid.value) return
+  
+  isSaving.value = true
+  error.value = null
+  
+  try {
+    const updatePayload: Record<string, any> = {
+      name: formData.value.name.trim(),
+      websites: splitLines(formData.value.websitesText),
+      emailAddresses: splitLines(formData.value.emailsText),
+      phoneNumbers: splitLines(formData.value.phonesText),
+      status: formData.value.status,
+      notes: formData.value.notes.trim() || undefined
+    }
+    
+    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    prospect.value = updated
+    isEditing.value = false
+    
+    // Show success message briefly
+    const successMsg = document.createElement('div')
+    successMsg.textContent = 'Ändringar sparade'
+    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
+    document.body.appendChild(successMsg)
+    setTimeout(() => successMsg.remove(), 3000)
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Kunde inte spara ändringar'
+    alert(`Fel: ${error.value}`)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// Email and Soft Data Actions
+async function handleGenerateSoftData(prospectId: string, provider: 'OpenAI' | 'Claude' | 'Hybrid') {
+  if (!prospect.value) return
+  
+  isGeneratingSoftData.value = true
+  error.value = null
+  
+  console.log('ProspectDetail: Starting soft data generation for', prospect.value.id, 'with provider:', provider)
+  
+  try {
+    const softData = await generateSoftData(prospect.value.id, provider)
+    
+    console.log('ProspectDetail: Received soft data', softData)
+    
+    // Update the prospect with the new soft data
+    if (prospect.value && softData) {
+      prospect.value.softCompanyData = softData
+      // Uppdatera status till Undersökt när research är klar
+      if (prospect.value.status === ProspectStatusEnum.New) {
+        prospect.value.status = ProspectStatusEnum.Researched
+      }
+      console.log('ProspectDetail: Updated prospect with soft data and status')
+    }
+    
+    // Automatically show the modal after generation
+    showSoftDataModal.value = true
+  } catch (err: any) {
+    error.value = err.response?.data?.error || 'Kunde inte generera mjuk företagsdata'
+    console.error('Error generating soft company data:', err)
+  } finally {
+    isGeneratingSoftData.value = false
+  }
+}
+
 async function fetchProspect() {
   const id = route.params.id as string
   if (!id) {
@@ -420,6 +726,13 @@ async function fetchProspect() {
     loading.value = true
     error.value = null
     prospect.value = await prospectsAPI.getById(id)
+    
+    console.log('ProspectDetail: Loaded prospect', {
+      id: prospect.value.id,
+      name: prospect.value.name,
+      hasSoftData: !!prospect.value.softCompanyData,
+      softDataKeys: prospect.value.softCompanyData ? Object.keys(prospect.value.softCompanyData) : null
+    })
 
     const serverDraft = draftFromProspect(prospect.value)
     originalServerDraft.value = serverDraft
@@ -447,7 +760,7 @@ const generateEmail = async () => {
   const prospectId = prospect.value.id
   isGenerating.value = true
   try {
-    const response = await prospectsAPI.generateEmailDraft(prospect.value.id)
+    const response = await prospectsAPI.generateEmailDraft(prospect.value.id, selectedEmailGeneratorType.value)
     const draft = extractEmailDraft(response)
 
     if (!draft) {
@@ -538,7 +851,8 @@ const sendEmailToN8n = async () => {
   const p = prospect.value
   if (!p) return
 
-  if (!p.contactEmail) {
+  const firstEmail = p.emailAddresses?.[0]?.address
+  if (!p.emailAddresses || p.emailAddresses.length === 0 || !firstEmail) {
     alert('⚠️ Ingen email-adress finns för denna prospect')
     return
   }
@@ -553,7 +867,7 @@ const sendEmailToN8n = async () => {
     return
   }
 
-  const confirmMessage = `Skicka email till ${p.contactEmail} för ${p.companyName}?`
+  const confirmMessage = `Skicka email till ${firstEmail} för ${p.name}?`
   if (!confirm(confirmMessage)) return
 
   isSendingEmail.value = true
@@ -561,14 +875,18 @@ const sendEmailToN8n = async () => {
     const result = await prospectsAPI.sendEmail(p.id)
     
     if (result.success) {
-      alert(`✅ Email skickat till ${p.contactEmail}!`)
+      // Uppdatera status till Utkast när email skickas till n8n
+      if (prospect.value) {
+        prospect.value.status = ProspectStatusEnum.Drafted
+      }
+      alert(`Email skickat till ditt utkast`)
       await fetchProspect()
     } else {
-      alert(`❌ Kunde inte skicka email: ${result.message || 'Okänt fel'}`)
+      alert(`❌ Kunde inte skicka email till ditt utkast: ${result.message || 'Okänt fel'}`)
     }
   } catch (err: any) {
     const errorMsg = err.response?.data?.error || err.message || 'Ett fel uppstod'
-    alert(`❌ Kunde inte skicka email: ${errorMsg}`)
+    alert(`❌ Kunde inte skicka email till ditt utkast: ${errorMsg}`)
     console.error('Send email error:', err)
   } finally {
     isSendingEmail.value = false
@@ -723,49 +1041,163 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
+.status-0,
 .status-new {
   background-color: #dbeafe;
   color: #1e40af;
 }
 
-.status-contacted {
+.status-1,
+.status-researched {
   background-color: #fef3c7;
   color: #92400e;
 }
 
-.status-qualified {
+.status-2,
+.status-drafted {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.status-3,
+.status-emailed {
+  background-color: #ddd6fe;
+  color: #5b21b6;
+}
+
+.status-4,
+.status-responded {
   background-color: #d1fae5;
   color: #065f46;
 }
 
-.status-converted {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.status-rejected {
+.status-5,
+.status-archived {
   background-color: #fee2e2;
   color: #991b1b;
-}
-
-.notes-section {
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.375rem;
-}
-
-.notes-section h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
 }
 
 .notes-text {
   font-size: 0.875rem;
   color: #6b7280;
   white-space: pre-wrap;
+}
+
+.soft-data-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f0f9ff;
+  border-radius: 0.375rem;
+  border: 1px solid #bfdbfe;
+}
+
+.soft-data-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+/* Capsule Tags and Custom Fields */
+.capsule-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.tag-badge.data-tag {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.field-name {
+  color: #6b7280;
+  min-width: 150px;
+}
+
+.field-value {
+  color: #374151;
+  flex: 1;
+}
+
+.email-generator-selector {
+  display: flex;
+  gap: 0.25rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  width: fit-content;
+}
+
+.generator-type-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.generator-type-btn:hover:not(:disabled) {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.generator-type-btn.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.generator-type-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .email-actions {
@@ -884,5 +1316,169 @@ onMounted(() => {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Edit Mode Styles */
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btn-edit {
+  padding: 0.5rem 1rem;
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background-color: #d97706;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #fef3c7;
+  border-radius: 0.375rem;
+  border: 1px solid #fbbf24;
+}
+
+.btn-save {
+  padding: 0.625rem 1.25rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  padding: 0.625rem 1.25rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-input,
+.info-select,
+.info-textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background-color: white;
+  resize: vertical;
+}
+
+.info-input:focus,
+.info-select:focus,
+.info-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.website-link,
+.email-link {
+  display: block;
+  color: #2563eb;
+  text-decoration: none;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.website-link:hover,
+.email-link:hover {
+  text-decoration: underline;
+}
+
+.info-input.input-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.info-input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.notes-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.notes-section.notes-editing {
+  background-color: #eff6ff;
+  border: 2px solid #3b82f6;
+}
+
+.notes-section h3,
+.notes-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>

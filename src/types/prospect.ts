@@ -2,49 +2,111 @@
 export const ProspectStatus = {
   New: 0,
   Researched: 1,
-  Emailed: 2,
-  Responded: 3,
-  Archived: 4
+  Drafted: 2,
+  Emailed: 3,
+  Responded: 4,
+  Archived: 5
 } as const;
 
 export type ProspectStatus = typeof ProspectStatus[keyof typeof ProspectStatus];
 
+// Nested types for Capsule CRM data
+export interface WebsiteDto {
+  url?: string | null;
+  service?: string | null;
+  type?: string | null;
+}
+
+export interface EmailAddressDto {
+  address?: string | null;
+  type?: string | null;
+}
+
+export interface PhoneNumberDto {
+  number?: string | null;
+  type?: string | null;
+}
+
+export interface AddressDto {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  type?: string | null;
+}
+
+export interface CapsuleTag {
+  id: number;
+  name: string;
+  dataTag: boolean;
+}
+
+export interface CapsuleCustomField {
+  id: number;
+  fieldName?: string | null;
+  fieldDefinitionId?: number | null;
+  value?: string | null;
+  tagId?: number | null;
+}
+
 export interface Prospect {
   id: string;
-  companyName: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
+  name: string;
+  isFromCapsule: boolean;
+  capsuleId?: number | null;
+  isPending: boolean;
+  about?: string | null;
+  websites: WebsiteDto[];
+  emailAddresses: EmailAddressDto[];
+  phoneNumbers: PhoneNumberDto[];
+  addresses: AddressDto[];
+  tags: CapsuleTag[];
+  customFields: CapsuleCustomField[];
+  pictureURL?: string | null;
+  capsuleCreatedAt?: string | null;
+  capsuleUpdatedAt?: string | null;
+  lastContactedAt?: string | null;
+  notes?: string | null;
   status: ProspectStatus;
   createdUtc: string;
-  updatedUtc?: string;
+  updatedUtc?: string | null;
+  mailTitle?: string | null;
+  mailBodyPlain?: string | null;
+  mailBodyHTML?: string | null;
+  ownerId?: string | null;
+  softCompanyData?: SoftCompanyDataDto | null;
+}
+
+export interface CreateProspectRequest {
+  name: string;
+  websites?: string[];
+  emailAddresses?: string[];
+  phoneNumbers?: string[];
+  notes?: string | null;
+}
+
+export interface UpdateProspectRequest {
+  name?: string;
+  websites?: string[];
+  emailAddresses?: string[];
+  phoneNumbers?: string[];
+  notes?: string | null;
+  status?: ProspectStatus;
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
 }
 
-export interface CreateProspectRequest {
-  companyName: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
-}
-
-export interface UpdateProspectRequest {
-  companyName?: string;
-  domain?: string;
-  contactName?: string;
-  contactEmail?: string;
-  linkedinUrl?: string;
-  notes?: string;
-  status?: ProspectStatus;
-  mailTitle?: string;
-  mailBodyPlain?: string;
-  mailBodyHTML?: string;
+export interface PendingProspectDto {
+  id: string;
+  name: string;
+  capsuleId: number;
+  about?: string | null;
+  pictureURL?: string | null;
+  websites: WebsiteDto[];
+  emailAddresses: EmailAddressDto[];
+  createdUtc: string;
 }
 
 export interface EmailDraft {
@@ -87,17 +149,59 @@ export interface ChatMessage {
 export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.New]: 'Ny',
   [ProspectStatus.Researched]: 'Undersökt',
-  [ProspectStatus.Emailed]: 'E-post skickad',
+  [ProspectStatus.Drafted]: 'Utkast',
+  [ProspectStatus.Emailed]: 'Mejlad',
   [ProspectStatus.Responded]: 'Svarat',
   [ProspectStatus.Archived]: 'Arkiverad'
 };
 
-// Status colors are now handled by CSS classes instead of inline Tailwind
-// Use getStatusClass() function in components to get the appropriate CSS class
-export const statusColors: Record<ProspectStatus, string> = {
-  [ProspectStatus.New]: 'status-new',
-  [ProspectStatus.Researched]: 'status-researched',
-  [ProspectStatus.Emailed]: 'status-emailed',
-  [ProspectStatus.Responded]: 'status-responded',
-  [ProspectStatus.Archived]: 'status-archived'
-};
+// Soft Company Data Types
+export interface PersonalizationHook {
+  text: string;
+  source: string;
+  date: string;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+export interface CompanyEvent {
+  title: string;
+  date: string;
+  type: string;
+  url: string;
+}
+
+export interface NewsItem {
+  headline: string;
+  date: string;
+  source: string;
+  url: string;
+}
+
+export interface SocialActivity {
+  platform: string;
+  text: string;
+  date: string;
+  url: string;
+}
+
+export interface SoftCompanyDataDto {
+  id: string;
+  prospectId: string;
+  hooksJson?: string | null;
+  recentEventsJson?: string | null;
+  newsItemsJson?: string | null;
+  socialActivityJson?: string | null;
+  sourcesJson?: string | null;
+  researchedAt: string;
+  createdUtc: string;
+  updatedUtc?: string | null;
+}
+
+export interface ParsedSoftCompanyData {
+  hooks: PersonalizationHook[];
+  events: CompanyEvent[];
+  news: NewsItem[];
+  socialActivity: SocialActivity[];
+  sources: string[];
+  researchedAt: Date;
+}

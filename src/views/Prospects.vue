@@ -3,29 +3,69 @@
     <!-- Top Controls - Like Prody -->
     <div class="prospects-header">
       <div class="filter-controls">
-        <!-- Filter Controls -->
-        <div class="filter-item">
-          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-          </svg>
-          <span class="filter-label">Filter</span>
-        </div>
-        <div class="filter-item">
-          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
-          </svg>
-          <span class="filter-label">Sort</span>
-        </div>
+        <!-- Filter Dropdown Component -->
+        <FilterDropdown
+          v-model="filterState"
+          :prospects="prospects"
+          @clear="clearFilters"
+        />
+        
+        <!-- Sort Dropdown Component -->
+        <SortDropdown
+          v-model="sortState"
+          @reset="resetSort"
+        />
+        
+        <!-- Search Input -->
         <div class="filter-item">
           <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <input v-model="searchQuery" type="text" placeholder="Search..." class="search-input" />
+          <input v-model="filterState.search" type="text" placeholder="Sök..." class="search-input" />
+        </div>
+        
+        <!-- Filter Stats -->
+        <div v-if="filterStats.isFiltered" class="filter-stats">
+          <span class="stats-text">{{ filterStats.showing }} av {{ filterStats.total }}</span>
         </div>
       </div>
       
       <div class="action-controls">
         <button @click="openCreateModal" class="btn btn-success">Add New</button>
+      </div>
+    </div>
+
+    <!-- Batch Action Toolbar (shown when prospects are selected) -->
+    <div v-if="selectedCount > 0" class="batch-toolbar">
+      <div class="batch-info">
+        <span class="batch-count">{{ selectedCount }} valda</span>
+        <button @click="clearSelection" class="btn-clear-selection">Rensa</button>
+      </div>
+      
+      <!-- Show batch progress button when processing -->
+      <div v-if="isBatchProcessing" class="batch-actions">
+        <button 
+          @click="showBatchProgressModal = true" 
+          class="btn btn-batch-status"
+        >
+          <svg class="icon-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Batch pågår ({{ batchProgress.completed }} / {{ batchProgress.total }})</span>
+        </button>
+      </div>
+      
+      <!-- Show batch action controls when not processing -->
+      <div v-else class="batch-actions">
+        <BatchActionDropdown v-model="batchAction" />
+        
+        <button 
+          @click="runBatchOperation" 
+          :disabled="!batchAction"
+          class="btn btn-primary"
+        >
+          Kör Batch
+        </button>
       </div>
     </div>
 
@@ -49,6 +89,7 @@
       <div v-else class="table-container">
         <table class="prospects-table">
           <colgroup>
+            <col class="col-select" />
             <col class="col-id" />
             <col class="col-company" />
             <col class="col-contact" />
@@ -58,6 +99,15 @@
           </colgroup>
           <thead class="prospects-thead">
             <tr>
+              <th class="table-header">
+                <input 
+                  type="checkbox" 
+                  :checked="allSelected"
+                  :indeterminate.prop="someSelected"
+                  @change="allSelected ? clearSelection() : selectAll()"
+                  class="checkbox-input"
+                />
+              </th>
               <th class="table-header">ID</th>
               <th class="table-header">Company</th>
               <th class="table-header">Contact</th>
@@ -67,25 +117,32 @@
             </tr>
           </thead>
           <tbody class="prospects-tbody">
-            <tr v-for="prospect in filteredProspects" :key="prospect.id" class="table-row">
+            <tr v-for="prospect in sortedProspects" :key="prospect.id" class="table-row">
+              <td class="table-cell select-cell">
+                <input 
+                  type="checkbox" 
+                  :checked="isSelected(prospect.id)"
+                  @change="toggleSelection(prospect.id)"
+                  class="checkbox-input"
+                />
+              </td>
               <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
-              <td class="table-cell company-cell">{{ prospect.companyName }}</td>
+              <td class="table-cell company-cell">{{ prospect.name }}</td>
               <td class="table-cell contact-cell">
                 <div class="contact-inner">
                   <div class="avatar">
-                    <span class="avatar-letter">{{ (prospect.contactName || '-').charAt(0).toUpperCase() }}</span>
+                    <span class="avatar-letter">{{ (prospect.emailAddresses[0]?.address || prospect.name || '-').charAt(0).toUpperCase() }}</span>
                   </div>
-                  <div class="contact-name">{{ prospect.contactName || '-' }}</div>
+                  <div class="contact-name">{{ prospect.emailAddresses[0]?.address || 'Ingen kontakt' }}</div>
                 </div>
               </td>
-              <td class="table-cell email-cell">{{ prospect.contactEmail || '-' }}</td>
+              <td class="table-cell email-cell">{{ prospect.websites[0]?.url || '-' }}</td>
               <td class="table-cell status-cell">
                 <span :class="['status-badge', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
               </td>
               <td class="table-cell actions-cell">
                 <div class="action-buttons">
                   <button @click="router.push(`/prospects/${prospect.id}`)" class="view-btn">View</button>
-                  <button @click="editProspect(prospect)" class="edit-btn">Edit</button>
                   <button @click="confirmDelete(prospect)" class="delete-btn">Delete</button>
                 </div>
               </td>
@@ -93,12 +150,20 @@
           </tbody>
         </table>
 
-        <div v-if="filteredProspects.length === 0" class="empty-prospects">
+        <div v-if="sortedProspects.length === 0" class="empty-prospects">
           <p class="empty-prospects-title">Inga prospects hittades</p>
-          <p class="empty-prospects-subtitle">{{ searchQuery ? 'Prova att ändra din sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
+          <p class="empty-prospects-subtitle">{{ filterStats.isFiltered ? 'Prova att ändra dina filter eller sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
         </div>
       </div>
     </div>
+
+    <!-- Batch Progress Modal -->
+    <BatchProgressModal
+      :show="showBatchProgressModal"
+      :progress="batchProgress"
+      :results="lastBatchResults"
+      @close="closeBatchProgressModal"
+    />
 
     <!-- Create / Edit Modal -->
     <div v-if="showCreateModal" class="modal-overlay">
@@ -107,37 +172,53 @@
         <div class="modal-content">
           <div class="modal-header">
             <div class="header-title-container">
-              <h3 class="modal-title">{{ editingProspect ? 'Edit Prospect' : 'Add New Prospect' }}</h3>
+              <h3 class="modal-title">Add New Prospect</h3>
               <button @click="closeModal" class="modal-close-btn">✕</button>
             </div>
           </div>
           <div class="modal-body">
             <form @submit.prevent="saveProspect" class="form-container">
               <div class="form-group">
-                <label class="form-label required">Company Name</label>
-                <input v-model="formData.companyName" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
+                <label class="form-label required">Företagsnamn</label>
+                <input v-model="formData.name" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
               </div>
+
               <div class="form-group">
-                <label class="form-label">Website</label>
-                <input v-model="formData.domain" type="url" class="form-input" placeholder="https://acme.com" />
+                <label class="form-label">Webbplatser (en per rad)</label>
+                <textarea 
+                  v-model="formData.websitesText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="https://acme.com&#10;https://shop.acme.com"
+                ></textarea>
+                <small class="form-help">En URL per rad</small>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Contact Person</label>
-                <input v-model="formData.contactName" type="text" class="form-input" placeholder="John Doe" />
+                <label class="form-label">Email-adresser (en per rad)</label>
+                <textarea 
+                  v-model="formData.emailsText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="john@acme.com&#10;support@acme.com"
+                ></textarea>
+                <small class="form-help">En email per rad</small>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Email</label>
-                <input v-model="formData.contactEmail" type="email" class="form-input" placeholder="john@acme.com" />
+                <label class="form-label">Telefonnummer (en per rad)</label>
+                <textarea 
+                  v-model="formData.phonesText" 
+                  rows="2" 
+                  class="form-textarea" 
+                  placeholder="+46 70 123 45 67"
+                ></textarea>
+                <small class="form-help">Ett nummer per rad</small>
               </div>
-              <div v-if="editingProspect" class="form-group">
-                <label class="form-label">Status</label>
-                <select v-model="formData.status" class="form-select">
-                  <option v-for="(label, status) in statusLabels" :key="status" :value="Number(status)">{{ label }}</option>
-                </select>
-              </div>
+
               <div class="form-group">
-                <label class="form-label">Notes</label>
-                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Notes about this prospect..."></textarea>
+                <label class="form-label">Anteckningar</label>
+                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Anteckningar om denna prospect..."></textarea>
               </div>
             </form>
           </div>
@@ -145,7 +226,7 @@
             <button @click="closeModal" :disabled="isSubmitting" class="btn btn-secondary">Cancel</button>
             <button @click="saveProspect" :disabled="isSubmitting" class="btn btn-success" :class="{ 'btn-loading': isSubmitting }">
               <span v-if="isSubmitting" class="loading-spinner"></span>
-              {{ isSubmitting ? 'Saving...' : (editingProspect ? 'Update' : 'Create') }}
+              {{ isSubmitting ? 'Saving...' : 'Create' }}
             </button>
           </div>
         </div>
@@ -155,93 +236,108 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { prospectsAPI } from '@/services/prospects'
+import { useProspects } from '@/composables/useProspects'
+import { useProspectFilters } from '@/composables/useProspectFilters'
+import { useProspectSelection } from '@/composables/useProspectSelection'
+import { useBatchOperations } from '@/composables/useBatchOperations'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
+import FilterDropdown from '@/components/FilterDropdown.vue'
+import SortDropdown from '@/components/SortDropdown.vue'
+import BatchProgressModal from '@/components/BatchProgressModal.vue'
+import BatchActionDropdown from '@/components/BatchActionDropdown.vue'
 
 const router = useRouter()
 
+// Use composable for prospects management
+const { prospects, loading, error, fetchProspects, createProspect, deleteProspect } = useProspects()
+
+// Use composable for filtering and sorting
+const {
+  filterState,
+  sortState,
+  sortedProspects,
+  filterStats,
+  clearFilters,
+  resetSort
+} = useProspectFilters(prospects)
+
+// Use composable for batch selection
+const {
+  selectedIds,
+  selectedCount,
+  selectedProspects,
+  allSelected,
+  someSelected,
+  isSelected,
+  toggleSelection,
+  selectAll,
+  clearSelection
+} = useProspectSelection(sortedProspects)
+
+// Use composable for batch operations
+const {
+  isBatchProcessing,
+  batchProgress,
+  lastBatchResults,
+  resetProgress,
+  runBatchSoftData,
+  runBatchEmailGeneration,
+  runCompleteFlow
+} = useBatchOperations()
+
 interface ProspectFormData {
-  companyName: string
-  domain: string
-  contactName: string
-  contactEmail: string
-  linkedinUrl: string
+  name: string
+  websitesText: string
+  emailsText: string
+  phonesText: string
   notes: string
-  status: ProspectStatus
 }
 
 // State
-const prospects = ref<Prospect[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
-const searchQuery = ref('')
-const selectedStatus = ref('')
 const showCreateModal = ref(false)
-const editingProspect = ref<Prospect | null>(null)
+const showBatchProgressModal = ref(false)
 const isSubmitting = ref(false)
+const batchAction = ref('')
 
 const statusLabels = STATUS_LABELS
 
+// Helper function to split textarea into array
+const splitLines = (text: string): string[] => {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+}
+
 const createEmptyForm = (): ProspectFormData => ({
-  companyName: '',
-  domain: '',
-  contactName: '',
-  contactEmail: '',
-  linkedinUrl: '',
-  notes: '',
-  status: 0 as ProspectStatus
+  name: '',
+  websitesText: '',
+  emailsText: '',
+  phonesText: '',
+  notes: ''
 })
 
 const formData = ref<ProspectFormData>(createEmptyForm())
 
 // Functions
-const fetchProspects = async () => {
-  loading.value = true
-  error.value = null
-  try {
-    prospects.value = await prospectsAPI.getAll()
-  } catch (err: any) {
-    error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
-  } finally {
-    loading.value = false
-  }
-}
-
 const saveProspect = async () => {
-  if (!formData.value.companyName.trim()) return
+  if (!formData.value.name.trim()) return
   
   isSubmitting.value = true
   try {
-    if (editingProspect.value) {
-      // Update: only send changed fields
-      const updatePayload: Record<string, any> = {
-        companyName: formData.value.companyName.trim()
-      }
-      
-      if (formData.value.domain) updatePayload.domain = formData.value.domain
-      if (formData.value.contactName) updatePayload.contactName = formData.value.contactName
-      if (formData.value.contactEmail) updatePayload.contactEmail = formData.value.contactEmail
-      if (formData.value.linkedinUrl) updatePayload.linkedinUrl = formData.value.linkedinUrl
-      if (formData.value.notes) updatePayload.notes = formData.value.notes
-      updatePayload.status = formData.value.status
-      
-      await prospectsAPI.update(editingProspect.value.id, updatePayload)
-    } else {
-      // Create: send all fields
-      const createPayload = {
-        companyName: formData.value.companyName.trim(),
-        domain: formData.value.domain || undefined,
-        contactName: formData.value.contactName || undefined,
-        contactEmail: formData.value.contactEmail || undefined,
-        linkedinUrl: formData.value.linkedinUrl || undefined,
-        notes: formData.value.notes || undefined
-      }
-      await prospectsAPI.create(createPayload)
+    // Create: send all fields
+    const createPayload = {
+      name: formData.value.name.trim(),
+      websites: splitLines(formData.value.websitesText),
+      emailAddresses: splitLines(formData.value.emailsText),
+      phoneNumbers: splitLines(formData.value.phonesText),
+      notes: formData.value.notes || undefined
     }
+    await createProspect(createPayload)
     
-    await fetchProspects()
+    closeModal()
     closeModal()
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Kunde inte spara prospect'
@@ -250,83 +346,95 @@ const saveProspect = async () => {
   }
 }
 
-const editProspect = (prospect: Prospect) => {
-  editingProspect.value = prospect
-  formData.value = {
-    companyName: prospect.companyName,
-    domain: prospect.domain || '',
-    contactName: prospect.contactName || '',
-    contactEmail: prospect.contactEmail || '',
-    linkedinUrl: prospect.linkedinUrl || '',
-    notes: prospect.notes || '',
-    status: prospect.status
-  }
-  showCreateModal.value = true
-}
-
 const openCreateModal = () => {
-  editingProspect.value = null
   formData.value = createEmptyForm()
   showCreateModal.value = true
 }
 
 const confirmDelete = async (prospect: Prospect) => {
-  if (confirm(`Är du säker på att du vill ta bort "${prospect.companyName}"?`)) {
+  if (confirm(`Är du säker på att du vill ta bort "${prospect.name}"?`)) {
     try {
-      await prospectsAPI.delete(prospect.id)
-      await fetchProspects()
+      await deleteProspect(prospect.id)
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Kunde inte ta bort prospect'
+      // Error already handled by composable
     }
   }
 }
 
 const closeModal = () => {
   showCreateModal.value = false
-  editingProspect.value = null
   formData.value = createEmptyForm()
 }
-
-const clearFilters = () => {
-  searchQuery.value = ''
-  selectedStatus.value = ''
-}
-
-// Computed
-const filteredProspects = computed(() => {
-  let filtered = prospects.value
-  
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter((p: Prospect) => 
-      p.companyName.toLowerCase().includes(query) ||
-      (p.contactName && p.contactName.toLowerCase().includes(query)) ||
-      (p.contactEmail && p.contactEmail.toLowerCase().includes(query)) ||
-      (p.domain && p.domain.toLowerCase().includes(query))
-    )
-  }
-  
-  if (selectedStatus.value !== '') {
-    filtered = filtered.filter((p: Prospect) => p.status.toString() === selectedStatus.value)
-  }
-  
-  return filtered
-})
 
 // Status -> local CSS class names
 const getStatusClass = (status: number) => {
   switch (status) {
     case 0: return 'status-new'
     case 1: return 'status-investigated'
-    case 2: return 'status-emailed'
-    case 3: return 'status-replied'
-    case 4: return 'status-archived'
+    case 2: return 'status-drafted'
+    case 3: return 'status-emailed'
+    case 4: return 'status-replied'
+    case 5: return 'status-archived'
     default: return 'status-unknown'
   }
 }
 
 const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Okänd'
 // removed Tailwind status color mapping; use getStatusClass() instead
+
+// Batch operations
+const runBatchOperation = async () => {
+  if (!batchAction.value || selectedCount.value === 0) return
+
+  const prospectIds = Array.from(selectedIds.value)
+  const estimatedCost = prospectIds.length * 0.05 // ~5 öre per operation
+  
+  if (estimatedCost > 1 && !confirm(`Detta kommer kosta ungefär ${estimatedCost.toFixed(2)} kr. Fortsätta?`)) {
+    return
+  }
+
+  showBatchProgressModal.value = true
+  resetProgress()
+
+  try {
+    switch (batchAction.value) {
+      case 'soft-data-openai':
+        await runBatchSoftData(prospectIds, 'OpenAI', handleBatchSuccess)
+        break
+      case 'soft-data-claude':
+        await runBatchSoftData(prospectIds, 'Claude', handleBatchSuccess)
+        break
+      case 'soft-data-hybrid':
+        await runBatchSoftData(prospectIds, 'Hybrid', handleBatchSuccess)
+        break
+      case 'email-websearch':
+        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, 'Claude', handleBatchSuccess)
+        break
+      case 'email-collected':
+        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, 'Claude', handleBatchSuccess)
+        break
+      case 'complete-flow':
+        await runCompleteFlow(prospectIds, 'Claude', 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
+        break
+    }
+  } catch (error) {
+    console.error('Batch operation error:', error)
+  }
+
+  // Clear selection after batch completes
+  clearSelection()
+  batchAction.value = ''
+}
+
+const handleBatchSuccess = () => {
+  // Reload prospects to reflect changes
+  fetchProspects()
+}
+
+const closeBatchProgressModal = () => {
+  showBatchProgressModal.value = false
+  // Don't reset progress here - let it persist so the status button shows correct info
+}
 
 const formatDateTime = (dateString?: string) => {
   if (!dateString) return '-'
@@ -346,14 +454,7 @@ const formatDomainUrl = (domain: string) => {
   return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
 }
 
-// Load data
-onMounted(() => {
-  fetchProspects()
-})
-
-// Company modal state + helpers
-
-
+// Note: Data loading is handled automatically by useProspects composable
 
 </script>
 
@@ -381,12 +482,28 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .filter-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.filter-stats {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+}
+
+.stats-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .filter-icon {
@@ -422,6 +539,269 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Batch Toolbar */
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.batch-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.btn-clear-selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-clear-selection:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.batch-actions .btn-primary {
+  background: white;
+  color: #3b82f6;
+  border: 2px solid white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.batch-actions .btn-primary:hover:not(:disabled) {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.batch-actions .btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.5);
+  color: #9ca3af;
+  border-color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-batch-status {
+  background: white;
+  color: #3b82f6;
+  border: 2px solid white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-batch-status:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-batch-status .icon-spin {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 2s linear infinite;
+}
+
+/* Minimized Batch Indicator */
+.batch-minimized-indicator {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  min-width: 280px;
+}
+
+.batch-minimized-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.indicator-icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.indicator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.indicator-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.indicator-progress {
+  flex-shrink: 0;
+}
+
+.progress-circle {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  stroke: rgba(255, 255, 255, 0.9);
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Minimized Batch Indicator */
+.batch-minimized-indicator {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  min-width: 280px;
+}
+
+.batch-minimized-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.indicator-icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.indicator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.indicator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.indicator-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.indicator-progress {
+  flex-shrink: 0;
+}
+
+.progress-circle {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  stroke: rgba(255, 255, 255, 0.9);
+  transition: stroke-dashoffset 0.3s ease;
 }
 
 .prospects-table-container {
@@ -737,13 +1117,25 @@ onMounted(() => {
 .contact-name { color:#111827 }
 .email-cell { color:#6b7280 }
 .status-cell { text-align: center; }
+
+/* Checkbox column */
+.col-select { width: 3%; min-width: 40px; }
+.select-cell { text-align: center; }
+.checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
 .status-cell .status-badge { margin: 0 auto; }
 .status-badge { display:inline-block; padding: 0.3rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
-.status-new { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe }
-.status-investigated { background:#fffbeb; color:#92400e; border:1px solid #fde68a }
-.status-emailed { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe }
-.status-replied { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0 }
-.status-archived { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb }
+.status-new { background:#dbeafe; color:#1e40af; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-investigated { background:#fef3c7; color:#92400e; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-drafted { background:#e0e7ff; color:#4338ca; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-emailed { background:#ddd6fe; color:#5b21b6; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-replied { background:#d1fae5; color:#065f46; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
+.status-archived { background:#fee2e2; color:#991b1b; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
 .status-unknown { background:#fafafa; color:#374151; border:1px solid #e5e7eb }
 .actions-cell { text-align: right; white-space:nowrap; padding-right:0.55rem; padding-left:0.3rem; }
 .action-buttons { display:flex; align-items:center; justify-content:flex-end; gap:0.35rem; width:100%; }
@@ -788,8 +1180,6 @@ onMounted(() => {
 .btn-loading { opacity: 0.7; cursor: not-allowed; }
 .view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
 .view-btn:hover { background:#1e40af; border-color:#1e40af }
-.edit-btn { background:#f3f4ff; color:#1e3a8a; border:1px solid #c7d2fe; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
-.edit-btn:hover { background:#e0e7ff; border-color:#a5b4fc; }
 .delete-btn { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
 .delete-btn:hover { background:#fee2e2; border-color:#fca5a5; }
 

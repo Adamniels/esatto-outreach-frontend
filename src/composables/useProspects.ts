@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue';
 import { prospectsAPI } from '@/services/prospects';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, PendingProspectDto } from '@/types/prospect';
 
 export function useProspects() {
   const prospects = ref<Prospect[]>([]);
@@ -57,6 +57,40 @@ export function useProspects() {
     }
   };
 
+  // ============ CAPSULE CRM METHODS ============
+
+  const fetchPendingProspects = async (): Promise<PendingProspectDto[]> => {
+    error.value = null;
+    try {
+      return await prospectsAPI.getPending();
+    } catch (err: any) {
+      error.value = err.response?.data?.error || err.message || 'Kunde inte hämta pending prospects';
+      throw err;
+    }
+  };
+
+  const claimProspect = async (id: string): Promise<Prospect | null> => {
+    error.value = null;
+    try {
+      const claimed = await prospectsAPI.claimPending(id);
+      prospects.value.push(claimed);
+      return claimed;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || err.message || 'Kunde inte claima prospect';
+      throw err;
+    }
+  };
+
+  const rejectProspect = async (id: string): Promise<void> => {
+    error.value = null;
+    try {
+      await prospectsAPI.rejectPending(id);
+    } catch (err: any) {
+      error.value = err.response?.data?.error || err.message || 'Kunde inte avvisa prospect';
+      throw err;
+    }
+  };
+
   onMounted(fetchProspects);
 
   return {
@@ -66,6 +100,9 @@ export function useProspects() {
     fetchProspects,
     createProspect,
     updateProspect,
-    deleteProspect
+    deleteProspect,
+    fetchPendingProspects,
+    claimProspect,
+    rejectProspect
   };
 }

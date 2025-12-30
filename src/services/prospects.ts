@@ -1,5 +1,30 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto, PendingProspectDto } from '@/types/prospect';
+
+// Batch operation types
+export interface BatchOperationResult<TData> {
+  successes: SuccessResult<TData>[]
+  failures: FailureResult[]
+  totalCount: number
+  successCount: number
+  failureCount: number
+}
+
+export interface SuccessResult<TData> {
+  prospectId: string
+  data: TData
+}
+
+export interface FailureResult {
+  prospectId: string
+  errorMessage: string
+}
+
+export interface EmailDraft {
+  title: string
+  bodyPlain: string
+  bodyHTML: string
+}
 
 export const prospectsAPI = {
   // Lista alla prospects
@@ -27,8 +52,11 @@ export const prospectsAPI = {
   },
 
   // Generera mejlutkast
-  generateEmailDraft: async (id: string): Promise<unknown> => {
-    const response = await api.post(`/prospects/${id}/email/draft`, {});
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
+    const url = type 
+      ? `/prospects/${id}/email/draft?type=${type}`
+      : `/prospects/${id}/email/draft`;
+    const response = await api.post(url, {});
     return response.data;
   },
 
@@ -52,6 +80,64 @@ export const prospectsAPI = {
   // Återställ chat-konversation
   resetChat: async (id: string): Promise<void> => {
     await api.post(`/prospects/${id}/chat/reset`);
+  },
+
+  // Generera soft company data (research via AI providers)
+  generateSoftCompanyData: async (id: string, provider?: 'OpenAI' | 'Claude' | 'Hybrid'): Promise<SoftCompanyDataDto> => {
+    const url = provider 
+      ? `/prospects/${id}/soft-data/generate?provider=${provider}`
+      : `/prospects/${id}/soft-data/generate`;
+    const response = await api.post(url);
+    return response.data;
+  },
+
+  // ============ BATCH OPERATIONS ============
+
+  // Batch: Generera soft data för flera prospects
+  generateSoftDataBatch: async (
+    prospectIds: string[],
+    provider?: 'OpenAI' | 'Claude' | 'Hybrid'
+  ): Promise<BatchOperationResult<SoftCompanyDataDto>> => {
+    const response = await api.post('/prospects/batch/soft-data/generate', {
+      prospectIds,
+      provider
+    });
+    return response.data;
+  },
+
+  // Batch: Generera emails för flera prospects
+  generateEmailBatch: async (
+    prospectIds: string[],
+    type?: 'WebSearch' | 'UseCollectedData',
+    autoGenerateSoftData: boolean = true,
+    softDataProvider: string = 'Claude'
+  ): Promise<BatchOperationResult<EmailDraft>> => {
+    const response = await api.post('/prospects/batch/email/generate', {
+      prospectIds,
+      type,
+      autoGenerateSoftData,
+      softDataProvider
+    });
+    return response.data;
+  },
+
+  // ============ CAPSULE CRM INTEGRATION ============
+
+  // Get pending prospects from Capsule CRM
+  getPending: async (): Promise<PendingProspectDto[]> => {
+    const response = await api.get('/prospects/pending');
+    return response.data;
+  },
+
+  // Claim a pending prospect
+  claimPending: async (id: string): Promise<Prospect> => {
+    const response = await api.post(`/prospects/${id}/claim`);
+    return response.data;
+  },
+
+  // Reject a pending prospect
+  rejectPending: async (id: string): Promise<void> => {
+    await api.post(`/prospects/${id}/pending/reject`);
   }
 };
 
