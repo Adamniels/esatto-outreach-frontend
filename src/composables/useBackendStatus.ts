@@ -1,6 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 export function useBackendStatus() {
   const isOnline = ref(false)
   const isChecking = ref(true)
@@ -8,7 +10,7 @@ export function useBackendStatus() {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/prospects', {
+      const response = await axios.get(`${API_BASE_URL}/api/prospects`, {
         timeout: 5000,
         validateStatus: (status) => status < 500 // Accept any non-server-error response
       })

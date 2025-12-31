@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { authService } from './auth';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -33,7 +35,7 @@ api.interceptors.response.use(
       const refreshToken = authService.getRefreshToken();
       if (refreshToken) {
         try {
-          const response = await axios.post('http://localhost:3000/auth/refresh', {
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
             refreshToken
           });
           
