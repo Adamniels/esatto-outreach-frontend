@@ -210,8 +210,8 @@
               :key="type.value"
               @click="selectedEmailGeneratorType = type.value"
               :class="['generator-type-btn', { active: selectedEmailGeneratorType === type.value }]"
-              :disabled="type.value === 'UseCollectedData' && !prospect.softCompanyData"
-              :title="type.value === 'UseCollectedData' && !prospect.softCompanyData ? 'Samla in mjuk data först' : type.label"
+              :disabled="(type.value === 'UseCollectedData' || type.value === 'EsattoRag') && !prospect.softCompanyData"
+              :title="(type.value === 'UseCollectedData' || type.value === 'EsattoRag') && !prospect.softCompanyData ? 'Samla in mjuk data först' : type.label"
             >
               {{ type.label }}
             </button>
@@ -344,9 +344,10 @@ const isGeneratingSoftData = ref(false)
 // Email Generator Type State
 const emailGeneratorTypes = [
   { value: 'WebSearch' as const, label: 'Web Search' },
-  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' },
+  { value: 'EsattoRag' as const, label: 'Esatto RAG' }
 ]
-const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
+const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
 
 // Edit Mode State
 const isEditing = ref(false)
