@@ -52,7 +52,7 @@ export const prospectsAPI = {
   },
 
   // Generera mejlutkast
-  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
     const url = type 
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
