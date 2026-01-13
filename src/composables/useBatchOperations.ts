@@ -59,22 +59,22 @@ export function useBatchOperations() {
       globalCompleteNotification.value = {
         show: true,
         type: 'success',
-        title: 'Batch-process klar!',
-        message: `${succeeded} ${succeeded === 1 ? 'operation' : 'operationer'} slutfördes framgångsrikt.`
+        title: 'Batch process complete!',
+        message: `${succeeded} ${succeeded === 1 ? 'operation' : 'operations'} completed successfully.`
       }
     } else if (succeeded === 0) {
       globalCompleteNotification.value = {
         show: true,
         type: 'partial',
-        title: 'Batch-process misslyckades',
-        message: `${failed} ${failed === 1 ? 'operation' : 'operationer'} misslyckades.`
+        title: 'Batch process failed',
+        message: `${failed} ${failed === 1 ? 'operation' : 'operations'} failed.`
       }
     } else {
       globalCompleteNotification.value = {
         show: true,
         type: 'partial',
-        title: 'Batch-process delvis klar',
-        message: `${succeeded} lyckades, ${failed} misslyckades.`
+        title: 'Batch process partially complete',
+        message: `${succeeded} succeeded, ${failed} failed.`
       }
     }
 
@@ -100,7 +100,7 @@ export function useBatchOperations() {
     onSuccess?: (results: BatchOperationResult<SoftCompanyDataDto>) => void
   ): Promise<BatchOperationResult<SoftCompanyDataDto> | null> => {
     if (prospectIds.length === 0) {
-      alert('Inga prospects valda')
+      alert('No prospects selected')
       return null
     }
 
@@ -114,7 +114,7 @@ export function useBatchOperations() {
 
     try {
       const results = await prospectsAPI.generateSoftDataBatch(prospectIds, provider)
-      
+
       batchProgress.value.completed = results.successCount
       batchProgress.value.failed = results.failureCount
       batchProgress.value.isRunning = false
@@ -132,7 +132,7 @@ export function useBatchOperations() {
     } catch (error: any) {
       console.error('Batch soft data generation failed:', error)
       batchProgress.value.isRunning = false
-      alert(`Batch-operation misslyckades: ${error.response?.data?.error || error.message}`)
+      alert(`Batch operation failed: ${error.response?.data?.error || error.message}`)
       return null
     } finally {
       isBatchProcessing.value = false
@@ -150,7 +150,7 @@ export function useBatchOperations() {
     onSuccess?: (results: BatchOperationResult<EmailDraft>) => void
   ): Promise<BatchOperationResult<EmailDraft> | null> => {
     if (prospectIds.length === 0) {
-      alert('Inga prospects valda')
+      alert('No prospects selected')
       return null
     }
 
@@ -169,7 +169,7 @@ export function useBatchOperations() {
         autoGenerateSoftData,
         softDataProvider
       )
-      
+
       batchProgress.value.completed = results.successCount
       batchProgress.value.failed = results.failureCount
       batchProgress.value.isRunning = false
@@ -187,7 +187,7 @@ export function useBatchOperations() {
     } catch (error: any) {
       console.error('Batch email generation failed:', error)
       batchProgress.value.isRunning = false
-      alert(`Batch-operation misslyckades: ${error.response?.data?.error || error.message}`)
+      alert(`Batch operation failed: ${error.response?.data?.error || error.message}`)
       return null
     } finally {
       isBatchProcessing.value = false
@@ -205,7 +205,7 @@ export function useBatchOperations() {
     onEmailComplete?: (results: BatchOperationResult<EmailDraft>) => void
   ): Promise<boolean> => {
     if (prospectIds.length === 0) {
-      alert('Inga prospects valda')
+      alert('No prospects selected')
       return false
     }
 

@@ -1,19 +1,19 @@
 <template>
-  <div class="chat-box">
-    <div class="chat-header">
-      <h3 class="chat-title">
-        <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="flex flex-col h-full bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3.5 bg-gray-50 border-b border-gray-200">
+      <h3 class="flex items-center gap-2 m-0 text-[0.9375rem] font-semibold text-gray-900">
+        <svg class="w-[1.125rem] h-[1.125rem] text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
-        Chatta om mejlet
+        Chat about email
       </h3>
       <button 
         v-if="messages.length > 0"
         @click="handleReset" 
-        class="reset-button"
-        title="Återställ konversation"
+        class="flex items-center justify-center p-1.5 bg-transparent border border-gray-300 rounded-md cursor-pointer transition-all hover:bg-gray-100 hover:border-gray-400"
+        title="Reset conversation"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
           <path d="M21 3v5h-5"></path>
           <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
@@ -22,69 +22,78 @@
       </button>
     </div>
 
-    <div class="chat-messages" ref="messagesContainer">
-      <div v-if="messages.length === 0" class="empty-state">
-        <p>Ställ frågor eller be om förbättringar av mejlet.</p>
-        <p class="empty-state-hint">Exempel: "Kan du göra mejlet kortare?" eller "Lägg till en CTA"</p>
+    <div class="flex-1 overflow-y-auto overflow-x-hidden p-3.5 pr-2 flex flex-col gap-3.5 min-h-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent" ref="messagesContainer">
+      <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-center text-gray-500 p-6">
+        <p class="mt-1 mb-1 text-[0.8125rem]">Ask questions or request improvements to the email.</p>
+        <p class="text-[0.6875rem] text-gray-400 italic">Example: "Can you make the email shorter?" or "Add a CTA"</p>
       </div>
 
       <div 
         v-for="message in messages" 
         :key="message.id"
-        :class="['message', `message-${message.role}`]"
+        class="flex gap-3 animate-[slideIn_0.3s_ease-out]"
+        :class="message.role === 'user' ? 'flex-row' : 'flex-row'"
       >
-        <div class="message-avatar">
-          <span v-if="message.role === 'user'">Du</span>
-          <span v-else>Ai</span>
+        <div 
+          class="shrink-0 w-8 h-8 flex items-center justify-center text-xl rounded-full"
+          :class="message.role === 'user' ? 'bg-blue-100' : 'bg-purple-100'"
+        >
+          <span v-if="message.role === 'user'">You</span>
+          <span v-else>AI</span>
         </div>
-        <div class="message-content">
-          <div class="message-text">{{ message.content }}</div>
-          <div v-if="message.improvedMail && message.mailData" class="mail-indicator">
-            ✨ Mejl uppdaterat
+        <div class="flex-1 flex flex-col gap-1 min-w-0">
+          <div 
+            class="px-3 py-2.5 rounded-lg text-[0.8125rem] leading-relaxed whitespace-pre-wrap break-words"
+            :class="message.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-900 rounded-bl-sm'"
+          >
+            {{ message.content }}
           </div>
-          <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+          <div v-if="message.improvedMail && message.mailData" class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium w-fit">
+            ✨ Email updated
+          </div>
+          <div class="text-[0.625rem] text-gray-400 px-3">{{ formatTime(message.timestamp) }}</div>
         </div>
       </div>
 
-      <div v-if="isLoading" class="message message-assistant">
-        <div class="message-avatar">Ai</div>
-        <div class="message-content">
-          <div class="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
+      <div v-if="isLoading" class="flex gap-3 animate-[slideIn_0.3s_ease-out]">
+        <div class="shrink-0 w-8 h-8 flex items-center justify-center text-xl rounded-full bg-purple-100">AI</div>
+        <div class="flex-1 flex flex-col gap-1">
+          <div class="flex gap-1 p-3 bg-gray-100 rounded-lg rounded-bl-sm w-fit">
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-[typing_1.4s_infinite]"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-[typing_1.4s_infinite_0.2s]"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-[typing_1.4s_infinite_0.4s]"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="chat-input-container">
-      <div class="input-wrapper">
+    <div class="p-3.5 bg-gray-50 border-t border-gray-200">
+      <div class="flex gap-2 items-end mb-3">
         <textarea
           v-model="userInput"
           @keydown.enter.exact.prevent="handleSend"
-          placeholder="Skriv ditt meddelande här..."
+          placeholder="Type your message here..."
           rows="2"
-          class="chat-input"
+          class="flex-1 px-3 py-2.5 border border-gray-300 rounded-md text-sm font-sans resize-none transition-colors leading-[1.4] focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
           :disabled="isLoading"
         ></textarea>
         <button 
           @click="handleSend" 
           :disabled="!canSend"
-          class="send-button"
-          title="Skicka meddelande"
+          class="shrink-0 w-9 h-9 p-2 bg-blue-600 text-white border-none rounded-md cursor-pointer transition-colors flex items-center justify-center hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          title="Send message"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="w-[1.125rem] h-[1.125rem]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
       </div>
-      <div class="chat-footer">
-        <label class="toggle-switch">
-          <input type="checkbox" v-model="useWebSearch" />
-          <span class="toggle-slider"></span>
-          <span class="toggle-label">Websökning</span>
+      <div class="flex items-center justify-start pt-2 border-t border-gray-200">
+        <label class="inline-flex items-center gap-2.5 cursor-pointer select-none relative group">
+          <input type="checkbox" v-model="useWebSearch" class="absolute opacity-0 pointer-events-none peer" />
+          <span class="relative w-10 h-5 bg-gray-300 rounded-full transition-colors shrink-0 peer-checked:bg-blue-600 group-hover:bg-gray-400 peer-checked:group-hover:bg-blue-700 before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:w-4 before:h-4 before:bg-white before:rounded-full before:transition-transform before:shadow-sm peer-checked:before:translate-x-5"></span>
+          <span class="text-[0.8125rem] text-gray-500 font-medium">Web search</span>
         </label>
       </div>
     </div>
@@ -165,7 +174,7 @@ const canSend = computed(() => {
 
 // Methods
 function formatTime(date: Date): string {
-  return new Date(date).toLocaleTimeString('sv-SE', {
+  return new Date(date).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -243,7 +252,7 @@ async function handleSend() {
     const errorMessage: ChatMessage = {
       id: `error-${Date.now()}`,
       role: 'assistant',
-      content: `Fel: ${error.response?.data?.error || error.message || 'Kunde inte skicka meddelandet'}`,
+      content: `Error: ${error.response?.data?.error || error.message || 'Could not send message'}`,
       timestamp: new Date()
     }
     messages.value.push(errorMessage)
@@ -254,7 +263,7 @@ async function handleSend() {
 }
 
 async function handleReset() {
-  if (!confirm('Vill du återställa hela konversationen?')) return
+  if (!confirm('Do you want to reset the entire conversation?')) return
 
   isLoading.value = true
   try {
@@ -263,7 +272,7 @@ async function handleReset() {
     clearMessages()
   } catch (error: any) {
     console.error('Reset error:', error)
-    alert('Kunde inte återställa konversationen')
+    alert('Could not reset conversation')
   } finally {
     isLoading.value = false
   }
@@ -279,374 +288,4 @@ defineExpose({
 })
 </script>
 
-<style scoped>
-.chat-box {
-  display: flex;
-  flex-direction: column;
-  height: 525px;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
 
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.875rem 1rem;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.chat-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.chat-icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  color: #6b7280;
-}
-
-.reset-button {
-  padding: 0.375rem;
-  background-color: transparent;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.reset-button svg {
-  width: 1rem;
-  height: 1rem;
-  color: #6b7280;
-}
-
-.reset-button:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0.875rem;
-  padding-right: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  min-height: 0;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: #6b7280;
-  padding: 1.5rem;
-}
-
-.empty-state p {
-  margin: 0.25rem 0;
-  font-size: 0.8125rem;
-}
-
-.empty-state-hint {
-  font-size: 0.6875rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.message {
-  display: flex;
-  gap: 0.75rem;
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-avatar {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  border-radius: 50%;
-  background-color: #f3f4f6;
-}
-
-.message-user .message-avatar {
-  background-color: #dbeafe;
-}
-
-.message-assistant .message-avatar {
-  background-color: #f3e8ff;
-}
-
-.message-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.message-text {
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.message-user .message-text {
-  background-color: #2563eb;
-  color: white;
-  border-bottom-right-radius: 0.25rem;
-}
-
-.message-assistant .message-text {
-  background-color: #f3f4f6;
-  color: #111827;
-  border-bottom-left-radius: 0.25rem;
-}
-
-.mail-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background-color: #dcfce7;
-  color: #166534;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  width: fit-content;
-}
-
-.message-time {
-  font-size: 0.625rem;
-  color: #9ca3af;
-  padding: 0 0.75rem;
-}
-
-.typing-indicator {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.75rem;
-  background-color: #f3f4f6;
-  border-radius: 0.5rem;
-  width: fit-content;
-}
-
-.typing-indicator span {
-  width: 0.5rem;
-  height: 0.5rem;
-  background-color: #9ca3af;
-  border-radius: 50%;
-  animation: typing 1.4s infinite;
-}
-
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes typing {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.7;
-  }
-  30% {
-    transform: translateY(-0.5rem);
-    opacity: 1;
-  }
-}
-
-.chat-input-container {
-  padding: 0.875rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-}
-
-.input-wrapper {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-  margin-bottom: 0.75rem;
-}
-
-.chat-input {
-  flex: 1;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: none;
-  transition: border-color 0.2s;
-  line-height: 1.4;
-}
-
-.chat-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.chat-input:disabled {
-  background-color: #f3f4f6;
-  cursor: not-allowed;
-}
-
-.send-button {
-  flex-shrink: 0;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0.5rem;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.send-button:hover:not(:disabled) {
-  background-color: #1d4ed8;
-}
-
-.send-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.send-button svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.chat-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 0.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.toggle-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggle-switch input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.toggle-slider {
-  position: relative;
-  width: 2.5rem;
-  height: 1.25rem;
-  background-color: #d1d5db;
-  border-radius: 9999px;
-  transition: background-color 0.2s;
-  flex-shrink: 0;
-}
-
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  top: 0.125rem;
-  left: 0.125rem;
-  width: 1rem;
-  height: 1rem;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.toggle-switch input[type="checkbox"]:checked + .toggle-slider {
-  background-color: #2563eb;
-}
-
-.toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
-  transform: translateX(1.25rem);
-}
-
-.toggle-switch:hover .toggle-slider {
-  background-color: #9ca3af;
-}
-
-.toggle-switch input[type="checkbox"]:checked:hover + .toggle-slider {
-  background-color: #1d4ed8;
-}
-
-.toggle-label {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-/* Scrollbar styling */
-.chat-messages::-webkit-scrollbar {
-  width: 0.375rem;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background-color: transparent;
-  margin: 0.25rem 0;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
-  border-radius: 0.25rem;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
-}
-
-/* Firefox scrollbar */
-.chat-messages {
-  scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
-}
-</style>

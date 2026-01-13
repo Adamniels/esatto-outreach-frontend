@@ -1,158 +1,168 @@
 <template>
-  <div class="prospect-detail-container">
+  <div class="w-full px-4 py-6">
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <p>Laddar...</p>
+    <div v-if="loading" class="text-center py-12">
+      <p class="text-lg text-gray-500">Loading...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p>{{ error }}</p>
-      <button @click="router.push('/prospects')" class="btn-secondary">
-        Tillbaka till listan
+    <div v-else-if="error" class="text-center py-12 bg-red-50 border border-red-200 rounded-lg">
+      <p class="text-base text-red-600 mb-4">{{ error }}</p>
+      <button @click="router.push('/prospects')" class="px-5 py-2.5 bg-gray-500 text-white border-none rounded-md cursor-pointer text-sm font-semibold hover:bg-gray-600 transition-colors">
+        Back to list
       </button>
     </div>
 
     <!-- Prospect Detail Content -->
-    <div v-else-if="prospect" class="detail-content">
+    <div v-else-if="prospect" class="flex flex-col gap-8">
       <!-- Back Button and Title -->
-      <div class="detail-header">
-        <h2 class="detail-title">{{ isEditing ? formData.name : prospect.name }}</h2>
-        <div class="header-actions">
+      <div class="flex items-center justify-between pb-6 border-b-2 border-gray-100">
+        <h2 class="text-3xl font-bold text-gray-900 m-0 leading-tight">{{ isEditing ? formData.name : prospect.name }}</h2>
+        <div class="flex gap-4">
           <button 
             v-if="!isEditing" 
             @click="startEditing" 
-            class="btn-edit"
+            class="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-md cursor-pointer text-sm font-semibold transition-all hover:bg-blue-50"
           >
-            Redigera
+            Edit
           </button>
-          <button @click="router.push('/prospects')" class="back-button">
-            ← Tillbaka till listan
+          <button @click="router.push('/prospects')" class="px-4 py-2 bg-transparent text-gray-500 border border-transparent rounded-md cursor-pointer text-sm font-semibold transition-all hover:text-gray-900 hover:bg-gray-100">
+            ← Back to list
           </button>
         </div>
       </div>
 
       <!-- Edit Mode Actions -->
-      <div v-if="isEditing" class="edit-actions">
+      <div v-if="isEditing" class="flex gap-4 p-4 bg-blue-50 border border-blue-100 rounded-lg justify-end">
         <button 
           @click="saveChanges" 
           :disabled="isSaving || !isFormValid"
-          class="btn-save"
+          class="px-5 py-2.5 bg-blue-600 text-white border-none rounded-md cursor-pointer text-sm font-semibold shadow-sm transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ isSaving ? 'Sparar...' : 'Spara ändringar' }}
+          {{ isSaving ? 'Saving...' : 'Save changes' }}
         </button>
         <button 
           @click="cancelEditing" 
           :disabled="isSaving"
-          class="btn-cancel"
+          class="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-md cursor-pointer text-sm font-semibold shadow-sm transition-all hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Avbryt
+          Cancel
         </button>
       </div>
 
       <!-- Company Information Grid -->
-      <div class="company-info-grid">
-        <div class="info-row">
-          <label class="info-label">Företagsnamn: <span v-if="isEditing" class="required">*</span></label>
-          <input 
-            v-if="isEditing"
-            v-model="formData.name"
-            type="text"
-            class="info-input"
-            :class="{ 'input-error': !formData.name?.trim() }"
-            placeholder="Företagsnamn (obligatoriskt)"
-            required
-          />
-          <span v-else class="info-value">{{ prospect.name }}</span>
-        </div>
-
-        <div class="info-row">
-          <label class="info-label">Webbplatser:</label>
-          <textarea 
-            v-if="isEditing"
-            v-model="formData.websitesText"
-            class="info-textarea"
-            rows="2"
-            placeholder="En URL per rad&#10;https://example.com&#10;https://shop.example.com"
-          ></textarea>
-          <div v-else class="info-value">
-            <div v-if="prospect.websites.length > 0">
-              <a v-for="(site, idx) in prospect.websites" :key="idx" :href="site.url || '#'" target="_blank" class="website-link">{{ site.url || 'N/A' }}</a>
-            </div>
-            <span v-else>N/A</span>
+      <div class="grid grid-cols-[auto_1fr] gap-x-8 gap-y-4 items-baseline bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Company Name: <span v-if="isEditing" class="text-red-500">*</span></label>
+          <div class="text-base text-gray-900">
+            <input 
+              v-if="isEditing"
+              v-model="formData.name"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              :class="{ 'border-red-500': !formData.name?.trim() }"
+              placeholder="Company Name (required)"
+              required
+            />
+            <span v-else class="font-bold text-xl">{{ prospect.name }}</span>
           </div>
         </div>
 
-        <div class="info-row">
-          <label class="info-label">Email-adresser:</label>
-          <textarea 
-            v-if="isEditing"
-            v-model="formData.emailsText"
-            class="info-textarea"
-            rows="2"
-            placeholder="En email per rad&#10;john@example.com&#10;support@example.com"
-          ></textarea>
-          <div v-else class="info-value">
-            <div v-if="prospect.emailAddresses.length > 0">
-              <a v-for="(email, idx) in prospect.emailAddresses" :key="idx" :href="`mailto:${email.address}`" class="email-link">{{ email.address }}</a>
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Websites:</label>
+          <div class="text-base text-gray-900">
+            <textarea 
+              v-if="isEditing"
+              v-model="formData.websitesText"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y"
+              rows="2"
+              placeholder="One URL per line&#10;https://example.com&#10;https://shop.example.com"
+            ></textarea>
+            <div v-else>
+              <div v-if="prospect.websites.length > 0" class="flex flex-col gap-1">
+                <a v-for="(site, idx) in prospect.websites" :key="idx" :href="site.url || '#'" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline break-all">{{ site.url || 'N/A' }}</a>
+              </div>
+              <span v-else class="text-gray-400 italic">N/A</span>
             </div>
-            <span v-else>N/A</span>
           </div>
         </div>
 
-        <div class="info-row">
-          <label class="info-label">Telefonnummer:</label>
-          <textarea 
-            v-if="isEditing"
-            v-model="formData.phonesText"
-            class="info-textarea"
-            rows="2"
-            placeholder="Ett nummer per rad&#10;+46 70 123 45 67"
-          ></textarea>
-          <div v-else class="info-value">
-            <div v-if="prospect.phoneNumbers.length > 0">
-              <div v-for="(phone, idx) in prospect.phoneNumbers" :key="idx">{{ phone.number }}</div>
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Email Addresses:</label>
+          <div class="text-base text-gray-900">
+            <textarea 
+              v-if="isEditing"
+              v-model="formData.emailsText"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y"
+              rows="2"
+              placeholder="One email per line&#10;john@example.com&#10;support@example.com"
+            ></textarea>
+            <div v-else>
+              <div v-if="prospect.emailAddresses.length > 0" class="flex flex-col gap-1">
+                <a v-for="(email, idx) in prospect.emailAddresses" :key="idx" :href="`mailto:${email.address}`" class="text-blue-600 hover:text-blue-800 hover:underline break-all">{{ email.address }}</a>
+              </div>
+              <span v-else class="text-gray-400 italic">N/A</span>
             </div>
-            <span v-else>N/A</span>
           </div>
         </div>
 
-        <div class="info-row">
-          <label class="info-label">Status:</label>
-          <select 
-            v-if="isEditing"
-            v-model="formData.status"
-            class="info-select"
-          >
-            <option :value="0">Ny</option>
-            <option :value="1">Undersökt</option>
-            <option :value="2">Utkast</option>
-            <option :value="3">Mejlad</option>
-            <option :value="4">Svarat</option>
-            <option :value="5">Arkiverad</option>
-          </select>
-          <span v-else class="info-value">
-            <span :class="['status-badge', `status-${prospect.status}`]">
-              {{ statusLabels[prospect.status as ProspectStatus] || 'Okänd' }}
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Phone Numbers:</label>
+          <div class="text-base text-gray-900">
+            <textarea 
+              v-if="isEditing"
+              v-model="formData.phonesText"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y"
+              rows="2"
+              placeholder="One number per line&#10;+46 70 123 45 67"
+            ></textarea>
+            <div v-else>
+              <div v-if="prospect.phoneNumbers.length > 0" class="flex flex-col gap-1">
+                <div v-for="(phone, idx) in prospect.phoneNumbers" :key="idx">{{ phone.number }}</div>
+              </div>
+              <span v-else class="text-gray-400 italic">N/A</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Status:</label>
+          <div class="text-base text-gray-900">
+            <select 
+              v-if="isEditing"
+              v-model="formData.status"
+              class="w-full max-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer bg-white"
+            >
+              <option :value="0">New</option>
+              <option :value="1">Researched</option>
+              <option :value="2">Drafted</option>
+              <option :value="3">Emailed</option>
+              <option :value="4">Responded</option>
+              <option :value="5">Archived</option>
+            </select>
+            <span v-else>
+              <span :class="['inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium uppercase tracking-wide', getStatusClass(prospect.status)]">
+                {{ statusLabels[prospect.status as ProspectStatus] || 'Unknown' }}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
 
-        <div class="info-row">
-          <label class="info-label">Skapad:</label>
-          <span class="info-value">{{ new Date(prospect.createdUtc).toLocaleDateString('sv-SE') }}</span>
+        <div class="contents">
+          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Created:</label>
+          <div class="text-base text-gray-900">{{ new Date(prospect.createdUtc).toLocaleDateString('en-US') }}</div>
         </div>
       </div>
 
       <!-- Tags Section -->
-      <div v-if="prospect.tags && prospect.tags.length > 0" class="capsule-section">
-        <label class="section-label">Tags från Capsule:</label>
-        <div class="tags-list">
+      <div v-if="prospect.tags && prospect.tags.length > 0" class="pb-6 border-b-2 border-gray-100">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tags from Capsule:</label>
+        <div class="flex flex-wrap gap-2">
           <span 
             v-for="tag in prospect.tags" 
             :key="tag.id"
-            class="tag-badge"
-            :class="{ 'data-tag': tag.dataTag }"
+            class="px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+            :class="{ 'bg-amber-100 text-amber-800': tag.dataTag }"
           >
             {{ tag.name }}
           </span>
@@ -160,36 +170,36 @@
       </div>
 
       <!-- Custom Fields Section -->
-      <div v-if="prospect.customFields && prospect.customFields.length > 0" class="capsule-section">
-        <label class="section-label">Custom Fields från Capsule:</label>
-        <div class="fields-list">
+      <div v-if="prospect.customFields && prospect.customFields.length > 0" class="pb-6 border-b-2 border-gray-100">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Custom Fields from Capsule:</label>
+        <div class="flex flex-col gap-2">
           <div 
             v-for="field in prospect.customFields" 
             :key="field.id"
-            class="field-item"
+            class="flex items-start gap-2 text-sm bg-gray-50 p-2 rounded-md"
           >
-            <strong class="field-name">{{ field.fieldName }}:</strong>
-            <span class="field-value">{{ field.value || 'N/A' }}</span>
+            <strong class="font-bold text-gray-600 uppercase text-xs">{{ field.fieldName }}:</strong>
+            <span class="text-gray-900">{{ field.value || 'N/A' }}</span>
           </div>
         </div>
       </div>
 
       <!-- Notes Section (Editable) -->
-      <div class="notes-section" :class="{ 'notes-editing': isEditing }">
-        <label class="notes-label">Anteckningar</label>
+      <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100" :class="{ 'ring-2 ring-blue-500 border-transparent': isEditing }">
+        <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide mb-2">Notes</label>
         <textarea 
           v-if="isEditing"
           v-model="formData.notes"
-          class="notes-textarea"
-          placeholder="Lägg till anteckningar..."
+          class="w-full bg-white border border-yellow-200 rounded p-3 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 resize-y min-h-[100px]"
+          placeholder="Add notes..."
           rows="4"
         ></textarea>
-        <p v-else class="notes-text">{{ prospect.notes || 'Inga anteckningar' }}</p>
+        <p v-else class="m-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{{ prospect.notes || 'No notes' }}</p>
       </div>
 
       <!-- Soft Company Data Section -->
-      <div class="soft-data-section">
-        <h3>Mjuk Företagsdata</h3>
+      <div class="pb-6 border-b-2 border-gray-100">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Soft Company Data</h3>
         <SoftDataButton
           :prospectId="prospect.id"
           :softData="prospect.softCompanyData"
@@ -199,103 +209,186 @@
         />
       </div>
 
-      <!-- Email and Chat Section (Two Columns) -->
-      <div class="email-chat-container">
-        <!-- Email Section (Left) -->
-        <div class="email-section">
-          <!-- Email Generator Type Selector -->
-          <div class="email-generator-selector">
-            <button 
-              v-for="type in emailGeneratorTypes" 
-              :key="type.value"
-              @click="selectedEmailGeneratorType = type.value"
-              :class="['generator-type-btn', { active: selectedEmailGeneratorType === type.value }]"
-              :disabled="(type.value === 'UseCollectedData' || type.value === 'EsattoRag') && !prospect.softCompanyData"
-              :title="(type.value === 'UseCollectedData' || type.value === 'EsattoRag') && !prospect.softCompanyData ? 'Samla in mjuk data först' : type.label"
-            >
-              {{ type.label }}
-            </button>
+      <!-- Content Tabs -->
+      <div class="mb-6 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            @click="activeView = 'email'"
+            :class="[
+              activeView === 'email'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
+            ]"
+          >
+            Write Email
+          </button>
+          <button
+            @click="activeView = 'linkedin'"
+            :class="[
+              activeView === 'linkedin'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
+            ]"
+          >
+            Write LinkedIn Message
+          </button>
+          <button
+            @click="activeView = 'workflow'"
+            :class="[
+              activeView === 'workflow'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
+            ]"
+          >
+            Workflow
+          </button>
+        </nav>
+      </div>
+
+      <!-- Write Email Tab -->
+      <div v-if="activeView === 'email'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[850px]">
+        <!-- Left Column: Settings & Preview -->
+        <div class="lg:col-span-2 flex flex-col gap-4 h-full overflow-hidden">
+          <!-- Generation Settings -->
+          <div class="flex flex-col gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-shrink-0">
+             <!-- Generator Type Selector -->
+             <div class="flex p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+               <button 
+                 v-for="type in emailGeneratorTypes" 
+                 :key="type.value"
+                 @click="selectedEmailGeneratorType = type.value"
+                 class="flex-1 py-2 px-3 rounded-md text-sm font-medium cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                 :class="selectedEmailGeneratorType === type.value ? 'bg-blue-100 text-blue-700 shadow-sm' : 'bg-transparent text-gray-600 hover:bg-gray-50'"
+               >
+                 {{ type.label }}
+               </button>
+             </div>
+
+             <!-- Action Buttons -->
+             <div class="flex gap-3">
+               <button 
+                 @click="handleGenerateEmail"
+                 :disabled="isGenerating"
+                 class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed h-[42px]"
+               >
+                 <svg v-if="isGenerating" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                 </svg>
+                 {{ isGenerating ? 'Generating...' : 'Generate Email' }}
+               </button>
+
+               <button
+                  v-if="canResetToBackend"
+                  @click="resetToBackendDraft"
+                  class="bg-red-100 text-red-700 px-6 py-2 rounded-md hover:bg-red-200 transition-colors text-sm font-medium h-[42px] border border-red-200"
+               >
+                 Clear Email
+               </button>
+             </div>
           </div>
 
-          <!-- Email Action Buttons -->
-          <div class="email-actions">
-            <button 
-              @click="generateEmail" 
-              :disabled="isGenerating"
-              class="btn-primary"
-            >
-              {{ isGenerating ? 'Genererar...' : 'Generera Mejl' }}
-            </button>
+          <!-- Email Preview Editor -->
+          <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+             <!-- Editor Toolbar -->
+             <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+               <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                 PREVIEW
+               </div>
+               <div class="flex items-center gap-2">
+                 <span v-if="hasUnsavedChanges" class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
+                   Unsaved changes
+                 </span>
+                 <button 
+                   v-if="canSaveGeneratedEmail"
+                   @click="saveGeneratedEmail"
+                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                   title="Save changes"
+                 >
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                   </svg>
+                 </button>
+               </div>
+             </div>
 
-            <button 
-              v-if="canResetToBackend"
-              @click="resetToBackendVersion"
-              :disabled="isGenerating"
-              class="btn-reset"
-            >
-              Återställ till Sparat
-            </button>
-
-            <button 
-              v-if="hasGeneratedEmailContent"
-              @click="clearGeneratedEmail"
-              :disabled="isGenerating"
-              class="btn-danger"
-            >
-              Rensa Mejl
-            </button>
-
-            <button 
-              v-if="canSaveGeneratedEmail"
-              @click="saveEmailToProspect"
-              :disabled="isGenerating"
-              class="btn-success"
-            >
-              Spara Mejl
-            </button>
-
-            <button 
-              v-if="canSendEmail"
-              @click="sendEmailToN8n"
-              :disabled="isSendingEmail"
-              class="btn-send"
-            >
-              {{ isSendingEmail ? 'Skickar...' : 'Skicka Mejl via n8n' }}
-            </button>
-          </div>
-
-          <!-- Generated Email Preview -->
-          <div v-if="hasGeneratedEmail" class="email-preview">
-            <div class="email-field">
-              <label>Ämne:</label>
-              <textarea 
-                v-model="generatedEmailSubject"
-                placeholder="Email ämne..."
-                rows="2"
-                class="email-input"
-              ></textarea>
-            </div>
-
-            <div class="email-field">
-              <label>Meddelande:</label>
-              <textarea 
-                v-model="generatedEmailBody"
-                placeholder="Email meddelande..."
-                rows="12"
-                class="email-input"
-              ></textarea>
-            </div>
+             <!-- Editor Content -->
+             <div class="flex-1 flex flex-col p-6 min-h-0 bg-white">
+               <div class="mb-4 flex-shrink-0">
+                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Subject:</label>
+                 <input 
+                   v-model="generatedEmailSubject"
+                   type="text" 
+                   class="w-full text-base text-gray-600 border border-gray-200 p-3 shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md bg-white placeholder-gray-300 transition-all font-sans"
+                   placeholder="Subject line..." 
+                 />
+               </div>
+               
+               <div class="flex-1 flex flex-col min-h-0">
+                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Message:</label>
+                 <div class="flex-1 relative border border-gray-200 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all bg-white">
+                    <textarea 
+                      v-model="generatedEmailBody"
+                      class="absolute inset-0 w-full h-full p-4 resize-none border-none text-gray-600 leading-relaxed focus:ring-0 rounded-md bg-transparent placeholder-gray-300 text-base overflow-y-auto"
+                      placeholder="Generated email appears here..."
+                    ></textarea>
+                 </div>
+               </div>
+             </div>
+             
+             <!-- Send Button Footer -->
+             <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end flex-shrink-0">
+               <button 
+                 @click="handleSendEmail"
+                 :disabled="!canSendEmail"
+                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm gap-2"
+               >
+                 <svg v-if="isSendingEmail" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                 </svg>
+                 <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                 </svg>
+                 {{ isSendingEmail ? 'Sending...' : 'Send Email' }}
+               </button>
+             </div>
           </div>
         </div>
 
         <!-- Chat Section (Right) -->
-        <div class="chat-section">
+        <div class="lg:col-span-1 h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <ChatBox 
             :prospectId="prospect.id"
             :mailTitle="generatedEmail?.mailTitle"
             :mailBodyPlain="generatedEmail?.mailBodyPlain"
             @emailUpdated="handleEmailUpdated"
           />
+        </div>
+      </div>
+
+      <!-- Write LinkedIn Message Tab -->
+      <div v-else-if="activeView === 'linkedin'" class="flex items-center justify-center h-[400px] bg-white rounded-xl border border-gray-200 border-dashed">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">LinkedIn Message</h3>
+          <p class="mt-1 text-sm text-gray-500">Feature coming soon.</p>
+        </div>
+      </div>
+
+      <!-- Workflow Tab -->
+      <div v-else-if="activeView === 'workflow'" class="flex items-center justify-center h-[400px] bg-white rounded-xl border border-gray-200 border-dashed">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Workflow</h3>
+          <p class="mt-1 text-sm text-gray-500">Workflow automation coming soon.</p>
         </div>
       </div>
 
@@ -336,6 +429,7 @@ const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
 const hasUnsavedChatChanges = ref(false)
+const activeView = ref<'email' | 'linkedin' | 'workflow'>('email')
 
 // Soft Company Data State
 const showSoftDataModal = ref(false)
@@ -606,7 +700,19 @@ const generatedEmailBody = computed({
   }
 })
 
-// Actions
+// Status -> local CSS class names
+const getStatusClass = (status: number) => {
+  switch (status) {
+    case 0: return 'bg-blue-100 text-blue-800'
+    case 1: return 'bg-amber-100 text-amber-800'
+    case 2: return 'bg-purple-100 text-purple-800'
+    case 3: return 'bg-indigo-100 text-indigo-800'
+    case 4: return 'bg-emerald-100 text-emerald-800'
+    case 5: return 'bg-gray-100 text-gray-600'
+    default: return 'bg-gray-100 text-gray-600'
+  }
+}
+
 // Edit Mode Actions
 function startEditing() {
   if (!prospect.value) return
@@ -626,7 +732,7 @@ function startEditing() {
 
 function cancelEditing() {
   if (hasUnsavedEditChanges()) {
-    if (!confirm('Du har osparade ändringar. Vill du verkligen avbryta?')) {
+    if (!confirm('You have unsaved changes. Do you really want to cancel?')) {
       return
     }
   }
@@ -669,13 +775,13 @@ async function saveChanges() {
     
     // Show success message briefly
     const successMsg = document.createElement('div')
-    successMsg.textContent = 'Ändringar sparade'
+    successMsg.textContent = 'Changes saved'
     successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
     document.body.appendChild(successMsg)
     setTimeout(() => successMsg.remove(), 3000)
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Kunde inte spara ändringar'
-    alert(`Fel: ${error.value}`)
+    error.value = err.response?.data?.error || 'Could not save changes'
+    alert(`Error: ${error.value}`)
   } finally {
     isSaving.value = false
   }
@@ -756,7 +862,7 @@ async function fetchProspect() {
   }
 }
 
-const generateEmail = async () => {
+const handleGenerateEmail = async () => {
   if (!prospect.value) return
   const prospectId = prospect.value.id
   isGenerating.value = true
@@ -796,690 +902,90 @@ const clearGeneratedEmail = () => {
   }
 }
 
-const resetToBackendVersion = () => {
+const resetToBackendDraft = () => {
   if (!originalServerDraft.value) return
-  
-  if (!confirm('Vill du återställa mejlet till den sparade versionen? Alla ändringar går förlorade.')) return
-  
-  // Återställ till backend-versionen
-  generatedEmail.value = { ...originalServerDraft.value }
+  generatedEmail.value = originalServerDraft.value
   hasUnsavedChatChanges.value = false
-  
-  if (prospect.value) {
-    storeDraft(prospect.value.id, originalServerDraft.value)
-  }
+  syncDraftState()
 }
 
-const saveEmailToProspect = async () => {
-  const p = prospect.value
+const saveGeneratedEmail = async () => {
+  if (!prospect.value) return
   const draft = generatedEmail.value
-  if (!p || !draftHasContent(draft)) return
-
-  const existingDraft = draftFromProspect(p)
-  if (existingDraft && !confirm('Det finns redan ett mejlutkast sparat. Vill du skriva över det?')) return
-
+  if (!draft) return
+  
+  isGenerating.value = true
   try {
-    isGenerating.value = true
-    const updatePayload: Record<string, any> = {}
-    if (draft.mailTitle !== undefined) updatePayload.mailTitle = draft.mailTitle
-    if (draft.mailBodyPlain !== undefined) updatePayload.mailBodyPlain = draft.mailBodyPlain
-    if (draft.mailBodyHTML !== undefined) updatePayload.mailBodyHTML = draft.mailBodyHTML
-    
-    const updated = await prospectsAPI.update(p.id, updatePayload)
-    prospect.value = updated
-    
-    const savedDraft = draftFromProspect(updated)
-    generatedEmail.value = savedDraft
-    originalServerDraft.value = savedDraft
-    
-    // Återställ chat-ändringar flaggan efter sparning
-    hasUnsavedChatChanges.value = false
-    
-    if (savedDraft) {
-      storeDraft(updated.id, savedDraft)
-    } else {
-      clearStoredDraft(updated.id)
+    const updatePayload: Record<string, any> = {
+      mailTitle: draft.mailTitle?.trim() || undefined,
+      mailBodyPlain: draft.mailBodyPlain?.trim() || undefined,
+      mailBodyHTML: draft.mailBodyHTML?.trim() || undefined
     }
-    alert('Mejlutkast sparat till prospect')
+
+    if (prospect.value.status === ProspectStatusEnum.Researched || prospect.value.status === ProspectStatusEnum.New) {
+      updatePayload.status = ProspectStatusEnum.Drafted
+    }
+
+    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    prospect.value = updated
+    originalServerDraft.value = draftFromProspect(updated)
+    generatedEmail.value = originalServerDraft.value
+    storeDraft(updated.id, generatedEmail.value!)
+    hasUnsavedChatChanges.value = false
   } catch (err: any) {
-    alert(err.response?.data?.error || 'Kunde inte spara mejlutkast på prospect')
+    const message = err.response?.data?.error || err.message || 'Kunde inte spara mejl'
+    alert(message)
   } finally {
     isGenerating.value = false
   }
 }
 
-const sendEmailToN8n = async () => {
-  const p = prospect.value
-  if (!p) return
-
-  const firstEmail = p.emailAddresses?.[0]?.address
-  if (!p.emailAddresses || p.emailAddresses.length === 0 || !firstEmail) {
-    alert('⚠️ Ingen email-adress finns för denna prospect')
+const handleSendEmail = async () => {
+  if (!prospect.value) return
+  // Beuser bekräfta först
+  if (!confirm(`Ska vi skicka mejlet till ${prospect.value.emailAddresses[0]?.address}?`)) {
     return
   }
-
-  const hasContent = Boolean(
-    (p.mailTitle && p.mailTitle.trim()) ||
-    (p.mailBodyPlain && p.mailBodyPlain.trim())
-  )
-
-  if (!hasContent) {
-    alert('⚠️ Inget mejlutkast finns sparat. Generera och spara ett mejlutkast först.')
-    return
-  }
-
-  const confirmMessage = `Skicka email till ${firstEmail} för ${p.name}?`
-  if (!confirm(confirmMessage)) return
 
   isSendingEmail.value = true
   try {
-    const result = await prospectsAPI.sendEmail(p.id)
+    await prospectsAPI.sendEmail(prospect.value.id)
+    alert('Mejl skickat via n8n!')
     
-    if (result.success) {
-      // Uppdatera status till Utkast när email skickas till n8n
-      if (prospect.value) {
-        prospect.value.status = ProspectStatusEnum.Drafted
-      }
-      alert(`Email skickat till ditt utkast`)
-      await fetchProspect()
-    } else {
-      alert(`❌ Kunde inte skicka email till ditt utkast: ${result.message || 'Okänt fel'}`)
-    }
+    const updated = await prospectsAPI.getById(prospect.value.id)
+    prospect.value = updated
   } catch (err: any) {
-    const errorMsg = err.response?.data?.error || err.message || 'Ett fel uppstod'
-    alert(`❌ Kunde inte skicka email till ditt utkast: ${errorMsg}`)
-    console.error('Send email error:', err)
+    const message = err.response?.data?.error || err.message || 'Kunde inte skicka mejl'
+    alert(message)
   } finally {
     isSendingEmail.value = false
   }
 }
 
-// Handle email update from chat
-function handleEmailUpdated(data: { mailTitle?: string; mailBodyPlain?: string; mailBodyHTML?: string }) {
-  if (!generatedEmail.value) {
-    generatedEmail.value = {}
+// Hantera uppdateringar från chatten
+const handleEmailUpdated = (data: { mailTitle?: string; mailBodyPlain?: string; mailBodyHTML?: string }) => {
+  if (!prospect.value || !data.mailBodyPlain) return
+  
+  // Uppdatera state med nytt innehåll från chatten
+  const current = generatedEmail.value ?? {}
+  const next: EmailDraft = {
+    ...current,
+    mailBodyPlain: data.mailBodyPlain
   }
   
-  if (data.mailTitle !== undefined) {
-    generatedEmail.value.mailTitle = data.mailTitle
-  }
-  if (data.mailBodyPlain !== undefined) {
-    generatedEmail.value.mailBodyPlain = data.mailBodyPlain
-  }
-  if (data.mailBodyHTML !== undefined) {
-    generatedEmail.value.mailBodyHTML = data.mailBodyHTML
+  if (data.mailTitle) {
+    next.mailTitle = data.mailTitle
   }
   
-  syncDraftState()
+  // Ta bort HTML-versionen då den inte längre matchar plain text
+  delete next.mailBodyHTML
   
-  // Markera att chatten har gjort ändringar som behöver sparas
+  generatedEmail.value = next
   hasUnsavedChatChanges.value = true
+  syncDraftState()
 }
 
-// Load prospect on mount
 onMounted(() => {
   fetchProspect()
 })
 </script>
-
-<style scoped>
-.prospect-detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.75rem 2rem;
-  min-height: 100vh;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 3rem;
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-.error-state p {
-  color: #dc2626;
-  margin-bottom: 1rem;
-}
-
-.detail-content {
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  padding: 2rem;
-}
-
-.email-chat-container {
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-@media (max-width: 1200px) {
-  .email-chat-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-.email-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.chat-section {
-  display: flex;
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.back-button {
-  padding: 0.5rem 1rem;
-  background-color: #6b7280;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-}
-
-.back-button:hover {
-  background-color: #4b5563;
-}
-
-.detail-title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.company-info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.info-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.info-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-value {
-  font-size: 0.875rem;
-  color: #111827;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-0,
-.status-new {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-1,
-.status-researched {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-2,
-.status-drafted {
-  background-color: #e0e7ff;
-  color: #4338ca;
-}
-
-.status-3,
-.status-emailed {
-  background-color: #ddd6fe;
-  color: #5b21b6;
-}
-
-.status-4,
-.status-responded {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-5,
-.status-archived {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.notes-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-  white-space: pre-wrap;
-}
-
-.soft-data-section {
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: #f0f9ff;
-  border-radius: 0.375rem;
-  border: 1px solid #bfdbfe;
-}
-
-.soft-data-section h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.75rem;
-}
-
-/* Capsule Tags and Custom Fields */
-.capsule-section {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
-}
-
-.section-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.75rem;
-}
-
-.tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag-badge {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  background-color: #dbeafe;
-  color: #1e40af;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.tag-badge.data-tag {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.fields-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.field-item {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background-color: white;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.field-name {
-  color: #6b7280;
-  min-width: 150px;
-}
-
-.field-value {
-  color: #374151;
-  flex: 1;
-}
-
-.email-generator-selector {
-  display: flex;
-  gap: 0.25rem;
-  background-color: #f3f4f6;
-  border-radius: 0.375rem;
-  padding: 0.25rem;
-  margin-bottom: 1rem;
-  width: fit-content;
-}
-
-.generator-type-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: transparent;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.generator-type-btn:hover:not(:disabled) {
-  background-color: #e5e7eb;
-  color: #374151;
-}
-
-.generator-type-btn.active {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.generator-type-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.email-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-}
-
-.btn-primary,
-.btn-secondary,
-.btn-success,
-.btn-send,
-.btn-danger,
-.btn-reset {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background-color: #2563eb;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
-}
-
-.btn-secondary {
-  background-color: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #4b5563;
-}
-
-.btn-success {
-  background-color: #16a34a;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background-color: #15803d;
-}
-
-.btn-send {
-  background-color: #7c3aed;
-  color: white;
-}
-
-.btn-send:hover:not(:disabled) {
-  background-color: #6d28d9;
-}
-
-.btn-danger {
-  background-color: #dc2626;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #b91c1c;
-}
-
-.btn-reset {
-  background-color: #9ca3af;
-  color: white;
-}
-
-.btn-reset:hover:not(:disabled) {
-  background-color: #6b7280;
-}
-
-.btn-primary:disabled,
-.btn-secondary:disabled,
-.btn-success:disabled,
-.btn-send:disabled,
-.btn-danger:disabled,
-.btn-reset:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.email-preview {
-  margin-top: 1.5rem;
-}
-
-.email-field {
-  margin-bottom: 1rem;
-}
-
-.email-field label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-}
-
-.email-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.email-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-/* Edit Mode Styles */
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.btn-edit {
-  padding: 0.5rem 1rem;
-  background-color: #f59e0b;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.btn-edit:hover {
-  background-color: #d97706;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #fef3c7;
-  border-radius: 0.375rem;
-  border: 1px solid #fbbf24;
-}
-
-.btn-save {
-  padding: 0.625rem 1.25rem;
-  background-color: #10b981;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.btn-save:hover:not(:disabled) {
-  background-color: #059669;
-}
-
-.btn-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-cancel {
-  padding: 0.625rem 1.25rem;
-  background-color: #6b7280;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background-color: #4b5563;
-}
-
-.btn-cancel:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.info-input,
-.info-select,
-.info-textarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 2px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  transition: all 0.2s;
-  background-color: white;
-  resize: vertical;
-}
-
-.info-input:focus,
-.info-select:focus,
-.info-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.website-link,
-.email-link {
-  display: block;
-  color: #2563eb;
-  text-decoration: none;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.website-link:hover,
-.email-link:hover {
-  text-decoration: underline;
-}
-
-.info-input.input-error {
-  border-color: #dc2626;
-  background-color: #fef2f2;
-}
-
-.info-input.input-error:focus {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-.required {
-  color: #dc2626;
-  font-weight: 700;
-}
-
-.notes-section {
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.375rem;
-}
-
-.notes-section.notes-editing {
-  background-color: #eff6ff;
-  border: 2px solid #3b82f6;
-}
-
-.notes-section h3,
-.notes-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.notes-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.2s;
-}
-
-.notes-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-</style>

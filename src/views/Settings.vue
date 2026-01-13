@@ -1,55 +1,66 @@
 <template>
-  <div class="settings-container">
+  <div class="max-w-7xl mx-auto p-8">
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <p>Laddar Admin...</p>
+    <div v-if="loading" class="text-center p-12">
+      <p class="text-gray-500">Loading Settings...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-message">{{ error }}</p>
-      <button @click="loadPrompts" class="btn-retry">Försök igen</button>
+    <div v-else-if="error" class="text-center p-12">
+      <p class="text-red-500 mb-4">{{ error }}</p>
+      <button @click="loadPrompts" class="px-5 py-2.5 bg-blue-500 text-white border-0 rounded-md text-sm font-medium cursor-pointer hover:bg-blue-600 transition-colors">Try again</button>
     </div>
 
     <!-- Settings Content -->
-    <div v-else class="settings-content">
+    <div v-else>
       <!-- Header -->
-      <div class="settings-header">
-        <h2 class="settings-title">Admin</h2>
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 m-0">Settings</h2>
       </div>
 
       <!-- Tabs -->
-      <div class="tabs">
-        <button
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'prompts' }"
-          @click="activeTab = 'prompts'"
-        >
-          Email Prompts
-        </button>
-        <button
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'companyInfo' }"
-          @click="switchToCompanyInfo"
-        >
-          Företagsinfo
-        </button>
+      <!-- Tabs -->
+      <div class="mb-6 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            @click="activeTab = 'prompts'"
+            :class="[
+              activeTab === 'prompts'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer bg-transparent'
+            ]"
+          >
+            Email Prompts
+          </button>
+          <button
+            @click="switchToCompanyInfo"
+            :class="[
+              activeTab === 'companyInfo'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer bg-transparent'
+            ]"
+          >
+            Company Info
+          </button>
+        </nav>
       </div>
 
       <!-- Email Prompts Tab -->
-      <div v-if="activeTab === 'prompts'" class="tab-content">
+      <div v-if="activeTab === 'prompts'">
         <!-- Create New Prompt Button -->
-        <div v-if="!isCreating && !editingPromptId" class="actions-bar">
-          <button @click="startCreating" class="btn-primary">
-            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div v-if="!isCreating && !editingPromptId" class="mb-6 flex justify-end">
+          <button @click="startCreating" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
-            Skapa ny prompt
+            Create new prompt
           </button>
         </div>
 
         <!-- Create/Edit Prompt Form -->
-        <div v-if="isCreating || editingPromptId" class="editor-section">
+        <div v-if="isCreating || editingPromptId" class="mb-8">
           <EmailPromptEditor
             :instructions="editingPromptId ? prompts.find(p => p.id === editingPromptId)?.instructions : ''"
             :is-new="isCreating"
@@ -60,39 +71,39 @@
         </div>
 
         <!-- Prompts List -->
-        <div v-if="!isCreating && !editingPromptId" class="prompts-list">
+        <div v-if="!isCreating && !editingPromptId" class="flex flex-col gap-4">
           <div
             v-for="prompt in prompts"
             :key="prompt.id"
-            class="prompt-card"
-            :class="{ 'prompt-active': prompt.isActive }"
+            class="bg-white border-2 border-gray-200 rounded-lg p-6 transition-all"
+            :class="{ 'border-blue-500 bg-blue-50': prompt.isActive }"
           >
-            <div class="prompt-header">
-              <div class="prompt-info">
-                <span v-if="prompt.isActive" class="active-badge">Aktiv</span>
-                <span class="prompt-date">
-                  Skapad: {{ formatDate(prompt.createdUtc) }}
+            <div class="flex justify-between items-center mb-4">
+              <div class="flex items-center gap-4 flex-wrap">
+                <span v-if="prompt.isActive" class="inline-block px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-semibold uppercase">Active</span>
+                <span class="text-sm text-gray-500">
+                  Created: {{ formatDate(prompt.createdUtc) }}
                 </span>
-                <span v-if="prompt.updatedUtc !== prompt.createdUtc" class="prompt-date">
-                  Uppdaterad: {{ formatDate(prompt.updatedUtc) }}
+                <span v-if="prompt.updatedUtc !== prompt.createdUtc" class="text-sm text-gray-500">
+                  Updated: {{ formatDate(prompt.updatedUtc) }}
                 </span>
               </div>
-              <div class="prompt-actions">
+              <div class="flex gap-2">
                 <button
                   v-if="!prompt.isActive"
                   @click="handleActivatePrompt(prompt.id)"
                   :disabled="isActivating"
-                  class="btn-activate"
+                  class="px-3 py-2 border border-blue-500 rounded-md bg-white cursor-pointer transition-all text-sm font-medium text-blue-500 hover:bg-blue-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Aktivera denna prompt"
                 >
-                  {{ isActivating ? 'Aktiverar...' : 'Aktivera' }}
+                  {{ isActivating ? 'Activating...' : 'Activate' }}
                 </button>
                 <button
                   @click="startEditing(prompt.id)"
-                  class="btn-edit"
+                  class="px-3 py-2 border border-gray-300 rounded-md bg-white cursor-pointer transition-all hover:bg-gray-100"
                   title="Redigera"
                 >
-                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                   </svg>
                 </button>
@@ -100,75 +111,75 @@
                   v-if="!prompt.isActive"
                   @click="handleDeletePrompt(prompt.id)"
                   :disabled="isDeleting"
-                  class="btn-delete"
+                  class="px-3 py-2 border border-red-500 rounded-md bg-white cursor-pointer transition-all text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Ta bort"
                 >
-                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
                 </button>
               </div>
             </div>
-            <div class="prompt-content">
-              <pre class="prompt-text">{{ prompt.instructions }}</pre>
+            <div class="bg-gray-50 rounded-md p-4">
+              <pre class="m-0 font-mono text-sm text-gray-700 whitespace-pre-wrap break-words">{{ prompt.instructions }}</pre>
             </div>
           </div>
 
-          <div v-if="prompts.length === 0" class="empty-state">
-            <p>Inga email prompts hittades</p>
-            <button @click="startCreating" class="btn-primary">Skapa din första prompt</button>
+          <div v-if="prompts.length === 0" class="text-center p-12 bg-white border-2 border-dashed border-gray-300 rounded-lg">
+            <p class="text-gray-500 mb-4">Inga email prompts hittades</p>
+            <button @click="startCreating" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600">Skapa din första prompt</button>
           </div>
         </div>
       </div>
 
       <!-- Company Info Tab -->
-      <div v-if="activeTab === 'companyInfo'" class="tab-content">
-        <div v-if="loadingCompanyInfo" class="loading-section">
-          <p>Laddar företagsinformation...</p>
+      <div v-if="activeTab === 'companyInfo'">
+        <div v-if="loadingCompanyInfo" class="text-center p-12">
+          <p class="text-gray-500">Laddar företagsinformation...</p>
         </div>
 
-        <div v-else-if="companyInfoError" class="error-section">
-          <p class="error-message">{{ companyInfoError }}</p>
-          <button @click="loadCompanyInfo" class="btn-retry">Försök igen</button>
+        <div v-else-if="companyInfoError" class="text-center p-12">
+          <p class="text-red-500 mb-4">{{ companyInfoError }}</p>
+          <button @click="loadCompanyInfo" class="px-5 py-2.5 bg-blue-500 text-white border-0 rounded-md text-sm font-medium cursor-pointer hover:bg-blue-600 transition-colors">Try again</button>
         </div>
 
-        <div v-else-if="companyInfo" class="company-info-section">
+        <div v-else-if="companyInfo" class="flex flex-col gap-6">
           <!-- Overview Section -->
-          <div class="info-card">
-            <h3 class="info-title">Översikt</h3>
-            <div class="info-content">
-              <p class="overview-text">{{ companyInfo.overview }}</p>
+          <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Overview</h3>
+            <div class="text-gray-700 leading-relaxed">
+              <p class="whitespace-pre-wrap m-0">{{ companyInfo.overview }}</p>
             </div>
           </div>
 
           <!-- Filter Section -->
-          <div class="filter-section">
-            <div class="filter-controls">
+          <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+            <div class="flex flex-col gap-4">
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Sök efter case namn, industri..."
-                class="search-input"
+                placeholder="Search for case name, industry..."
+                class="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1)]"
               />
-              <div class="filter-buttons">
+              <div class="flex gap-2 flex-wrap">
                 <button
                   @click="filterType = 'all'"
-                  class="filter-btn"
-                  :class="{ 'filter-active': filterType === 'all' }"
+                  class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
+                  :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'all' }"
                 >
-                  Alla ({{ companyInfo.cases.length }})
+                  All ({{ companyInfo.cases.length }})
                 </button>
                 <button
                   @click="filterType = 'case'"
-                  class="filter-btn"
-                  :class="{ 'filter-active': filterType === 'case' }"
+                  class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
+                  :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'case' }"
                 >
                   Cases ({{ companyInfo.cases.filter(c => c.pageType === 'case').length }})
                 </button>
                 <button
                   @click="filterType = 'service'"
-                  class="filter-btn"
-                  :class="{ 'filter-active': filterType === 'service' }"
+                  class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
+                  :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'service' }"
                 >
                   Services ({{ companyInfo.cases.filter(c => c.pageType === 'service').length }})
                 </button>
@@ -177,26 +188,29 @@
           </div>
 
           <!-- Cases List -->
-          <div class="cases-list">
+          <div class="flex flex-col gap-4">
             <div
               v-for="(caseItem, index) in filteredCases"
               :key="index"
-              class="case-card"
+              class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-shadow hover:shadow-md"
             >
-              <div class="case-header" @click="toggleCase(index)">
-                <div class="case-title-section">
-                  <span class="case-type-badge" :class="caseItem.pageType">
+              <div class="flex justify-between items-center p-4 px-6 cursor-pointer" @click="toggleCase(index)">
+                <div class="flex items-center gap-4 flex-1">
+                  <span 
+                    class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold uppercase"
+                    :class="{ 'bg-blue-100 text-blue-800': caseItem.pageType === 'case', 'bg-purple-100 text-purple-800': caseItem.pageType === 'service' }"
+                  >
                     {{ caseItem.pageType === 'case' ? 'Case' : 'Service' }}
                   </span>
-                  <h4 class="case-name">{{ caseItem.case.name || caseItem.pageTitle }}</h4>
-                  <span v-if="caseItem.case.industry" class="case-industry">
+                  <h4 class="text-lg font-semibold text-gray-900 m-0">{{ caseItem.case.name || caseItem.pageTitle }}</h4>
+                  <span v-if="caseItem.case.industry" class="text-sm text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
                     {{ caseItem.case.industry }}
                   </span>
                 </div>
-                <button class="expand-btn">
+                <button class="bg-transparent border-none p-1 text-gray-400 cursor-pointer">
                   <svg
-                    class="expand-icon"
-                    :class="{ 'expanded': expandedCases.has(index) }"
+                    class="w-6 h-6 transition-transform duration-200"
+                    :class="{ 'rotate-180': expandedCases.has(index) }"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -206,53 +220,53 @@
                 </button>
               </div>
 
-              <div v-if="expandedCases.has(index)" class="case-details">
-                <div v-if="caseItem.case.challenge" class="detail-section">
-                  <strong>Utmaning:</strong>
-                  <p>{{ caseItem.case.challenge }}</p>
+              <div v-if="expandedCases.has(index)" class="p-6 border-t border-gray-100 bg-gray-50/50">
+                <div v-if="caseItem.case.challenge" class="mb-4 last:mb-0">
+                  <strong class="block text-sm font-semibold text-gray-900 mb-1">Challenge:</strong>
+                  <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.challenge }}</p>
                 </div>
 
-                <div v-if="caseItem.case.solution" class="detail-section">
-                  <strong>Lösning:</strong>
-                  <p>{{ caseItem.case.solution }}</p>
+                <div v-if="caseItem.case.solution" class="mb-4 last:mb-0">
+                  <strong class="block text-sm font-semibold text-gray-900 mb-1">Solution:</strong>
+                  <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.solution }}</p>
                 </div>
 
-                <div v-if="caseItem.case.result" class="detail-section">
-                  <strong>Resultat:</strong>
-                  <p>{{ caseItem.case.result }}</p>
+                <div v-if="caseItem.case.result" class="mb-4 last:mb-0">
+                  <strong class="block text-sm font-semibold text-gray-900 mb-1">Result:</strong>
+                  <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.result }}</p>
                 </div>
 
-                <div v-if="caseItem.services.length > 0" class="tags-section">
-                  <strong>Tjänster:</strong>
-                  <div class="tags">
-                    <span v-for="service in caseItem.services" :key="service" class="tag tag-service">
+                <div v-if="caseItem.services.length > 0" class="mt-6">
+                  <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Services:</strong>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="service in caseItem.services" :key="service" class="px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded text-xs">
                       {{ service }}
                     </span>
                   </div>
                 </div>
 
-                <div v-if="caseItem.industries.length > 0" class="tags-section">
-                  <strong>Industrier:</strong>
-                  <div class="tags">
-                    <span v-for="industry in caseItem.industries" :key="industry" class="tag tag-industry">
+                <div v-if="caseItem.industries.length > 0" class="mt-4">
+                  <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Industries:</strong>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="industry in caseItem.industries" :key="industry" class="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
                       {{ industry }}
                     </span>
                   </div>
                 </div>
 
-                <div v-if="caseItem.methodsOrTech.length > 0" class="tags-section">
-                  <strong>Metoder/Tech:</strong>
-                  <div class="tags">
-                    <span v-for="method in caseItem.methodsOrTech" :key="method" class="tag tag-method">
+                <div v-if="caseItem.methodsOrTech.length > 0" class="mt-4">
+                  <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Methods/Tech:</strong>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="method in caseItem.methodsOrTech" :key="method" class="px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-xs">
                       {{ method }}
                     </span>
                   </div>
                 </div>
 
-                <div v-if="caseItem.valuesOrTone.length > 0" class="tags-section">
-                  <strong>Värderingar/Ton:</strong>
-                  <div class="tags">
-                    <span v-for="value in caseItem.valuesOrTone" :key="value" class="tag tag-value">
+                <div v-if="caseItem.valuesOrTone.length > 0" class="mt-4">
+                  <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Values/Tone:</strong>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="value in caseItem.valuesOrTone" :key="value" class="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-xs">
                       {{ value }}
                     </span>
                   </div>
@@ -260,8 +274,8 @@
               </div>
             </div>
 
-            <div v-if="filteredCases.length === 0" class="empty-state">
-              <p>Inga cases hittades</p>
+            <div v-if="filteredCases.length === 0" class="text-center p-12 bg-white border-2 border-dashed border-gray-300 rounded-lg">
+              <p class="text-gray-500">No cases found</p>
             </div>
           </div>
         </div>
@@ -329,7 +343,7 @@ const loadPrompts = async () => {
     error.value = null
     prompts.value = await emailPromptsAPI.getAll()
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'Kunde inte ladda email prompts'
+    error.value = e.response?.data?.error || 'Could not load email prompts'
     console.error('Failed to load prompts:', e)
   } finally {
     loading.value = false
@@ -378,7 +392,7 @@ const handleSavePrompt = async (instructions: string) => {
 }
 
 const handleActivatePrompt = async (promptId: string) => {
-  if (!confirm('Är du säker på att du vill aktivera denna prompt? Den nuvarande aktiva prompten kommer att inaktiveras.')) {
+  if (!confirm('Are you sure you want to activate this prompt? The current active prompt will be deactivated.')) {
     return
   }
   
@@ -387,7 +401,7 @@ const handleActivatePrompt = async (promptId: string) => {
     await emailPromptsAPI.activate(promptId)
     await loadPrompts()
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'Kunde inte aktivera prompt'
+    error.value = e.response?.data?.error || 'Could not activate prompt'
     console.error('Failed to activate prompt:', e)
   } finally {
     isActivating.value = false
@@ -395,7 +409,7 @@ const handleActivatePrompt = async (promptId: string) => {
 }
 
 const handleDeletePrompt = async (promptId: string) => {
-  if (!confirm('Är du säker på att du vill ta bort denna prompt? Detta går inte att ångra.')) {
+  if (!confirm('Are you sure you want to delete this prompt? This cannot be undone.')) {
     return
   }
   
@@ -404,7 +418,7 @@ const handleDeletePrompt = async (promptId: string) => {
     await emailPromptsAPI.delete(promptId)
     await loadPrompts()
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'Kunde inte ta bort prompt'
+    error.value = e.response?.data?.error || 'Could not delete prompt'
     console.error('Failed to delete prompt:', e)
   } finally {
     isDeleting.value = false
@@ -412,7 +426,7 @@ const handleDeletePrompt = async (promptId: string) => {
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString('sv-SE', {
+  return new Date(dateString).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -434,7 +448,7 @@ const loadCompanyInfo = async () => {
     companyInfoError.value = null
     companyInfo.value = await companyInfoAPI.get()
   } catch (e: any) {
-    companyInfoError.value = e.response?.data?.error || 'Kunde inte ladda företagsinformation'
+    companyInfoError.value = e.response?.data?.error || 'Could not load company info'
     console.error('Failed to load company info:', e)
   } finally {
     loadingCompanyInfo.value = false
@@ -449,498 +463,3 @@ const toggleCase = (index: number) => {
   }
 }
 </script>
-
-<style scoped>
-.settings-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 3rem;
-}
-
-.error-message {
-  color: #ef4444;
-  margin-bottom: 1rem;
-}
-
-.btn-retry {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.settings-header {
-  margin-bottom: 2rem;
-}
-
-.settings-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 2rem;
-}
-
-.tab {
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab:hover {
-  color: #111827;
-}
-
-.tab-active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
-}
-
-.actions-bar {
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.btn-icon {
-  width: 1rem;
-  height: 1rem;
-}
-
-.editor-section {
-  margin-bottom: 2rem;
-}
-
-.prompts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.prompt-card {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.2s;
-}
-
-.prompt-active {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.prompt-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.prompt-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.active-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background-color: #3b82f6;
-  color: white;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.prompt-date {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.prompt-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-activate,
-.btn-edit,
-.btn-delete {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-activate {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.btn-activate:hover:not(:disabled) {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-activate:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-edit:hover {
-  background-color: #f3f4f6;
-}
-
-.btn-delete {
-  color: #ef4444;
-  border-color: #ef4444;
-}
-
-.btn-delete:hover:not(:disabled) {
-  background-color: #ef4444;
-  color: white;
-}
-
-.btn-delete:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.icon {
-  width: 1rem;
-  height: 1rem;
-}
-
-.prompt-content {
-  background: #f9fafb;
-  border-radius: 6px;
-  padding: 1rem;
-}
-
-.prompt-text {
-  margin: 0;
-  font-family: 'Monaco', 'Menlo', monospace;
-  font-size: 0.875rem;
-  color: #374151;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  background: white;
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-}
-
-.empty-state p {
-  color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-/* Company Info Styles */
-.company-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.info-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.info-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 1rem;
-}
-
-.info-content {
-  color: #374151;
-  line-height: 1.6;
-}
-
-.overview-text {
-  white-space: pre-wrap;
-  margin: 0;
-}
-
-.filter-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.filter-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.filter-btn:hover {
-  background: #f3f4f6;
-}
-
-.filter-active {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
-}
-
-.filter-active:hover {
-  background: #2563eb;
-}
-
-.cases-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.case-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-}
-
-.case-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.case-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  cursor: pointer;
-  background: white;
-  transition: background-color 0.2s;
-}
-
-.case-header:hover {
-  background: #f9fafb;
-}
-
-.case-title-section {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-
-.case-type-badge {
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.case-type-badge.case {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.case-type-badge.service {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.case-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.case-industry {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-style: italic;
-}
-
-.expand-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: #6b7280;
-  transition: color 0.2s;
-}
-
-.expand-btn:hover {
-  color: #111827;
-}
-
-.expand-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  transition: transform 0.2s;
-}
-
-.expand-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.case-details {
-  padding: 0 1.5rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.detail-section {
-  margin-top: 1rem;
-}
-
-.detail-section strong {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #374151;
-  font-weight: 600;
-}
-
-.detail-section p {
-  margin: 0;
-  color: #6b7280;
-  line-height: 1.6;
-}
-
-.tags-section {
-  margin-top: 1rem;
-}
-
-.tags-section strong {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #374151;
-  font-weight: 600;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.tag-service {
-  background: #eff6ff;
-  color: #1e40af;
-}
-
-.tag-industry {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.tag-method {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.tag-value {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.loading-section,
-.error-section {
-  text-align: center;
-  padding: 3rem;
-  background: white;
-  border-radius: 8px;
-}
-</style>

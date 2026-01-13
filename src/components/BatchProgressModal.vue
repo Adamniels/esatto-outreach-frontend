@@ -1,56 +1,56 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>Batch Operation Progress</h2>
-        <button @click="closeModal" class="close-button">&times;</button>
+  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="closeModal">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-[90%] max-h-[80vh] flex flex-col overflow-hidden">
+      <div class="flex justify-between items-center p-6 border-b border-gray-100">
+        <h2 class="m-0 text-2xl font-semibold text-gray-900">Batch Operation Progress</h2>
+        <button @click="closeModal" class="bg-transparent border-none text-gray-400 cursor-pointer p-0 text-3xl leading-none w-8 h-8 flex items-center justify-center rounded transition-colors hover:bg-gray-100 hover:text-gray-600">&times;</button>
       </div>
 
-      <div class="modal-body">
+      <div class="p-6 overflow-y-auto">
         <!-- Progress Bar -->
-        <div class="progress-section">
-          <div class="progress-stats">
-            <span class="stat-item">
+        <div class="mb-8">
+          <div class="flex gap-6 mb-4 text-base">
+            <span class="text-gray-600">
               <strong>Total:</strong> {{ progress.total }}
             </span>
-            <span class="stat-item success">
+            <span class="text-emerald-500">
               <strong>Completed:</strong> {{ progress.completed }}
             </span>
-            <span class="stat-item error" v-if="progress.failed > 0">
+            <span class="text-red-600" v-if="progress.failed > 0">
               <strong>Failed:</strong> {{ progress.failed }}
             </span>
           </div>
 
-          <div class="progress-bar-container">
+          <div class="w-full h-6 bg-gray-200 rounded-full overflow-hidden mb-3">
             <div 
-              class="progress-bar-fill" 
+              class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-linear" 
               :style="{ width: progressPercentage + '%' }"
-              :class="{ 'pulsing': progress.isRunning }"
+              :class="{ 'animate-pulse opacity-80': progress.isRunning }"
             ></div>
           </div>
 
-          <p class="progress-text">
+          <p class="text-center text-gray-500 text-sm m-0">
             {{ progressText }}
           </p>
         </div>
 
         <!-- Results Summary (shown when complete) -->
-        <div v-if="!progress.isRunning && results" class="results-section">
-          <h3>Results Summary</h3>
+        <div v-if="!progress.isRunning && results" class="mt-6">
+          <h3 class="m-0 mb-4 text-lg font-semibold text-gray-900">Results Summary</h3>
           
-          <div v-if="results.successCount > 0" class="success-box">
-            <p>✅ <strong>{{ results.successCount }}</strong> prospect(s) processed successfully</p>
+          <div v-if="results.successCount > 0" class="bg-emerald-50 border border-emerald-500 rounded-md p-4 mb-4">
+            <p class="m-0 text-emerald-800">✅ <strong>{{ results.successCount }}</strong> prospect(s) processed successfully</p>
           </div>
 
-          <div v-if="results.failureCount > 0" class="error-box">
-            <p>❌ <strong>{{ results.failureCount }}</strong> prospect(s) failed</p>
-            <details class="error-details">
-              <summary>View failed prospects</summary>
-              <ul class="error-list">
-                <li v-for="failure in results.failures" :key="failure.prospectId">
+          <div v-if="results.failureCount > 0" class="bg-red-50 border border-red-500 rounded-md p-4">
+            <p class="m-0 mb-3 text-red-800">❌ <strong>{{ results.failureCount }}</strong> prospect(s) failed</p>
+            <details class="text-sm mt-3">
+              <summary class="cursor-pointer font-semibold text-red-800 select-none hover:underline">View failed prospects</summary>
+              <ul class="list-none p-0 m-0 mt-3">
+                <li v-for="failure in results.failures" :key="failure.prospectId" class="p-3 bg-white border border-red-200 rounded mb-2 text-sm">
                   <strong>ID:</strong> {{ failure.prospectId.substring(0, 8) }}...
                   <br>
-                  <span class="error-message">{{ failure.errorMessage }}</span>
+                  <span class="text-gray-500 text-xs">{{ failure.errorMessage }}</span>
                 </li>
               </ul>
             </details>
@@ -58,16 +58,16 @@
         </div>
 
         <!-- Loading Spinner (shown while running) -->
-        <div v-if="progress.isRunning" class="loading-section">
-          <div class="spinner"></div>
-          <p>Processing prospects... Please wait.</p>
+        <div v-if="progress.isRunning" class="flex flex-col items-center gap-4 py-8">
+          <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+          <p class="m-0 text-gray-500 text-base">Processing prospects... Please wait.</p>
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="flex justify-end p-4 px-6 border-t border-gray-100">
         <button 
           @click="closeModal" 
-          class="btn-primary"
+          class="bg-blue-500 text-white border-none py-2.5 px-5 rounded-md font-medium cursor-pointer transition-colors hover:bg-blue-600"
         >
           Close
         </button>
@@ -108,254 +108,3 @@ const closeModal = () => {
   emit('close')
 }
 </script>
-
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-container {
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.25rem;
-  transition: background-color 0.15s;
-}
-
-.close-button:hover {
-  background-color: #f3f4f6;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.progress-section {
-  margin-bottom: 1.5rem;
-}
-
-.progress-stats {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-}
-
-.stat-item {
-  color: #4b5563;
-}
-
-.stat-item.success {
-  color: #10b981;
-}
-
-.stat-item.error {
-  color: #dc2626;
-}
-
-.progress-bar-container {
-  width: 100%;
-  height: 1.5rem;
-  background-color: #e5e7eb;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
-  transition: width 0.3s ease;
-  border-radius: 0.75rem;
-}
-
-.progress-bar-fill.pulsing {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.progress-text {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.results-section {
-  margin-top: 1.5rem;
-}
-
-.results-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.success-box {
-  background-color: #d1fae5;
-  border: 1px solid #10b981;
-  border-radius: 0.375rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.success-box p {
-  margin: 0;
-  color: #065f46;
-}
-
-.error-box {
-  background-color: #fee2e2;
-  border: 1px solid #dc2626;
-  border-radius: 0.375rem;
-  padding: 1rem;
-}
-
-.error-box > p {
-  margin: 0 0 0.75rem 0;
-  color: #991b1b;
-}
-
-.error-details {
-  margin-top: 0.75rem;
-}
-
-.error-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #991b1b;
-  user-select: none;
-}
-
-.error-details summary:hover {
-  text-decoration: underline;
-}
-
-.error-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.75rem 0 0 0;
-}
-
-.error-list li {
-  padding: 0.75rem;
-  background-color: white;
-  border: 1px solid #fecaca;
-  border-radius: 0.25rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.error-message {
-  color: #6b7280;
-  font-size: 0.813rem;
-}
-
-.loading-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 2rem 0;
-}
-
-.spinner {
-  width: 3rem;
-  height: 3rem;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-section p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.btn-primary:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-</style>

@@ -147,12 +147,12 @@ export interface ChatMessage {
 }
 
 export const statusLabels: Record<ProspectStatus, string> = {
-  [ProspectStatus.New]: 'Ny',
-  [ProspectStatus.Researched]: 'Undersökt',
-  [ProspectStatus.Drafted]: 'Utkast',
-  [ProspectStatus.Emailed]: 'Mejlad',
-  [ProspectStatus.Responded]: 'Svarat',
-  [ProspectStatus.Archived]: 'Arkiverad'
+  [ProspectStatus.New]: 'New',
+  [ProspectStatus.Researched]: 'Researched',
+  [ProspectStatus.Drafted]: 'Drafted',
+  [ProspectStatus.Emailed]: 'Emailed',
+  [ProspectStatus.Responded]: 'Responded',
+  [ProspectStatus.Archived]: 'Archived'
 };
 
 // Soft Company Data Types
