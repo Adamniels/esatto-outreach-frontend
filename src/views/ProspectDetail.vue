@@ -186,89 +186,17 @@
         </div>
         
         <div v-if="prospect.contactPersons && prospect.contactPersons.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div 
-            v-for="person in prospect.contactPersons" 
+          <ContactPersonCard
+            v-for="person in prospect.contactPersons"
             :key="person.id"
-            class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm group relative"
-          >
-            <!-- Actions -->
-            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
-                @click="handleEnrichContact(person)"
-                :disabled="enrichingContactId === person.id"
-                class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                :class="enrichingContactId === person.id ? 'text-blue-600' : 'text-gray-400 hover:text-green-600'"
-                :title="enrichingContactId === person.id ? 'Enriching...' : 'Enrich with AI'"
-              >
-                 <svg v-if="enrichingContactId === person.id" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-              </button>
-              <button 
-                @click="openEditContactModal(person)"
-                class="p-1.5 text-gray-400 hover:text-blue-600 rounded-full hover:bg-gray-100"
-                title="Edit"
-              >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-              </button>
-              <button 
-                @click="handleDeleteContact(person)"
-                class="p-1.5 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
-                title="Delete"
-              >
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              </button>
-            </div>
-
-            <div class="flex items-start gap-3 mb-2 pr-12">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <h4 class="text-lg font-bold text-gray-900 m-0">{{ person.name }}</h4>
-                  <a 
-                    v-if="person.linkedInUrl" 
-                    :href="person.linkedInUrl" 
-                    target="_blank"
-                    class="text-blue-600 hover:text-blue-800 flex-shrink-0"
-                    title="LinkedIn Profile"
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-                  </a>
-                </div>
-                <p v-if="person.title" class="text-sm text-gray-600 m-0">{{ person.title }}</p>
-              </div>
-            </div>
-            
-            <div v-if="person.email" class="flex items-center gap-2 mb-3 text-sm">
-               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-               <a :href="`mailto:${person.email}`" class="text-gray-600 hover:text-blue-600">{{ person.email }}</a>
-            </div>
-
-            <!-- Enrichment Data Display -->
-            <div v-if="person.generalInfo" class="mt-3 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100 italic">
-               {{ person.generalInfo }}
-            </div>
-
-            <div v-if="person.personalHooks && person.personalHooks.length > 0" class="mt-3">
-               <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Hooks</p>
-               <ul class="list-disc pl-4 space-y-1">
-                 <li v-for="(hook, idx) in person.personalHooks" :key="idx" class="text-xs text-gray-600">
-                   {{ hook }}
-                 </li>
-               </ul>
-            </div>
-
-            <div v-if="person.personalNews && person.personalNews.length > 0" class="mt-3">
-               <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">News</p>
-               <ul class="list-disc pl-4 space-y-1">
-                 <li v-for="(news, idx) in person.personalNews" :key="idx" class="text-xs text-gray-600">
-                   {{ news }}
-                 </li>
-               </ul>
-            </div>
-          </div>
+            :person="person"
+            :is-enriching="enrichingContactId === person.id"
+            @edit="openEditContactModal"
+            @delete="handleDeleteContact"
+            @enrich="handleEnrichContact"
+          />
         </div>
+
         <div v-else class="text-gray-400 italic text-sm">
            No contact persons added yet.
         </div>
@@ -318,111 +246,29 @@
         <!-- Left Column: Settings & Preview -->
         <div class="lg:col-span-2 flex flex-col gap-4 h-full overflow-hidden">
           <!-- Generation Settings -->
-          <div class="flex flex-col gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-shrink-0">
-             <!-- Generator Type Selector -->
-             <div class="flex p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-               <button 
-                 v-for="type in emailGeneratorTypes" 
-                 :key="type.value"
-                 @click="selectedEmailGeneratorType = type.value"
-                 class="flex-1 py-2 px-3 rounded-md text-sm font-medium cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                 :class="selectedEmailGeneratorType === type.value ? 'bg-blue-100 text-blue-700 shadow-sm' : 'bg-transparent text-gray-600 hover:bg-gray-50'"
-               >
-                 {{ type.label }}
-               </button>
-             </div>
-
-             <!-- Action Buttons -->
-             <div class="flex gap-3">
-               <button 
-                 @click="handleGenerateEmail"
-                 :disabled="isGenerating"
-                 class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed h-[42px]"
-               >
-                 <svg v-if="isGenerating" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 {{ isGenerating ? 'Generating...' : 'Generate Email' }}
-               </button>
-
-               <button
-                  v-if="canResetToBackend"
-                  @click="resetToBackendDraft"
-                  class="bg-red-100 text-red-700 px-6 py-2 rounded-md hover:bg-red-200 transition-colors text-sm font-medium h-[42px] border border-red-200"
-               >
-                 Clear Email
-               </button>
-             </div>
-          </div>
+          <EmailGeneratorControls
+            v-model:selected-type="selectedEmailGeneratorType"
+            :is-generating="isGenerating"
+            :show-clear="canResetToBackend"
+            @generate="handleGenerateEmail"
+            @clear="resetToBackendDraft"
+          />
 
           <!-- Email Preview Editor -->
-          <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-0">
-             <!-- Editor Toolbar -->
-             <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-               <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                 PREVIEW
-               </div>
-               <div class="flex items-center gap-2">
-                 <span v-if="hasUnsavedChanges" class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
-                   Unsaved changes
-                 </span>
-                 <button 
-                   v-if="canSaveGeneratedEmail"
-                   @click="saveGeneratedEmail"
-                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                   title="Save changes"
-                 >
-                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                   </svg>
-                 </button>
-               </div>
-             </div>
-
-             <!-- Editor Content -->
-             <div class="flex-1 flex flex-col p-6 min-h-0 bg-white">
-               <div class="mb-4 flex-shrink-0">
-                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Subject:</label>
-                 <input 
-                   v-model="generatedEmailSubject"
-                   type="text" 
-                   class="w-full text-base text-gray-600 border border-gray-200 p-3 shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md bg-white placeholder-gray-300 transition-all font-sans"
-                   placeholder="Subject line..." 
-                 />
-               </div>
-               
-               <div class="flex-1 flex flex-col min-h-0">
-                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Message:</label>
-                 <div class="flex-1 relative border border-gray-200 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all bg-white">
-                    <textarea 
-                      v-model="generatedEmailBody"
-                      class="absolute inset-0 w-full h-full p-4 resize-none border-none text-gray-600 leading-relaxed focus:ring-0 rounded-md bg-transparent placeholder-gray-300 text-base overflow-y-auto"
-                      placeholder="Generated email appears here..."
-                    ></textarea>
-                 </div>
-               </div>
-             </div>
-             
-             <!-- Send Button Footer -->
-             <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end flex-shrink-0">
-               <button 
-                 @click="handleSendEmail"
-                 :disabled="!canSendEmail"
-                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm gap-2"
-               >
-                 <svg v-if="isSendingEmail" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                 </svg>
-                 {{ isSendingEmail ? 'Sending...' : 'Send Email' }}
-               </button>
-             </div>
-          </div>
+          <EmailEditor
+            :subject="generatedEmailSubject"
+            :body="generatedEmailBody"
+            :has-unsaved-changes="hasUnsavedChanges"
+            :can-save="canSaveGeneratedEmail"
+            :can-send="canSendEmail"
+            :is-sending="isSendingEmail"
+            @update:subject="generatedEmailSubject = $event"
+            @update:body="generatedEmailBody = $event"
+            @save="saveGeneratedEmail"
+            @send="handleSendEmail"
+          />
         </div>
+
 
         <!-- Chat Section (Right) -->
         <div class="lg:col-span-1 h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
@@ -489,6 +335,9 @@ import ChatBox from '../components/ChatBox.vue'
 import EnrichDataButton from '../components/EnrichDataButton.vue'
 import EntityIntelligenceModal from '../components/EntityIntelligenceModal.vue'
 import ContactPersonModal from '../components/ContactPersonModal.vue'
+import ContactPersonCard from '../components/prospect/ContactPersonCard.vue'
+import EmailEditor from '../components/prospect/EmailEditor.vue'
+import EmailGeneratorControls from '../components/prospect/EmailGeneratorControls.vue'
 import { useEntityIntelligence } from '../composables/useEntityIntelligence'
 
 const route = useRoute()
