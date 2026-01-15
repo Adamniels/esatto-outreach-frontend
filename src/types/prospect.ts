@@ -75,7 +75,8 @@ export interface Prospect {
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
   ownerId?: string | null;
-  softCompanyData?: SoftCompanyDataDto | null;
+  entityIntelligence?: EntityIntelligenceDto | null;
+  contactPersons?: ContactPersonDto[];
 }
 
 export interface CreateProspectRequest {
@@ -155,53 +156,75 @@ export const statusLabels: Record<ProspectStatus, string> = {
   [ProspectStatus.Archived]: 'Archived'
 };
 
-// Soft Company Data Types
-export interface PersonalizationHook {
-  text: string;
+// Entity Intelligence Types
+export interface CaseStudyDto {
+  client: string;
+  challenge: string;
+  solution: string;
+  outcome: string;
+}
+
+export interface NewsEventDto {
+  date: string;
+  description: string;
   source: string;
-  date: string;
-  relevance: 'high' | 'medium' | 'low';
 }
 
-export interface CompanyEvent {
-  title: string;
-  date: string;
-  type: string;
-  url: string;
-}
-
-export interface NewsItem {
-  headline: string;
+export interface HiringSignalDto {
+  role: string;
   date: string;
   source: string;
-  url: string;
 }
 
-export interface SocialActivity {
-  platform: string;
-  text: string;
-  date: string;
-  url: string;
+export interface EnrichedCompanyDataDto {
+  summary: string;
+  keyValueProps?: string[];
+  techStack?: string[];
+  caseStudies?: CaseStudyDto[];
+  news?: NewsEventDto[];
+  hiring?: HiringSignalDto[];
 }
 
-export interface SoftCompanyDataDto {
+export interface EntityIntelligenceDto {
   id: string;
   prospectId: string;
-  hooksJson?: string | null;
-  recentEventsJson?: string | null;
-  newsItemsJson?: string | null;
-  socialActivityJson?: string | null;
+  companyHooks: string[];
+  personalHooks: string[];
+  summarizedContext: string;
   sourcesJson?: string | null;
+  richData?: EnrichedCompanyDataDto | null;
   researchedAt: string;
   createdUtc: string;
   updatedUtc?: string | null;
 }
 
-export interface ParsedSoftCompanyData {
-  hooks: PersonalizationHook[];
-  events: CompanyEvent[];
-  news: NewsItem[];
-  socialActivity: SocialActivity[];
-  sources: string[];
+export interface ParsedEntityIntelligence {
+  companyHooks: string[];
+  personalHooks: string[];
+  summarizedContext: string;
   researchedAt: Date;
+  richData?: EnrichedCompanyDataDto | null;
+}
+
+export interface ContactPersonDto {
+  id: string;
+  prospectId: string;
+  name: string;
+  title?: string | null;
+  email?: string | null;
+  linkedInUrl?: string | null;
+  personalHooks?: string[] | null;
+  personalNews?: string[] | null;
+  generalInfo?: string | null;
+  researchedAt?: string | null;
+}
+
+export interface CreateContactPersonRequest {
+  name: string;
+  title?: string;
+  email?: string;
+  linkedInUrl?: string;
+  personalHooks?: string[];
+  personalNews?: string[];
+  generalInfo?: string;
 }

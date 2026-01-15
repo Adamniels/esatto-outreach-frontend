@@ -280,7 +280,7 @@ const {
   batchProgress,
   lastBatchResults,
   resetProgress,
-  runBatchSoftData,
+  runEnrichBatch,
   runBatchEmailGeneration,
   runCompleteFlow
 } = useBatchOperations()
@@ -395,23 +395,17 @@ const runBatchOperation = async () => {
 
   try {
     switch (batchAction.value) {
-      case 'soft-data-openai':
-        await runBatchSoftData(prospectIds, 'OpenAI', handleBatchSuccess)
-        break
-      case 'soft-data-claude':
-        await runBatchSoftData(prospectIds, 'Claude', handleBatchSuccess)
-        break
-      case 'soft-data-hybrid':
-        await runBatchSoftData(prospectIds, 'Hybrid', handleBatchSuccess)
+      case 'enrich-prospects':
+        await runEnrichBatch(prospectIds, handleBatchSuccess)
         break
       case 'email-websearch':
-        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, 'Claude', handleBatchSuccess)
+        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, handleBatchSuccess)
         break
       case 'email-collected':
-        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, 'Claude', handleBatchSuccess)
+        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, handleBatchSuccess)
         break
       case 'complete-flow':
-        await runCompleteFlow(prospectIds, 'Claude', 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
+        await runCompleteFlow(prospectIds, 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
         break
     }
   } catch (error) {

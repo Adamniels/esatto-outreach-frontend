@@ -20,28 +20,15 @@
       leave-to-class="opacity-0 -translate-y-2"
     >
       <div v-if="isOpen" class="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+
         <div class="py-2 border-b border-gray-200 last:border-0">
-          <div class="px-4 py-1 text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-50 mb-1">Soft Data Collection</div>
+          <div class="px-4 py-1 text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-50 mb-1">Entity Intelligence</div>
           <button 
-            @click="selectOption('soft-data-openai')"
-            class="w-full block px-4 py-2.5 text-left bg-white border-0 text-sm font-medium text-gray-800 cursor-pointer transition-all hover:bg-blue-50 hover:text-blue-600"
-            :class="{ 'bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:text-white': modelValue === 'soft-data-openai' }"
+            @click="selectOption('enrich-prospects')"
+            class="w-full block px-4 py-2.5 text-left bg-white border-0 text-sm font-medium text-gray-800 cursor-pointer transition-all hover:bg-indigo-50 hover:text-indigo-600"
+            :class="{ 'bg-indigo-600 text-white font-semibold hover:bg-indigo-700 hover:text-white': modelValue === 'enrich-prospects' }"
           >
-            Soft Data (OpenAI)
-          </button>
-          <button 
-            @click="selectOption('soft-data-claude')"
-            class="w-full block px-4 py-2.5 text-left bg-white border-0 text-sm font-medium text-gray-800 cursor-pointer transition-all hover:bg-blue-50 hover:text-blue-600"
-            :class="{ 'bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:text-white': modelValue === 'soft-data-claude' }"
-          >
-            Soft Data (Claude)
-          </button>
-          <button 
-            @click="selectOption('soft-data-hybrid')"
-            class="w-full block px-4 py-2.5 text-left bg-white border-0 text-sm font-medium text-gray-800 cursor-pointer transition-all hover:bg-blue-50 hover:text-blue-600"
-            :class="{ 'bg-blue-500 text-white font-semibold hover:bg-blue-600 hover:text-white': modelValue === 'soft-data-hybrid' }"
-          >
-            Soft Data (Hybrid)
+            Enrich Data
           </button>
         </div>
 
@@ -95,12 +82,10 @@ const dropdownRef = ref<HTMLElement | null>(null)
 
 const options: Record<string, string> = {
   '': 'Select operation...',
-  'soft-data-openai': 'Soft Data (OpenAI)',
-  'soft-data-claude': 'Soft Data (Claude)',
-  'soft-data-hybrid': 'Soft Data (Hybrid)',
+  'enrich-prospects': 'Enrich Data',
   'email-websearch': 'Email (WebSearch)',
   'email-collected': 'Email (UseCollectedData)',
-  'complete-flow': 'Complete (Data + Email)'
+  'complete-flow': 'Complete (Enrich + Email)'
 }
 
 const selectedLabel = computed(() => {

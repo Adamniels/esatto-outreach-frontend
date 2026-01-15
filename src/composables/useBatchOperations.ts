@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { prospectsAPI, type BatchOperationResult, type EmailDraft } from '@/services/prospects'
-import type { Prospect, SoftCompanyDataDto } from '@/types/prospect'
+import type { Prospect, EntityIntelligenceDto } from '@/types/prospect'
 
 export interface BatchProgress {
   total: number
@@ -92,13 +92,12 @@ export function useBatchOperations() {
   }
 
   /**
-   * Run batch soft data generation for selected prospects
+   * Run batch enrichment (Entity Intelligence) for selected prospects
    */
-  const runBatchSoftData = async (
+  const runEnrichBatch = async (
     prospectIds: string[],
-    provider: 'OpenAI' | 'Claude' | 'Hybrid' = 'Claude',
-    onSuccess?: (results: BatchOperationResult<SoftCompanyDataDto>) => void
-  ): Promise<BatchOperationResult<SoftCompanyDataDto> | null> => {
+    onSuccess?: (results: BatchOperationResult<EntityIntelligenceDto>) => void
+  ): Promise<BatchOperationResult<EntityIntelligenceDto> | null> => {
     if (prospectIds.length === 0) {
       alert('No prospects selected')
       return null
@@ -113,7 +112,8 @@ export function useBatchOperations() {
     }
 
     try {
-      const results = await prospectsAPI.generateSoftDataBatch(prospectIds, provider)
+      // API call to enrich batch
+      const results = await prospectsAPI.enrichProspectBatch(prospectIds)
 
       batchProgress.value.completed = results.successCount
       batchProgress.value.failed = results.failureCount
@@ -130,7 +130,7 @@ export function useBatchOperations() {
 
       return results
     } catch (error: any) {
-      console.error('Batch soft data generation failed:', error)
+      console.error('Batch enrichment failed:', error)
       batchProgress.value.isRunning = false
       alert(`Batch operation failed: ${error.response?.data?.error || error.message}`)
       return null
@@ -139,6 +139,8 @@ export function useBatchOperations() {
     }
   }
 
+
+
   /**
    * Run batch email generation for selected prospects
    */
@@ -146,7 +148,6 @@ export function useBatchOperations() {
     prospectIds: string[],
     type: 'WebSearch' | 'UseCollectedData' | null = null,
     autoGenerateSoftData: boolean = true,
-    softDataProvider: string = 'Claude',
     onSuccess?: (results: BatchOperationResult<EmailDraft>) => void
   ): Promise<BatchOperationResult<EmailDraft> | null> => {
     if (prospectIds.length === 0) {
@@ -166,8 +167,7 @@ export function useBatchOperations() {
       const results = await prospectsAPI.generateEmailBatch(
         prospectIds,
         type || undefined,
-        autoGenerateSoftData,
-        softDataProvider
+        autoGenerateSoftData
       )
 
       batchProgress.value.completed = results.successCount
@@ -195,13 +195,12 @@ export function useBatchOperations() {
   }
 
   /**
-   * Run complete flow: soft data + email generation
+   * Run complete flow: enrichment + email generation
    */
   const runCompleteFlow = async (
     prospectIds: string[],
-    softDataProvider: 'OpenAI' | 'Claude' | 'Hybrid' = 'Claude',
     emailType: 'WebSearch' | 'UseCollectedData' = 'UseCollectedData',
-    onSoftDataComplete?: (results: BatchOperationResult<SoftCompanyDataDto>) => void,
+    onEnrichComplete?: (results: BatchOperationResult<EntityIntelligenceDto>) => void,
     onEmailComplete?: (results: BatchOperationResult<EmailDraft>) => void
   ): Promise<boolean> => {
     if (prospectIds.length === 0) {
@@ -209,18 +208,17 @@ export function useBatchOperations() {
       return false
     }
 
-    // Step 1: Generate soft data
-    const softDataResults = await runBatchSoftData(prospectIds, softDataProvider, onSoftDataComplete)
-    if (!softDataResults) {
+    // Step 1: Enrich data
+    const enrichResults = await runEnrichBatch(prospectIds, onEnrichComplete)
+    if (!enrichResults) {
       return false
     }
 
-    // Step 2: Generate emails (will use the soft data just collected)
+    // Step 2: Generate emails (will use the data just collected)
     const emailResults = await runBatchEmailGeneration(
       prospectIds,
       emailType,
       false, // Don't auto-generate since we just did it
-      softDataProvider,
       onEmailComplete
     )
 
@@ -234,7 +232,7 @@ export function useBatchOperations() {
     completeNotification: globalCompleteNotification,
     resetProgress,
     hideCompleteNotification,
-    runBatchSoftData,
+    runEnrichBatch,
     runBatchEmailGeneration,
     runCompleteFlow
   }

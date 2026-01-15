@@ -87,43 +87,7 @@
           </div>
         </div>
 
-        <div class="contents">
-          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Email Addresses:</label>
-          <div class="text-base text-gray-900">
-            <textarea 
-              v-if="isEditing"
-              v-model="formData.emailsText"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y"
-              rows="2"
-              placeholder="One email per line&#10;john@example.com&#10;support@example.com"
-            ></textarea>
-            <div v-else>
-              <div v-if="prospect.emailAddresses.length > 0" class="flex flex-col gap-1">
-                <a v-for="(email, idx) in prospect.emailAddresses" :key="idx" :href="`mailto:${email.address}`" class="text-blue-600 hover:text-blue-800 hover:underline break-all">{{ email.address }}</a>
-              </div>
-              <span v-else class="text-gray-400 italic">N/A</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="contents">
-          <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Phone Numbers:</label>
-          <div class="text-base text-gray-900">
-            <textarea 
-              v-if="isEditing"
-              v-model="formData.phonesText"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y"
-              rows="2"
-              placeholder="One number per line&#10;+46 70 123 45 67"
-            ></textarea>
-            <div v-else>
-              <div v-if="prospect.phoneNumbers.length > 0" class="flex flex-col gap-1">
-                <div v-for="(phone, idx) in prospect.phoneNumbers" :key="idx">{{ phone.number }}</div>
-              </div>
-              <span v-else class="text-gray-400 italic">N/A</span>
-            </div>
-          </div>
-        </div>
 
         <div class="contents">
           <label class="font-bold text-gray-500 text-right text-sm uppercase tracking-wide min-w-[140px]">Status:</label>
@@ -197,16 +161,117 @@
         <p v-else class="m-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{{ prospect.notes || 'No notes' }}</p>
       </div>
 
-      <!-- Soft Company Data Section -->
+      <!-- Entity Intelligence Section -->
       <div class="pb-6 border-b-2 border-gray-100">
-        <h3 class="text-xl font-bold text-gray-900 mb-4">Soft Company Data</h3>
-        <SoftDataButton
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Entity Intelligence</h3>
+        <EnrichDataButton
           :prospectId="prospect.id"
-          :softData="prospect.softCompanyData"
-          :loading="isGeneratingSoftData"
-          @generate="handleGenerateSoftData"
-          @view="showSoftDataModal = true"
+          :data="prospect.entityIntelligence"
+          :loading="isEnriching"
+          @enrich="handleEnrichProspect"
+          @view="showEntityModal = true"
         />
+      </div>
+
+      <!-- Contact Persons Section -->
+      <div class="pb-6 border-b-2 border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-gray-900 m-0">Contact Persons</h3>
+          <button 
+            @click="openAddContactModal"
+            class="px-3 py-1.5 bg-white text-blue-600 border border-blue-600 rounded-md text-xs font-semibold hover:bg-blue-50 transition-colors"
+          >
+            + Add Contact
+          </button>
+        </div>
+        
+        <div v-if="prospect.contactPersons && prospect.contactPersons.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div 
+            v-for="person in prospect.contactPersons" 
+            :key="person.id"
+            class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm group relative"
+          >
+            <!-- Actions -->
+            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                @click="handleEnrichContact(person)"
+                :disabled="enrichingContactId === person.id"
+                class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                :class="enrichingContactId === person.id ? 'text-blue-600' : 'text-gray-400 hover:text-green-600'"
+                :title="enrichingContactId === person.id ? 'Enriching...' : 'Enrich with AI'"
+              >
+                 <svg v-if="enrichingContactId === person.id" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                 </svg>
+                 <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              </button>
+              <button 
+                @click="openEditContactModal(person)"
+                class="p-1.5 text-gray-400 hover:text-blue-600 rounded-full hover:bg-gray-100"
+                title="Edit"
+              >
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              </button>
+              <button 
+                @click="handleDeleteContact(person)"
+                class="p-1.5 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                title="Delete"
+              >
+                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+
+            <div class="flex items-start gap-3 mb-2 pr-12">
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h4 class="text-lg font-bold text-gray-900 m-0">{{ person.name }}</h4>
+                  <a 
+                    v-if="person.linkedInUrl" 
+                    :href="person.linkedInUrl" 
+                    target="_blank"
+                    class="text-blue-600 hover:text-blue-800 flex-shrink-0"
+                    title="LinkedIn Profile"
+                  >
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                  </a>
+                </div>
+                <p v-if="person.title" class="text-sm text-gray-600 m-0">{{ person.title }}</p>
+              </div>
+            </div>
+            
+            <div v-if="person.email" class="flex items-center gap-2 mb-3 text-sm">
+               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+               <a :href="`mailto:${person.email}`" class="text-gray-600 hover:text-blue-600">{{ person.email }}</a>
+            </div>
+
+            <!-- Enrichment Data Display -->
+            <div v-if="person.generalInfo" class="mt-3 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100 italic">
+               {{ person.generalInfo }}
+            </div>
+
+            <div v-if="person.personalHooks && person.personalHooks.length > 0" class="mt-3">
+               <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Hooks</p>
+               <ul class="list-disc pl-4 space-y-1">
+                 <li v-for="(hook, idx) in person.personalHooks" :key="idx" class="text-xs text-gray-600">
+                   {{ hook }}
+                 </li>
+               </ul>
+            </div>
+
+            <div v-if="person.personalNews && person.personalNews.length > 0" class="mt-3">
+               <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">News</p>
+               <ul class="list-disc pl-4 space-y-1">
+                 <li v-for="(news, idx) in person.personalNews" :key="idx" class="text-xs text-gray-600">
+                   {{ news }}
+                 </li>
+               </ul>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-gray-400 italic text-sm">
+           No contact persons added yet.
+        </div>
       </div>
 
       <!-- Content Tabs -->
@@ -362,6 +427,7 @@
         <!-- Chat Section (Right) -->
         <div class="lg:col-span-1 h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <ChatBox 
+            v-if="prospect"
             :prospectId="prospect.id"
             :mailTitle="generatedEmail?.mailTitle"
             :mailBodyPlain="generatedEmail?.mailBodyPlain"
@@ -392,12 +458,22 @@
         </div>
       </div>
 
-      <!-- Soft Company Data Modal -->
-      <SoftCompanyDataModal
-        :show="showSoftDataModal"
-        :softData="prospect.softCompanyData"
-        :loading="isGeneratingSoftData"
-        @close="showSoftDataModal = false"
+      <!-- Entity Intelligence Modal -->
+      <EntityIntelligenceModal
+        v-if="prospect"
+        :show="showEntityModal"
+        :data="prospect.entityIntelligence"
+        :loading="isEnriching"
+        @close="showEntityModal = false"
+      />
+
+      <!-- Contact Person Modal -->
+      <ContactPersonModal 
+        :show="showContactModal"
+        :loading="isSavingContact"
+        :edit-data="editingContact"
+        @close="showContactModal = false"
+        @save="handleSaveContact"
       />
     </div>
   </div>
@@ -406,19 +482,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Prospect, EmailDraft, ProspectStatus } from '../types/prospect'
+import type { Prospect, EmailDraft, ProspectStatus, CreateContactPersonRequest, ContactPersonDto } from '../types/prospect'
 import { ProspectStatus as ProspectStatusEnum, statusLabels } from '../types/prospect'
 import { prospectsAPI } from '../services/prospects'
 import ChatBox from '../components/ChatBox.vue'
-import SoftDataButton from '../components/SoftDataButton.vue'
-import SoftCompanyDataModal from '../components/SoftCompanyDataModal.vue'
-import { useSoftCompanyData } from '../composables/useSoftCompanyData'
+import EnrichDataButton from '../components/EnrichDataButton.vue'
+import EntityIntelligenceModal from '../components/EntityIntelligenceModal.vue'
+import ContactPersonModal from '../components/ContactPersonModal.vue'
+import { useEntityIntelligence } from '../composables/useEntityIntelligence'
 
 const route = useRoute()
 const router = useRouter()
 
 // Composables
-const { generateSoftData } = useSoftCompanyData()
+const { enrichProspect } = useEntityIntelligence()
 
 // State
 const loading = ref(true)
@@ -431,9 +508,15 @@ const originalServerDraft = ref<EmailDraft | null>(null)
 const hasUnsavedChatChanges = ref(false)
 const activeView = ref<'email' | 'linkedin' | 'workflow'>('email')
 
-// Soft Company Data State
-const showSoftDataModal = ref(false)
-const isGeneratingSoftData = ref(false)
+// Entity Intelligence State
+const showEntityModal = ref(false)
+const isEnriching = ref(false)
+
+// Contact Person State
+const showContactModal = ref(false)
+const isSavingContact = ref(false)
+const editingContact = ref<ContactPersonDto | null>(null)
+const enrichingContactId = ref<string | null>(null)
 
 // Email Generator Type State
 const emailGeneratorTypes = [
@@ -787,41 +870,44 @@ async function saveChanges() {
   }
 }
 
-// Email and Soft Data Actions
-async function handleGenerateSoftData(prospectId: string, provider: 'OpenAI' | 'Claude' | 'Hybrid') {
+// Email and Entity Intelligence Actions
+async function handleEnrichProspect(prospectId: string) {
   if (!prospect.value) return
   
-  isGeneratingSoftData.value = true
+  isEnriching.value = true
   error.value = null
   
-  console.log('ProspectDetail: Starting soft data generation for', prospect.value.id, 'with provider:', provider)
+  console.log('ProspectDetail: Starting enrichment for', prospect.value.id)
   
   try {
-    const softData = await generateSoftData(prospect.value.id, provider)
+    const intelligence = await enrichProspect(prospect.value.id)
     
-    console.log('ProspectDetail: Received soft data', softData)
+    console.log('ProspectDetail: Received intelligence', intelligence)
     
-    // Update the prospect with the new soft data
-    if (prospect.value && softData) {
-      prospect.value.softCompanyData = softData
+    // Update the prospect with the new intelligence
+    if (prospect.value && intelligence) {
+      prospect.value.entityIntelligence = intelligence
       // Uppdatera status till Undersökt när research är klar
       if (prospect.value.status === ProspectStatusEnum.New) {
         prospect.value.status = ProspectStatusEnum.Researched
       }
-      console.log('ProspectDetail: Updated prospect with soft data and status')
+      console.log('ProspectDetail: Updated prospect with intelligence data')
     }
     
     // Automatically show the modal after generation
-    showSoftDataModal.value = true
+    showEntityModal.value = true
+    
+    // Reload full prospect to get discovered contacts (in background to avoid full page spinner)
+    await fetchProspect(true)
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Kunde inte generera mjuk företagsdata'
-    console.error('Error generating soft company data:', err)
+    error.value = err.response?.data?.error || 'Failed to enrich prospect data'
+    console.error('Error enriching prospect:', err)
   } finally {
-    isGeneratingSoftData.value = false
+    isEnriching.value = false
   }
 }
 
-async function fetchProspect() {
+async function fetchProspect(background = false) {
   const id = route.params.id as string
   if (!id) {
     error.value = 'Inget prospect-ID angivet'
@@ -830,15 +916,15 @@ async function fetchProspect() {
   }
 
   try {
-    loading.value = true
+    if (!background) loading.value = true
     error.value = null
     prospect.value = await prospectsAPI.getById(id)
     
     console.log('ProspectDetail: Loaded prospect', {
       id: prospect.value.id,
       name: prospect.value.name,
-      hasSoftData: !!prospect.value.softCompanyData,
-      softDataKeys: prospect.value.softCompanyData ? Object.keys(prospect.value.softCompanyData) : null
+      hasIntelligence: !!prospect.value.entityIntelligence,
+      intelligenceKeys: prospect.value.entityIntelligence ? Object.keys(prospect.value.entityIntelligence) : null
     })
 
     const serverDraft = draftFromProspect(prospect.value)
@@ -983,6 +1069,81 @@ const handleEmailUpdated = (data: { mailTitle?: string; mailBodyPlain?: string; 
   generatedEmail.value = next
   hasUnsavedChatChanges.value = true
   syncDraftState()
+}
+
+function openAddContactModal() {
+  editingContact.value = null
+  showContactModal.value = true
+}
+
+function openEditContactModal(contact: ContactPersonDto) {
+  editingContact.value = contact
+  showContactModal.value = true
+}
+
+async function handleSaveContact(data: CreateContactPersonRequest) {
+  if (!prospect.value) return
+  
+  isSavingContact.value = true
+  try {
+     let savedContact: ContactPersonDto;
+     
+     if (editingContact.value) {
+        // Update existing
+        savedContact = await prospectsAPI.updateContact(prospect.value.id, editingContact.value.id, data)
+        // Update local list
+        const index = prospect.value.contactPersons?.findIndex(c => c.id === savedContact.id)
+        if (index !== undefined && index !== -1 && prospect.value.contactPersons) {
+           prospect.value.contactPersons[index] = savedContact
+        }
+     } else {
+        // Create new
+        savedContact = await prospectsAPI.addContact(prospect.value.id, data)
+        if (!prospect.value.contactPersons) {
+           prospect.value.contactPersons = []
+        }
+        prospect.value.contactPersons.push(savedContact)
+     }
+     
+     showContactModal.value = false
+  } catch(err: any) {
+     alert('Failed to save contact: ' + (err.response?.data?.error || err.message))
+  } finally {
+     isSavingContact.value = false
+  }
+}
+
+async function handleDeleteContact(contact: ContactPersonDto) {
+   if (!prospect.value || !confirm(`Are you sure you want to delete ${contact.name}?`)) return
+   
+   try {
+      await prospectsAPI.deleteContact(prospect.value.id, contact.id)
+      // Remove from local list
+      prospect.value.contactPersons = prospect.value.contactPersons?.filter(c => c.id !== contact.id)
+   } catch(err: any) {
+      alert('Failed to delete contact: ' + (err.response?.data?.error || err.message))
+   }
+}
+
+async function handleEnrichContact(contact: ContactPersonDto) {
+   if (!prospect.value) return
+   
+   enrichingContactId.value = contact.id
+   try {
+      const enriched = await prospectsAPI.enrichContact(prospect.value.id, contact.id)
+      
+      // Update local contact with enriched data
+      const index = prospect.value.contactPersons?.findIndex(c => c.id === enriched.id)
+      if (index !== undefined && index !== -1 && prospect.value.contactPersons) {
+         prospect.value.contactPersons[index] = enriched
+      }
+      
+      alert(`Successfully enriched ${contact.name}!`)
+   } catch(err: any) {
+      alert('Failed to enrich contact: ' + (err.response?.data?.error || err.message))
+   } finally {
+      enrichingContactId.value = null
+   }
 }
 
 onMounted(() => {
