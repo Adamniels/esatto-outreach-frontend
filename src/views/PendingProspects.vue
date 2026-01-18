@@ -78,20 +78,6 @@
           </div>
         </div>
 
-        <!-- Email Addresses -->
-        <div v-if="prospect.emailAddresses && prospect.emailAddresses.length > 0" class="mb-4">
-          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Email Addresses:</label>
-          <div class="flex flex-col gap-1.5">
-            <a 
-              v-for="(email, idx) in prospect.emailAddresses" 
-              :key="idx"
-              :href="`mailto:${email.address}`"
-              class="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate"
-            >
-              {{ email.address }}
-            </a>
-          </div>
-        </div>
 
         <!-- Actions -->
         <div class="flex gap-3 mt-6 pt-4 border-t-2 border-gray-100">

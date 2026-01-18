@@ -49,38 +49,58 @@
                 
                 <!-- OVERVIEW TAB -->
                 <div v-if="activeTab === 'overview'" class="space-y-8">
-                   <!-- Summary -->
+                   <!-- Snapshot -->
                    <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                       <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <span>📝</span> Executive Summary
+                        <span>📝</span> Company Snapshot
                       </h3>
-                      <p class="text-gray-700 leading-relaxed text-lg" v-if="richData?.summary">{{ richData.summary }}</p>
-                      <p class="text-gray-700 leading-relaxed text-lg" v-else-if="data.summarizedContext">{{ data.summarizedContext }}</p>
+                      <div class="space-y-4" v-if="richData?.snapshot">
+                         <div>
+                           <p class="text-sm font-bold text-gray-500 uppercase tracking-wide">What They Do</p>
+                           <p class="text-gray-800 text-lg">{{ richData.snapshot.whatTheyDo }}</p>
+                         </div>
+                         <div>
+                           <p class="text-sm font-bold text-gray-500 uppercase tracking-wide">Target Customer</p>
+                           <p class="text-gray-700">{{ richData.snapshot.targetCustomer }}</p>
+                         </div>
+                         <div>
+                           <p class="text-sm font-bold text-gray-500 uppercase tracking-wide">Value Proposition</p>
+                           <p class="text-gray-700">{{ richData.snapshot.primaryValueProposition }}</p>
+                         </div>
+                      </div>
+                      <p class="text-gray-700 leading-relaxed text-lg mt-4 pt-4 border-t border-gray-100" v-else-if="data.summarizedContext">
+                        {{ data.summarizedContext }}
+                      </p>
                       <p class="text-gray-400 italic" v-else>No summary available.</p>
                    </section>
 
                    <div class="grid grid-cols-2 gap-8">
-                      <!-- Value Props -->
-                      <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                      <!-- Model & Competitors -->
+                      <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100" v-if="richData?.profile">
                         <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <span>💎</span> Key Value Props
+                          <span>🏢</span> Business Profile
                         </h3>
-                        <ul class="space-y-3" v-if="richData?.keyValueProps?.length">
-                           <li v-for="(vp, i) in richData.keyValueProps" :key="i" class="flex items-start gap-3 text-gray-700">
-                             <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 flex-shrink-0"></div>
-                             {{ vp }}
-                           </li>
-                        </ul>
-                        <p v-else class="text-gray-400 italic">Not detected.</p>
+                        <div class="mb-4">
+                           <p class="text-sm font-bold text-gray-500 uppercase tracking-wide">Business Model</p>
+                           <p class="text-gray-800">{{ richData.profile.businessModel }}</p>
+                        </div>
+                         <div v-if="richData.profile.competitors?.length">
+                           <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Competitors</p>
+                           <div class="flex flex-wrap gap-2">
+                              <span v-for="(comp, i) in richData.profile.competitors" :key="i" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                {{ comp }}
+                              </span>
+                           </div>
+                         </div>
                       </section>
 
                       <!-- Tech Stack -->
                       <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <span>🛠️</span> Tech Stack & Methods
+                          <span>🛠️</span> Tech Stack
                         </h3>
-                        <div class="flex flex-wrap gap-2" v-if="richData?.techStack?.length">
-                           <span v-for="(tech, i) in richData.techStack" :key="i" 
+                        <div class="flex flex-wrap gap-2" v-if="richData?.profile?.currentTechStack?.length">
+                           <span v-for="(tech, i) in richData.profile.currentTechStack" :key="i" 
                              class="px-3 py-1 bg-slate-100 text-slate-700 rounded-md text-sm font-medium border border-slate-200">
                              {{ tech }}
                            </span>
@@ -90,57 +110,92 @@
                    </div>
                 </div>
 
-                <!-- CASES TAB -->
-                <div v-if="activeTab === 'cases'" class="space-y-6">
-                   <div v-if="richData?.caseStudies?.length" class="grid gap-6">
-                      <div v-for="(c, i) in richData.caseStudies" :key="i" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                         <div class="flex justify-between items-start mb-4">
-                           <h4 class="text-xl font-bold text-gray-900">{{ c.client }}</h4>
-                           <span class="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full uppercase tracking-wide">Case Study</span>
-                         </div>
-                         <div class="grid md:grid-cols-3 gap-6">
-                            <div><p class="text-xs uppercase text-gray-400 font-bold mb-1">Challenge</p><p class="text-sm text-gray-700">{{ c.challenge }}</p></div>
-                            <div><p class="text-xs uppercase text-gray-400 font-bold mb-1">Solution</p><p class="text-sm text-gray-700">{{ c.solution }}</p></div>
-                            <div><p class="text-xs uppercase text-gray-400 font-bold mb-1">Outcome</p><p class="text-sm text-gray-700">{{ c.outcome }}</p></div>
-                         </div>
-                      </div>
+                <!-- CHALLENGES TAB -->
+                <div v-if="activeTab === 'challenges'" class="space-y-6">
+                   <div v-if="richData?.challenges" class="space-y-8">
+                      <!-- Confirmed Challenges -->
+                      <section v-if="richData.challenges.confirmed?.length">
+                          <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <span>✅</span> Confirmed Pain Points
+                          </h3>
+                          <div class="grid gap-4">
+                            <div v-for="(c, i) in richData.challenges.confirmed" :key="'conf-'+i" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <p class="text-gray-900 font-medium text-lg mb-3">{{ c.challengeDescription }}</p>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 italic text-gray-600 mb-3 text-sm">
+                                  "{{ c.evidenceSnippet }}"
+                                </div>
+                                <a :href="c.sourceUrl" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                  <span>🔗</span> Source
+                                </a>
+                            </div>
+                          </div>
+                      </section>
+
+                      <!-- Inferred Challenges -->
+                       <section v-if="richData.challenges.inferred?.length">
+                          <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <span>🧠</span> Inferred Needs
+                          </h3>
+                          <div class="grid gap-4">
+                            <div v-for="(c, i) in richData.challenges.inferred" :key="'inf-'+i" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-400">
+                                <p class="text-gray-900 font-medium text-lg mb-2">{{ c.challengeDescription }}</p>
+                                <p class="text-sm text-gray-600">
+                                  <span class="font-semibold text-purple-700">Reasoning:</span> {{ c.reasoning }}
+                                </p>
+                            </div>
+                          </div>
+                      </section>
                    </div>
                    <div v-else class="text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
-                      No case studies were found on the website.
+                      No specific challenges identified.
                    </div>
                 </div>
 
-                <!-- SIGNALS TAB -->
-                <div v-if="activeTab === 'signals'" class="space-y-8">
+                <!-- HOOKS & SIGNALS TAB -->
+                <div v-if="activeTab === 'hooks'" class="space-y-8">
                    
-                   <!-- News -->
-                   <section v-if="richData?.news?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                      <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><span>📰</span> Recent News</h3>
+                   <!-- Outreach Hooks -->
+                   <section v-if="richData?.outreachHooks?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                      <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><span>🎣</span> Outreach Hooks</h3>
                       <div class="space-y-4">
-                         <div v-for="(n, i) in richData.news" :key="i" class="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                           <div class="w-24 flex-shrink-0 text-xs font-mono text-gray-500 pt-1">{{ n.date }}</div>
-                           <div>
-                              <p class="text-gray-800 font-medium mb-1">{{ n.description }}</p>
-                              <p class="text-xs text-indigo-600 truncate max-w-md">{{ n.source }}</p>
+                         <div v-for="(h, i) in richData.outreachHooks" :key="i" class="p-4 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                           <div class="flex justify-between items-start mb-2">
+                             <p class="text-gray-900 font-medium">{{ h.hookDescription }}</p>
+                             <span class="px-2 py-0.5 bg-white text-indigo-600 text-xs font-bold rounded shadow-sm border border-indigo-100">
+                               {{ h.confidenceLevel }}
+                             </span>
                            </div>
+                           <p class="text-sm text-gray-600 italic">Context: {{ h.whyItMatters }}</p>
+                           <a v-if="h.source" :href="h.source" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-500 hover:text-indigo-700 mt-2 flex items-center gap-1 group">
+                             <span class="group-hover:underline truncate max-w-md">🔗 {{ h.source }}</span>
+                           </a>
                          </div>
                       </div>
                    </section>
 
-                   <!-- Hiring -->
-                   <section v-if="richData?.hiring?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                      <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><span>💼</span> Hiring Signals</h3>
-                      <div class="flex flex-wrap gap-4">
-                        <div v-for="(h, i) in richData.hiring" :key="i" class="flex items-center gap-3 p-3 bg-indigo-50 text-indigo-900 rounded-lg border border-indigo-100">
-                           <span class="font-bold">{{ h.role }}</span>
-                           <span class="text-sm opacity-75">({{ h.date }})</span>
-                        </div>
+                   <!-- Hiring Trends -->
+                   <section v-if="richData?.profile?.hiringTrends?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                      <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><span>💼</span> Hiring Trends</h3>
+                      <div class="flex flex-wrap gap-2">
+                        <span v-for="(h, i) in richData.profile.hiringTrends" :key="i" class="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-100">
+                           {{ h }}
+                        </span>
                       </div>
                    </section>
 
+                   <!-- Strategic Priorities -->
+                   <section v-if="richData?.profile?.strategicPriorities?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                      <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><span>🎯</span> Strategic Priorities</h3>
+                      <ul class="space-y-2">
+                         <li v-for="(p, i) in richData.profile.strategicPriorities" :key="i" class="flex items-center gap-2 text-gray-700">
+                           <span class="text-indigo-400">›</span> {{ p }}
+                         </li>
+                      </ul>
+                   </section>
+
                     <!-- Legacy Hooks (Fallback) -->
-                   <section v-if="data.companyHooks?.length && !richData?.news?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                      <h3 class="text-lg font-bold text-gray-900 mb-4">Hooks</h3>
+                   <section v-if="data.companyHooks?.length && !richData?.outreachHooks?.length" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                      <h3 class="text-lg font-bold text-gray-900 mb-4">Hooks (Legacy)</h3>
                       <ul class="space-y-2">
                         <li v-for="(h, i) in data.companyHooks" :key="i" class="p-3 bg-gray-50 rounded text-gray-700">{{ h }}</li>
                       </ul>
@@ -180,11 +235,11 @@ const emit = defineEmits<{ close: [] }>();
 const activeTab = ref('overview');
 const tabs = [
   { id: 'overview', label: 'Overview' },
-  { id: 'cases', label: 'Case Studies' },
-  { id: 'signals', label: 'Signals & News' },
+  { id: 'challenges', label: 'Challenges' },
+  { id: 'hooks', label: 'Hooks & Signals' },
 ];
 
-const richData = computed(() => props.data?.richData);
+const richData = computed(() => props.data?.enrichedData);
 
 const formatDate = (dateString: string): string => {
   if (!dateString) return '';

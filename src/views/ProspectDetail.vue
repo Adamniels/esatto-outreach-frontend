@@ -381,8 +381,6 @@ const isSaving = ref(false)
 const formData = ref({
   name: '',
   websitesText: '',
-  emailsText: '',
-  phonesText: '',
   status: 0 as ProspectStatus,
   notes: ''
 })
@@ -578,7 +576,7 @@ const canResetToBackend = computed(() => {
 
 const canSendEmail = computed(() => {
   const p = prospect.value
-  if (!p || !p.emailAddresses || p.emailAddresses.length === 0) return false
+  if (!p || !p.contactPersons || p.contactPersons.length === 0) return false
   
   const hasSavedContent = Boolean(
     (p.mailTitle && p.mailTitle.trim()) ||
@@ -653,8 +651,6 @@ function startEditing() {
   formData.value = {
     name: prospect.value.name,
     websitesText: arrayToText(prospect.value.websites),
-    emailsText: arrayToText(prospect.value.emailAddresses),
-    phonesText: arrayToText(prospect.value.phoneNumbers),
     status: prospect.value.status,
     notes: prospect.value.notes || ''
   }
@@ -678,8 +674,6 @@ function hasUnsavedEditChanges(): boolean {
   return (
     formData.value.name !== prospect.value.name ||
     formData.value.websitesText !== arrayToText(prospect.value.websites) ||
-    formData.value.emailsText !== arrayToText(prospect.value.emailAddresses) ||
-    formData.value.phonesText !== arrayToText(prospect.value.phoneNumbers) ||
     formData.value.status !== prospect.value.status ||
     formData.value.notes !== (prospect.value.notes || '')
   )
@@ -695,8 +689,6 @@ async function saveChanges() {
     const updatePayload: Record<string, any> = {
       name: formData.value.name.trim(),
       websites: splitLines(formData.value.websitesText),
-      emailAddresses: splitLines(formData.value.emailsText),
-      phoneNumbers: splitLines(formData.value.phonesText),
       status: formData.value.status,
       notes: formData.value.notes.trim() || undefined
     }
@@ -878,7 +870,8 @@ const saveGeneratedEmail = async () => {
 const handleSendEmail = async () => {
   if (!prospect.value) return
   // Beuser bekräfta först
-  if (!confirm(`Ska vi skicka mejlet till ${prospect.value.emailAddresses[0]?.address}?`)) {
+  const recipient = prospect.value.contactPersons?.[0]?.email || prospect.value.name
+  if (!confirm(`Ska vi skicka mejlet till ${recipient}?`)) {
     return
   }
 

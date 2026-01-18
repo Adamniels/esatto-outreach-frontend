@@ -17,15 +17,6 @@ export interface WebsiteDto {
   type?: string | null;
 }
 
-export interface EmailAddressDto {
-  address?: string | null;
-  type?: string | null;
-}
-
-export interface PhoneNumberDto {
-  number?: string | null;
-  type?: string | null;
-}
 
 export interface AddressDto {
   street?: string | null;
@@ -58,8 +49,6 @@ export interface Prospect {
   isPending: boolean;
   about?: string | null;
   websites: WebsiteDto[];
-  emailAddresses: EmailAddressDto[];
-  phoneNumbers: PhoneNumberDto[];
   addresses: AddressDto[];
   tags: CapsuleTag[];
   customFields: CapsuleCustomField[];
@@ -82,16 +71,12 @@ export interface Prospect {
 export interface CreateProspectRequest {
   name: string;
   websites?: string[];
-  emailAddresses?: string[];
-  phoneNumbers?: string[];
   notes?: string | null;
 }
 
 export interface UpdateProspectRequest {
   name?: string;
   websites?: string[];
-  emailAddresses?: string[];
-  phoneNumbers?: string[];
   notes?: string | null;
   status?: ProspectStatus;
   mailTitle?: string | null;
@@ -106,7 +91,6 @@ export interface PendingProspectDto {
   about?: string | null;
   pictureURL?: string | null;
   websites: WebsiteDto[];
-  emailAddresses: EmailAddressDto[];
   createdUtc: string;
 }
 
@@ -157,32 +141,59 @@ export const statusLabels: Record<ProspectStatus, string> = {
 };
 
 // Entity Intelligence Types
-export interface CaseStudyDto {
-  client: string;
-  challenge: string;
-  solution: string;
-  outcome: string;
+// New Structured Enrichment Types
+export interface CompanySnapshotDto {
+  whatTheyDo: string;
+  targetCustomer: string;
+  primaryValueProposition: string;
 }
 
-export interface NewsEventDto {
-  date: string;
-  description: string;
+export interface EvidenceSourceDto {
+  title: string;
+  url: string;
+  extractionDate: string; // DateTime
+}
+
+export interface ConfirmedChallengeDto {
+  challengeDescription: string;
+  evidenceSnippet: string;
+  sourceUrl: string;
+}
+
+export interface InferredChallengeDto {
+  challengeDescription: string;
+  reasoning: string;
+}
+
+export interface BusinessChallengesDto {
+  confirmed: ConfirmedChallengeDto[];
+  inferred: InferredChallengeDto[];
+}
+
+export interface SolutionRelevantProfileDto {
+  businessModel: string;
+  currentTechStack: string[];
+  competitors: string[];
+  strategicPriorities: string[];
+  hiringTrends: string[];
+}
+
+export interface CompanyOutreachHookDto {
+  hookDescription: string;
+  whyItMatters: string;
   source: string;
+  confidenceLevel: string;
+  date?: string;
 }
 
-export interface HiringSignalDto {
-  role: string;
-  date: string;
-  source: string;
-}
-
-export interface EnrichedCompanyDataDto {
-  summary: string;
-  keyValueProps?: string[];
-  techStack?: string[];
-  caseStudies?: CaseStudyDto[];
-  news?: NewsEventDto[];
-  hiring?: HiringSignalDto[];
+export interface CompanyEnrichmentResultDto {
+  snapshot: CompanySnapshotDto;
+  evidenceLog: EvidenceSourceDto[];
+  challenges: BusinessChallengesDto;
+  profile: SolutionRelevantProfileDto;
+  outreachHooks: CompanyOutreachHookDto[];
+  methodologyUsed?: string[];
+  openQuestions?: string[];
 }
 
 export interface EntityIntelligenceDto {
@@ -191,8 +202,12 @@ export interface EntityIntelligenceDto {
   companyHooks: string[];
   personalHooks: string[];
   summarizedContext: string;
+  enrichmentVersion?: string | null;
+  // stored as JSONB in backend, explicitly serialized
+  enrichedData?: CompanyEnrichmentResultDto | null;
+  // Legacy fields (optional/deprecated)
   sourcesJson?: string | null;
-  richData?: EnrichedCompanyDataDto | null;
+  richData?: any | null; // Kept for backward compat if needed during transition
   researchedAt: string;
   createdUtc: string;
   updatedUtc?: string | null;
@@ -203,7 +218,7 @@ export interface ParsedEntityIntelligence {
   personalHooks: string[];
   summarizedContext: string;
   researchedAt: Date;
-  richData?: EnrichedCompanyDataDto | null;
+  enrichedData?: CompanyEnrichmentResultDto | null;
 }
 
 export interface ContactPersonDto {
@@ -228,3 +243,5 @@ export interface CreateContactPersonRequest {
   personalNews?: string[];
   generalInfo?: string;
 }
+
+

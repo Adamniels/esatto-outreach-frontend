@@ -70,7 +70,7 @@
             <tr v-for="prospect in recentProspects" :key="prospect.id" class="transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-0">
               <td class="p-4 px-6 text-left">
                 <div class="font-medium text-gray-900 text-sm">{{ prospect.name }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ prospect.emailAddresses[0]?.address || prospect.about || 'No contact' }}</div>
+                <div class="text-xs text-gray-500 mt-1">{{ prospect.contactPersons?.[0]?.email || prospect.about || 'No contact info' }}</div>
               </td>
               <td class="p-4 px-6 text-right">
                 <span :class="['inline-flex items-center px-2 py-1 rounded text-xs font-medium', getStatusClass(prospect.status)]">
