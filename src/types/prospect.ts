@@ -17,15 +17,6 @@ export interface WebsiteDto {
   type?: string | null;
 }
 
-export interface EmailAddressDto {
-  address?: string | null;
-  type?: string | null;
-}
-
-export interface PhoneNumberDto {
-  number?: string | null;
-  type?: string | null;
-}
 
 export interface AddressDto {
   street?: string | null;
@@ -58,8 +49,6 @@ export interface Prospect {
   isPending: boolean;
   about?: string | null;
   websites: WebsiteDto[];
-  emailAddresses: EmailAddressDto[];
-  phoneNumbers: PhoneNumberDto[];
   addresses: AddressDto[];
   tags: CapsuleTag[];
   customFields: CapsuleCustomField[];
@@ -75,22 +64,19 @@ export interface Prospect {
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
   ownerId?: string | null;
-  softCompanyData?: SoftCompanyDataDto | null;
+  entityIntelligence?: EntityIntelligenceDto | null;
+  contactPersons?: ContactPersonDto[];
 }
 
 export interface CreateProspectRequest {
   name: string;
   websites?: string[];
-  emailAddresses?: string[];
-  phoneNumbers?: string[];
   notes?: string | null;
 }
 
 export interface UpdateProspectRequest {
   name?: string;
   websites?: string[];
-  emailAddresses?: string[];
-  phoneNumbers?: string[];
   notes?: string | null;
   status?: ProspectStatus;
   mailTitle?: string | null;
@@ -105,7 +91,6 @@ export interface PendingProspectDto {
   about?: string | null;
   pictureURL?: string | null;
   websites: WebsiteDto[];
-  emailAddresses: EmailAddressDto[];
   createdUtc: string;
 }
 
@@ -147,61 +132,116 @@ export interface ChatMessage {
 }
 
 export const statusLabels: Record<ProspectStatus, string> = {
-  [ProspectStatus.New]: 'Ny',
-  [ProspectStatus.Researched]: 'Undersökt',
-  [ProspectStatus.Drafted]: 'Utkast',
-  [ProspectStatus.Emailed]: 'Mejlad',
-  [ProspectStatus.Responded]: 'Svarat',
-  [ProspectStatus.Archived]: 'Arkiverad'
+  [ProspectStatus.New]: 'New',
+  [ProspectStatus.Researched]: 'Researched',
+  [ProspectStatus.Drafted]: 'Drafted',
+  [ProspectStatus.Emailed]: 'Emailed',
+  [ProspectStatus.Responded]: 'Responded',
+  [ProspectStatus.Archived]: 'Archived'
 };
 
-// Soft Company Data Types
-export interface PersonalizationHook {
-  text: string;
-  source: string;
-  date: string;
-  relevance: 'high' | 'medium' | 'low';
+// Entity Intelligence Types
+// New Structured Enrichment Types
+export interface CompanySnapshotDto {
+  whatTheyDo: string;
+  targetCustomer: string;
+  primaryValueProposition: string;
 }
 
-export interface CompanyEvent {
+export interface EvidenceSourceDto {
   title: string;
-  date: string;
-  type: string;
   url: string;
+  extractionDate: string; // DateTime
 }
 
-export interface NewsItem {
-  headline: string;
-  date: string;
+export interface ConfirmedChallengeDto {
+  challengeDescription: string;
+  evidenceSnippet: string;
+  sourceUrl: string;
+}
+
+export interface InferredChallengeDto {
+  challengeDescription: string;
+  reasoning: string;
+}
+
+export interface BusinessChallengesDto {
+  confirmed: ConfirmedChallengeDto[];
+  inferred: InferredChallengeDto[];
+}
+
+export interface SolutionRelevantProfileDto {
+  businessModel: string;
+  currentTechStack: string[];
+  competitors: string[];
+  strategicPriorities: string[];
+  hiringTrends: string[];
+}
+
+export interface CompanyOutreachHookDto {
+  hookDescription: string;
+  whyItMatters: string;
   source: string;
-  url: string;
+  confidenceLevel: string;
+  date?: string;
 }
 
-export interface SocialActivity {
-  platform: string;
-  text: string;
-  date: string;
-  url: string;
+export interface CompanyEnrichmentResultDto {
+  snapshot: CompanySnapshotDto;
+  evidenceLog: EvidenceSourceDto[];
+  challenges: BusinessChallengesDto;
+  profile: SolutionRelevantProfileDto;
+  outreachHooks: CompanyOutreachHookDto[];
+  methodologyUsed?: string[];
+  openQuestions?: string[];
 }
 
-export interface SoftCompanyDataDto {
+export interface EntityIntelligenceDto {
   id: string;
   prospectId: string;
-  hooksJson?: string | null;
-  recentEventsJson?: string | null;
-  newsItemsJson?: string | null;
-  socialActivityJson?: string | null;
+  companyHooks: string[];
+  personalHooks: string[];
+  summarizedContext: string;
+  enrichmentVersion?: string | null;
+  // stored as JSONB in backend, explicitly serialized
+  enrichedData?: CompanyEnrichmentResultDto | null;
+  // Legacy fields (optional/deprecated)
   sourcesJson?: string | null;
+  richData?: any | null; // Kept for backward compat if needed during transition
   researchedAt: string;
   createdUtc: string;
   updatedUtc?: string | null;
 }
 
-export interface ParsedSoftCompanyData {
-  hooks: PersonalizationHook[];
-  events: CompanyEvent[];
-  news: NewsItem[];
-  socialActivity: SocialActivity[];
-  sources: string[];
+export interface ParsedEntityIntelligence {
+  companyHooks: string[];
+  personalHooks: string[];
+  summarizedContext: string;
   researchedAt: Date;
+  enrichedData?: CompanyEnrichmentResultDto | null;
 }
+
+export interface ContactPersonDto {
+  id: string;
+  prospectId: string;
+  name: string;
+  title?: string | null;
+  email?: string | null;
+  linkedInUrl?: string | null;
+  personalHooks?: string[] | null;
+  personalNews?: string[] | null;
+  generalInfo?: string | null;
+  researchedAt?: string | null;
+}
+
+export interface CreateContactPersonRequest {
+  name: string;
+  title?: string;
+  email?: string;
+  linkedInUrl?: string;
+  personalHooks?: string[];
+  personalNews?: string[];
+  generalInfo?: string;
+}
+
+

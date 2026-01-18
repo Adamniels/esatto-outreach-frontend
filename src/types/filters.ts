@@ -30,12 +30,12 @@ export interface SortState {
 
 // Predefined sort options
 export const SORT_OPTIONS: SortOption[] = [
-  { value: 'name-asc', label: 'Företagsnamn (A-Ö)', field: 'name', direction: 'asc' },
-  { value: 'name-desc', label: 'Företagsnamn (Ö-A)', field: 'name', direction: 'desc' },
-  { value: 'status-asc', label: 'Status (Stigande)', field: 'status', direction: 'asc' },
-  { value: 'status-desc', label: 'Status (Fallande)', field: 'status', direction: 'desc' },
-  { value: 'createdUtc-desc', label: 'Senast skapad', field: 'createdUtc', direction: 'desc' },
-  { value: 'createdUtc-asc', label: 'Äldst skapad', field: 'createdUtc', direction: 'asc' },
+  { value: 'name-asc', label: 'Company Name (A-Z)', field: 'name', direction: 'asc' },
+  { value: 'name-desc', label: 'Company Name (Z-A)', field: 'name', direction: 'desc' },
+  { value: 'status-asc', label: 'Status (Ascending)', field: 'status', direction: 'asc' },
+  { value: 'status-desc', label: 'Status (Descending)', field: 'status', direction: 'desc' },
+  { value: 'createdUtc-desc', label: 'Newest', field: 'createdUtc', direction: 'desc' },
+  { value: 'createdUtc-asc', label: 'Oldest', field: 'createdUtc', direction: 'asc' },
 ]
 
 // Default filter state

@@ -1,8 +1,8 @@
 <template>
-  <div class="prospects-container">
+  <div class="flex flex-col gap-6 p-7 min-h-screen">
     <!-- Top Controls - Like Prody -->
-    <div class="prospects-header">
-      <div class="filter-controls">
+    <div class="flex items-center justify-between p-4 px-7 bg-white rounded-lg border border-gray-200">
+      <div class="flex items-center gap-4 flex-wrap">
         <!-- Filter Dropdown Component -->
         <FilterDropdown
           v-model="filterState"
@@ -17,142 +17,132 @@
         />
         
         <!-- Search Input -->
-        <div class="filter-item">
-          <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <input v-model="filterState.search" type="text" placeholder="Sök..." class="search-input" />
+          <input v-model="filterState.search" type="text" placeholder="Search..." class="text-sm border-none bg-transparent outline-none w-32 text-gray-700 placeholder:text-gray-400 focus:outline-none" />
         </div>
         
         <!-- Filter Stats -->
-        <div v-if="filterStats.isFiltered" class="filter-stats">
-          <span class="stats-text">{{ filterStats.showing }} av {{ filterStats.total }}</span>
+        <div v-if="filterStats.isFiltered" class="flex items-center px-3 py-2 bg-gray-100 rounded-md border border-gray-200">
+          <span class="text-sm font-medium text-gray-500">{{ filterStats.showing }} of {{ filterStats.total }}</span>
         </div>
       </div>
       
-      <div class="action-controls">
-        <button @click="openCreateModal" class="btn btn-success">Add New</button>
+      <div class="flex items-center gap-3">
+        <button @click="openCreateModal" class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium leading-5 rounded-md border border-transparent bg-emerald-500 text-white transition-all duration-200 ease-in-out cursor-pointer hover:bg-emerald-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Add New</button>
       </div>
     </div>
 
     <!-- Batch Action Toolbar (shown when prospects are selected) -->
-    <div v-if="selectedCount > 0" class="batch-toolbar">
-      <div class="batch-info">
-        <span class="batch-count">{{ selectedCount }} valda</span>
-        <button @click="clearSelection" class="btn-clear-selection">Rensa</button>
+    <div v-if="selectedCount > 0" class="flex items-center justify-between p-4 px-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md transition-all">
+      <div class="flex items-center gap-4">
+        <span class="text-base font-semibold text-white">{{ selectedCount }} selected</span>
+        <button @click="clearSelection" class="bg-white/20 text-white border border-white/30 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer hover:bg-white/30 transition-colors">Clear</button>
       </div>
       
       <!-- Show batch progress button when processing -->
-      <div v-if="isBatchProcessing" class="batch-actions">
+      <div v-if="isBatchProcessing" class="flex items-center gap-3">
         <button 
           @click="showBatchProgressModal = true" 
-          class="btn btn-batch-status"
+          class="flex items-center gap-2 px-6 py-2.5 bg-white text-blue-500 border border-white rounded-md text-sm font-semibold cursor-pointer shadow-sm hover:bg-gray-50 hover:-translate-y-px transition-all"
         >
-          <svg class="icon-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          <span>Batch pågår ({{ batchProgress.completed }} / {{ batchProgress.total }})</span>
+          <span>Batch in progress ({{ batchProgress.completed }} / {{ batchProgress.total }})</span>
         </button>
       </div>
       
       <!-- Show batch action controls when not processing -->
-      <div v-else class="batch-actions">
+      <div v-else class="flex items-center gap-3">
         <BatchActionDropdown v-model="batchAction" />
         
         <button 
           @click="runBatchOperation" 
           :disabled="!batchAction"
-          class="btn btn-primary"
+          class="bg-white text-blue-500 border border-white px-6 py-2.5 rounded-md text-sm font-semibold cursor-pointer shadow-sm hover:bg-gray-50 hover:-translate-y-px transition-all disabled:opacity-50 disabled:bg-white/50 disabled:text-gray-400 disabled:border-white/50 disabled:cursor-not-allowed disabled:shadow-none"
         >
-          Kör Batch
+          Run Batch
         </button>
       </div>
     </div>
 
     <!-- Main Table -->
-    <div class="prospects-table-container">
-      <div v-if="loading" class="loading-state">
-        <svg class="loading-icon animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div v-if="loading" class="text-center py-12">
+        <svg class="w-6 h-6 mb-2 text-gray-500 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        <p class="loading-text">Laddar prospects...</p>
+        <p class="text-sm text-gray-500">Loading prospects...</p>
       </div>
 
-      <div v-else-if="error" class="error-state">
-        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div v-else-if="error" class="text-center py-12 bg-red-50 border border-red-200 rounded-lg mx-4 my-4">
+        <svg class="w-6 h-6 mb-2 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
-        <p class="error-message">{{ error }}</p>
-        <button @click="fetchProspects" class="btn btn-secondary retry-btn">Försök igen</button>
+        <p class="text-base font-medium text-red-700 mb-4">{{ error }}</p>
+        <button @click="fetchProspects" class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium leading-5 rounded-md border border-gray-300 bg-white text-gray-700 transition-all duration-200 ease-in-out cursor-pointer hover:bg-gray-50 hover:border-gray-400 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Try again</button>
       </div>
 
-      <div v-else class="table-container">
-        <table class="prospects-table">
+      <div v-else class="overflow-x-auto">
+        <table class="w-full border-collapse">
           <colgroup>
-            <col class="col-select" />
-            <col class="col-id" />
-            <col class="col-company" />
-            <col class="col-contact" />
-            <col class="col-email" />
-            <col class="col-status" />
-            <col class="col-actions" />
+            <col class="w-12" />
+            <col class="w-16" />
+            <col class="" />
+            <col class="w-64" />
+            <col class="w-32" />
+            <col class="w-40" />
           </colgroup>
-          <thead class="prospects-thead">
+          <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="table-header">
+              <th class="px-6 py-3 text-left">
                 <input 
                   type="checkbox" 
                   :checked="allSelected"
                   :indeterminate.prop="someSelected"
                   @change="allSelected ? clearSelection() : selectAll()"
-                  class="checkbox-input"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
                 />
               </th>
-              <th class="table-header">ID</th>
-              <th class="table-header">Company</th>
-              <th class="table-header">Contact</th>
-              <th class="table-header">Email</th>
-              <th class="table-header">Status</th>
-              <th class="table-header actions-header"> </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Company</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Websites</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"> </th>
             </tr>
           </thead>
-          <tbody class="prospects-tbody">
-            <tr v-for="prospect in sortedProspects" :key="prospect.id" class="table-row">
-              <td class="table-cell select-cell">
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <tr v-for="prospect in sortedProspects" :key="prospect.id" class="transition-colors hover:bg-gray-50">
+              <td class="px-6 py-4">
                 <input 
                   type="checkbox" 
                   :checked="isSelected(prospect.id)"
                   @change="toggleSelection(prospect.id)"
-                  class="checkbox-input"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
                 />
               </td>
-              <td class="table-cell id-cell"><span class="id-text" :title="prospect.id">{{ prospect.id }}</span></td>
-              <td class="table-cell company-cell">{{ prospect.name }}</td>
-              <td class="table-cell contact-cell">
-                <div class="contact-inner">
-                  <div class="avatar">
-                    <span class="avatar-letter">{{ (prospect.emailAddresses[0]?.address || prospect.name || '-').charAt(0).toUpperCase() }}</span>
-                  </div>
-                  <div class="contact-name">{{ prospect.emailAddresses[0]?.address || 'Ingen kontakt' }}</div>
-                </div>
+              <td class="px-6 py-4 whitespace-nowrap"><span class="font-mono text-xs text-gray-400" :title="prospect.id">{{ prospect.id }}</span></td>
+              <td class="px-6 py-4 font-medium text-gray-900 text-sm">{{ prospect.name }}</td>
+              <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-[200px]">{{ prospect.websites[0]?.url || '-' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
               </td>
-              <td class="table-cell email-cell">{{ prospect.websites[0]?.url || '-' }}</td>
-              <td class="table-cell status-cell">
-                <span :class="['status-badge', getStatusClass(prospect.status)]">{{ getStatusLabel(prospect.status) }}</span>
-              </td>
-              <td class="table-cell actions-cell">
-                <div class="action-buttons">
-                  <button @click="router.push(`/prospects/${prospect.id}`)" class="view-btn">View</button>
-                  <button @click="confirmDelete(prospect)" class="delete-btn">Delete</button>
+              <td class="px-6 py-4 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-2">
+                  <button @click="router.push(`/prospects/${prospect.id}`)" class="text-blue-600 hover:text-blue-900 text-sm font-medium bg-transparent border-none cursor-pointer p-1">View</button>
+                  <button @click="confirmDelete(prospect)" class="text-red-600 hover:text-red-900 text-sm font-medium bg-transparent border-none cursor-pointer p-1">Delete</button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <div v-if="sortedProspects.length === 0" class="empty-prospects">
-          <p class="empty-prospects-title">Inga prospects hittades</p>
-          <p class="empty-prospects-subtitle">{{ filterStats.isFiltered ? 'Prova att ändra dina filter eller sökning' : 'Lägg till ditt första prospect för att komma igång' }}</p>
+        <div v-if="sortedProspects.length === 0" class="text-center py-12 bg-gray-50 m-4 rounded-lg border-2 border-dashed border-gray-200">
+          <p class="text-lg font-semibold text-gray-800 mb-2">No prospects found</p>
+          <p class="text-sm text-gray-500">{{ filterStats.isFiltered ? 'Try changing your filters or search' : 'Add your first prospect to get started' }}</p>
         </div>
       </div>
     </div>
@@ -166,69 +156,45 @@
     />
 
     <!-- Create / Edit Modal -->
-    <div v-if="showCreateModal" class="modal-overlay">
-      <div class="modal-container">
-        <div class="modal-backdrop" @click="closeModal"></div>
-        <div class="modal-content">
-          <div class="modal-header">
-            <div class="header-title-container">
-              <h3 class="modal-title">Add New Prospect</h3>
-              <button @click="closeModal" class="modal-close-btn">✕</button>
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="closeModal"></div>
+      <div class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between p-6 border-b border-gray-100">
+          <div class="flex items-center gap-3">
+            <h3 class="text-xl font-bold text-gray-900 m-0">Add New Prospect</h3>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-none text-2xl leading-none cursor-pointer">✕</button>
+          </div>
+        </div>
+        <div class="p-6 overflow-y-auto">
+          <form @submit.prevent="saveProspect" class="flex flex-col gap-5">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5 required">Company Name</label>
+              <input v-model="formData.name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="e.g. Acme Corp" />
             </div>
-          </div>
-          <div class="modal-body">
-            <form @submit.prevent="saveProspect" class="form-container">
-              <div class="form-group">
-                <label class="form-label required">Företagsnamn</label>
-                <input v-model="formData.name" type="text" required class="form-input" placeholder="e.g. Acme Corp" />
-              </div>
 
-              <div class="form-group">
-                <label class="form-label">Webbplatser (en per rad)</label>
-                <textarea 
-                  v-model="formData.websitesText" 
-                  rows="2" 
-                  class="form-textarea" 
-                  placeholder="https://acme.com&#10;https://shop.acme.com"
-                ></textarea>
-                <small class="form-help">En URL per rad</small>
-              </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Websites (one per line)</label>
+              <textarea 
+                v-model="formData.websitesText" 
+                rows="2" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y min-h-[80px]" 
+                placeholder="https://acme.com&#10;https://shop.acme.com"
+              ></textarea>
+              <small class="block mt-1 text-xs text-gray-500">One URL per line</small>
+            </div>
 
-              <div class="form-group">
-                <label class="form-label">Email-adresser (en per rad)</label>
-                <textarea 
-                  v-model="formData.emailsText" 
-                  rows="2" 
-                  class="form-textarea" 
-                  placeholder="john@acme.com&#10;support@acme.com"
-                ></textarea>
-                <small class="form-help">En email per rad</small>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Telefonnummer (en per rad)</label>
-                <textarea 
-                  v-model="formData.phonesText" 
-                  rows="2" 
-                  class="form-textarea" 
-                  placeholder="+46 70 123 45 67"
-                ></textarea>
-                <small class="form-help">Ett nummer per rad</small>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Anteckningar</label>
-                <textarea v-model="formData.notes" rows="3" class="form-textarea" placeholder="Anteckningar om denna prospect..."></textarea>
-              </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button @click="closeModal" :disabled="isSubmitting" class="btn btn-secondary">Cancel</button>
-            <button @click="saveProspect" :disabled="isSubmitting" class="btn btn-success" :class="{ 'btn-loading': isSubmitting }">
-              <span v-if="isSubmitting" class="loading-spinner"></span>
-              {{ isSubmitting ? 'Saving...' : 'Create' }}
-            </button>
-          </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Notes</label>
+              <textarea v-model="formData.notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans resize-y min-h-[100px]" placeholder="Notes about this prospect..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="p-4 px-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 rounded-b-xl">
+          <button @click="closeModal" :disabled="isSubmitting" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+          <button @click="saveProspect" :disabled="isSubmitting" class="px-4 py-2 bg-emerald-500 text-white border border-emerald-500 rounded-md text-sm font-semibold cursor-pointer hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-2">
+            <span v-if="isSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            {{ isSubmitting ? 'Saving...' : 'Create' }}
+          </button>
         </div>
       </div>
     </div>
@@ -282,7 +248,7 @@ const {
   batchProgress,
   lastBatchResults,
   resetProgress,
-  runBatchSoftData,
+  runEnrichBatch,
   runBatchEmailGeneration,
   runCompleteFlow
 } = useBatchOperations()
@@ -290,8 +256,6 @@ const {
 interface ProspectFormData {
   name: string
   websitesText: string
-  emailsText: string
-  phonesText: string
   notes: string
 }
 
@@ -314,8 +278,6 @@ const splitLines = (text: string): string[] => {
 const createEmptyForm = (): ProspectFormData => ({
   name: '',
   websitesText: '',
-  emailsText: '',
-  phonesText: '',
   notes: ''
 })
 
@@ -331,8 +293,6 @@ const saveProspect = async () => {
     const createPayload = {
       name: formData.value.name.trim(),
       websites: splitLines(formData.value.websitesText),
-      emailAddresses: splitLines(formData.value.emailsText),
-      phoneNumbers: splitLines(formData.value.phonesText),
       notes: formData.value.notes || undefined
     }
     await createProspect(createPayload)
@@ -340,7 +300,7 @@ const saveProspect = async () => {
     closeModal()
     closeModal()
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Kunde inte spara prospect'
+    error.value = err.response?.data?.error || 'Could not save prospect'
   } finally {
     isSubmitting.value = false
   }
@@ -352,7 +312,7 @@ const openCreateModal = () => {
 }
 
 const confirmDelete = async (prospect: Prospect) => {
-  if (confirm(`Är du säker på att du vill ta bort "${prospect.name}"?`)) {
+  if (confirm(`Are you sure you want to delete "${prospect.name}"?`)) {
     try {
       await deleteProspect(prospect.id)
     } catch (err: any) {
@@ -369,18 +329,17 @@ const closeModal = () => {
 // Status -> local CSS class names
 const getStatusClass = (status: number) => {
   switch (status) {
-    case 0: return 'status-new'
-    case 1: return 'status-investigated'
-    case 2: return 'status-drafted'
-    case 3: return 'status-emailed'
-    case 4: return 'status-replied'
-    case 5: return 'status-archived'
-    default: return 'status-unknown'
+    case 0: return 'bg-blue-100 text-blue-800'
+    case 1: return 'bg-amber-100 text-amber-800'
+    case 2: return 'bg-purple-100 text-purple-800'
+    case 3: return 'bg-indigo-100 text-indigo-800'
+    case 4: return 'bg-emerald-100 text-emerald-800'
+    case 5: return 'bg-gray-100 text-gray-600'
+    default: return 'bg-gray-100 text-gray-500'
   }
 }
 
-const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Okänd'
-// removed Tailwind status color mapping; use getStatusClass() instead
+const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Unknown'
 
 // Batch operations
 const runBatchOperation = async () => {
@@ -389,7 +348,7 @@ const runBatchOperation = async () => {
   const prospectIds = Array.from(selectedIds.value)
   const estimatedCost = prospectIds.length * 0.05 // ~5 öre per operation
   
-  if (estimatedCost > 1 && !confirm(`Detta kommer kosta ungefär ${estimatedCost.toFixed(2)} kr. Fortsätta?`)) {
+  if (estimatedCost > 1 && !confirm(`This will cost approximately ${estimatedCost.toFixed(2)} kr. Continue?`)) {
     return
   }
 
@@ -398,23 +357,17 @@ const runBatchOperation = async () => {
 
   try {
     switch (batchAction.value) {
-      case 'soft-data-openai':
-        await runBatchSoftData(prospectIds, 'OpenAI', handleBatchSuccess)
-        break
-      case 'soft-data-claude':
-        await runBatchSoftData(prospectIds, 'Claude', handleBatchSuccess)
-        break
-      case 'soft-data-hybrid':
-        await runBatchSoftData(prospectIds, 'Hybrid', handleBatchSuccess)
+      case 'enrich-prospects':
+        await runEnrichBatch(prospectIds, handleBatchSuccess)
         break
       case 'email-websearch':
-        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, 'Claude', handleBatchSuccess)
+        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, handleBatchSuccess)
         break
       case 'email-collected':
-        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, 'Claude', handleBatchSuccess)
+        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, handleBatchSuccess)
         break
       case 'complete-flow':
-        await runCompleteFlow(prospectIds, 'Claude', 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
+        await runCompleteFlow(prospectIds, 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
         break
     }
   } catch (error) {
@@ -440,7 +393,7 @@ const formatDateTime = (dateString?: string) => {
   if (!dateString) return '-'
   const parsed = new Date(dateString)
   if (Number.isNaN(parsed.getTime())) return '-'
-  return parsed.toLocaleString('sv-SE', {
+  return parsed.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -453,751 +406,4 @@ const formatDomainUrl = (domain: string) => {
   if (!domain) return '#'
   return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`
 }
-
-// Note: Data loading is handled automatically by useProspects composable
-
 </script>
-
-<style scoped>
-/* Prospects Page Styles */
-.prospects-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.75rem 2rem;
-  min-height: 100vh;
-}
-
-.prospects-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.75rem;
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-.filter-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-stats {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: #f3f4f6;
-  border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
-}
-
-.stats-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.filter-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #6b7280;
-}
-
-.filter-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.search-input {
-  font-size: 0.875rem;
-  border: none;
-  background: transparent;
-  outline: none;
-  width: 8rem;
-  color: #374151;
-}
-
-.search-input::placeholder {
-  color: #9ca3af;
-}
-
-.search-input:focus {
-  outline: none;
-}
-
-.action-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Batch Toolbar */
-.batch-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.75rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-}
-
-.batch-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.batch-count {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-}
-
-.btn-clear-selection {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.btn-clear-selection:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.batch-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.batch-actions .btn-primary {
-  background: white;
-  color: #3b82f6;
-  border: 2px solid white;
-  padding: 0.625rem 1.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.batch-actions .btn-primary:hover:not(:disabled) {
-  background: #f8fafc;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.batch-actions .btn-primary:disabled {
-  background: rgba(255, 255, 255, 0.5);
-  color: #9ca3af;
-  border-color: rgba(255, 255, 255, 0.5);
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.btn-batch-status {
-  background: white;
-  color: #3b82f6;
-  border: 2px solid white;
-  padding: 0.625rem 1.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-batch-status:hover {
-  background: #f8fafc;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-batch-status .icon-spin {
-  width: 1.25rem;
-  height: 1.25rem;
-  animation: spin 2s linear infinite;
-}
-
-/* Minimized Batch Indicator */
-.batch-minimized-indicator {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 50;
-  min-width: 280px;
-}
-
-.batch-minimized-indicator:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-
-.indicator-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.indicator-icon {
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.indicator-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.indicator-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.125rem;
-}
-
-.indicator-subtitle {
-  font-size: 0.75rem;
-  opacity: 0.9;
-}
-
-.indicator-progress {
-  flex-shrink: 0;
-}
-
-.progress-circle {
-  position: relative;
-  width: 32px;
-  height: 32px;
-}
-
-.progress-ring {
-  transform: rotate(-90deg);
-}
-
-.progress-ring-circle {
-  stroke: rgba(255, 255, 255, 0.9);
-  transition: stroke-dashoffset 0.3s ease;
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 0.3s ease;
-}
-
-.slide-up-enter-from {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-/* Minimized Batch Indicator */
-.batch-minimized-indicator {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 50;
-  min-width: 280px;
-}
-
-.batch-minimized-indicator:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5), 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-
-.indicator-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.indicator-icon {
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.indicator-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.indicator-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.125rem;
-}
-
-.indicator-subtitle {
-  font-size: 0.75rem;
-  opacity: 0.9;
-}
-
-.indicator-progress {
-  flex-shrink: 0;
-}
-
-.progress-circle {
-  position: relative;
-  width: 32px;
-  height: 32px;
-}
-
-.progress-ring {
-  transform: rotate(-90deg);
-}
-
-.progress-ring-circle {
-  stroke: rgba(255, 255, 255, 0.9);
-  transition: stroke-dashoffset 0.3s ease;
-}
-
-.prospects-table-container {
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
-  padding: 1.25rem 1.5rem 1.5rem;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 3rem 0;
-}
-
-.loading-icon,
-.error-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: #6b7280;
-}
-
-.error-icon {
-  color: #f59e0b;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.error-message {
-  color: #374151;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-}
-
-.retry-btn {
-  margin-top: 0.75rem;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.empty-prospects {
-  text-align: center;
-  padding: 3rem 0;
-}
-
-.empty-prospects-title {
-  color: #6b7280;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.empty-prospects-subtitle {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
-.modal-container {
-  position: relative;
-  width: 100%;
-  max-width: 32rem;
-}
-
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  position: relative;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  transform: scale(1);
-  transition: all 0.3s ease-out;
-  border: 1px solid #e5e7eb;
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #f9fafb;
-}
-
-.header-title-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.modal-close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: #6b7280;
-  background-color: transparent;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: color 0.15s ease-in-out;
-}
-
-.modal-close-btn:hover {
-  color: #374151;
-  background-color: #f3f4f6;
-}
-
-.modal-body {
-  background-color: white;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Form Styles */
-.form-container {
-  padding: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-label.required::after {
-  content: ' *';
-  color: #ef4444;
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  background-color: white;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-textarea {
-  resize: none;
-  min-height: 4rem;
-}
-
-.loading-spinner {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.5rem;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Center table cells for the prospects table so rows look balanced */
-/* Table layout: fixed so columns can be evenly distributed. Reduce padding so content
-   isn't pushed far from the left edge and columns have equal spacing. */
-.prospects-table-container .min-w-full {
-  width: 100%;
-  table-layout: auto; /* allow columns to size naturally */
-}
-
-.prospects-table-container table th,
-.prospects-table-container table td {
-  vertical-align: middle;
-  word-break: break-word;
-  padding: 0.6rem 0.75rem;
-  text-align: left;
-}
-
-/* Action column (view button) should be right aligned and not wrap */
-.prospects-table-container td.text-right {
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* Center avatar + name inside the contact cell */
-.prospects-table-container td .flex.items-center {
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-/* Ensure status badges are centered and aligned */
-.prospects-table-container td .inline-flex {
-  margin-left: 0;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* Local table styles (no Tailwind) */
-.prospects-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-}
-.prospects-thead {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-}
-.table-header {
-  padding: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-}
-.prospects-tbody .table-row {
-  transition: background-color 0.15s ease;
-}
-.prospects-tbody .table-row:hover {
-  background: #f9fafb;
-}
-.table-cell { padding: 0.75rem 0.7rem; vertical-align: middle; }
-.id-cell { color: #111827; font-size: 0.9rem; }
-.company-cell { font-weight: 600; color: #111827; }
-.col-id { width: 18%; min-width: 12rem; }
-.col-company { width: 20%; }
-.col-contact { width: 16%; }
-.col-email { width: 16%; }
-.col-status { width: 10%; }
-.col-actions { width: 20%; }
-.id-text { display:block; width: 100%; overflow-wrap: anywhere; }
-.contact-inner { display: flex; align-items: center; gap: 0.5rem; }
-.avatar { width: 36px; height: 36px; border-radius: 9999px; background: #e5e7eb; display:flex; align-items:center; justify-content:center; }
-.avatar-letter { font-size: 0.75rem; color:#374151; font-weight:600 }
-.contact-name { color:#111827 }
-.email-cell { color:#6b7280 }
-.status-cell { text-align: center; }
-
-/* Checkbox column */
-.col-select { width: 3%; min-width: 40px; }
-.select-cell { text-align: center; }
-.checkbox-input {
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-  accent-color: #3b82f6;
-}
-
-.status-cell .status-badge { margin: 0 auto; }
-.status-badge { display:inline-block; padding: 0.3rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:600; }
-.status-new { background:#dbeafe; color:#1e40af; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-investigated { background:#fef3c7; color:#92400e; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-drafted { background:#e0e7ff; color:#4338ca; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-emailed { background:#ddd6fe; color:#5b21b6; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-replied { background:#d1fae5; color:#065f46; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-archived { background:#fee2e2; color:#991b1b; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.75rem; font-weight:600; text-transform:uppercase; }
-.status-unknown { background:#fafafa; color:#374151; border:1px solid #e5e7eb }
-.actions-cell { text-align: right; white-space:nowrap; padding-right:0.55rem; padding-left:0.3rem; }
-.action-buttons { display:flex; align-items:center; justify-content:flex-end; gap:0.35rem; width:100%; }
-.company-info-wrapper { display:flex; flex-direction:column; gap:1.25rem; padding:1.25rem 0.5rem 1.5rem; color:#1f2937; }
-.detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.75rem 1.5rem; }
-.detail-item { display:flex; flex-direction:column; gap:0.25rem; }
-.detail-label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; }
-.detail-value { font-size:0.9rem; color:#111827; word-break:break-word; }
-.detail-link { color:#2563eb; text-decoration:none; font-weight:600; }
-.detail-link:hover { text-decoration:underline; }
-.notes-section { background:#f9fafb; border-radius:0.5rem; padding:0.85rem 1rem; border:1px solid #e5e7eb; }
-.notes-value { margin-top:0.5rem; font-size:0.9rem; color:#374151; white-space:pre-wrap; }
-.section-divider { height:1px; background:#e5e7eb; }
-.email-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
-.generated-preview { display:flex; flex-direction:column; gap:0.5rem; }
-.generated-preview-field { display:flex; flex-direction:column; gap:0.4rem; }
-.preview-input,
-.preview-textarea {
-  background:#f9fafb;
-  border-color:#e5e7eb;
-  color:#1f2937;
-}
-.preview-input:focus,
-.preview-textarea:focus {
-  border-color:#2563eb;
-  box-shadow:0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-.preview-textarea {
-  resize:vertical;
-  min-height:10rem;
-  white-space:pre-wrap;
-}
-.no-generated { color:#6b7280; font-size:0.875rem; }
-.btn { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; font-weight:600; font-size:0.875rem; transition: all 0.15s ease; }
-.btn-success { background: #10b981; color: white; border-color: #10b981; }
-.btn-success:hover { background:#059669 }
-.btn-primary { background: #2563eb; color: white; border-color: #2563eb; }
-.btn-primary:hover { background:#1e40af; }
-.btn-primary:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; opacity: 0.6; }
-.btn-secondary { background: #f3f4f6; color:#111827; border-color:#e5e7eb }
-.btn-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
-.btn-loading { opacity: 0.7; cursor: not-allowed; }
-.view-btn { background: #2563eb; color: white; border: 1px solid #2563eb; padding: 0.4rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-weight:600 }
-.view-btn:hover { background:#1e40af; border-color:#1e40af }
-.delete-btn { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; padding:0.4rem 0.7rem; border-radius:0.375rem; cursor:pointer; font-weight:600; }
-.delete-btn:hover { background:#fee2e2; border-color:#fca5a5; }
-
-/* Responsive fallback: on small screens revert to auto layout and a bit less padding */
-@media (max-width: 640px) {
-  .prospects-table-container .min-w-full {
-    table-layout: auto;
-  }
-
-  .prospects-table-container table th,
-  .prospects-table-container table td {
-    width: auto;
-    padding: 0.5rem 0.6rem;
-    text-align: left; /* easier to read on small screens */
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

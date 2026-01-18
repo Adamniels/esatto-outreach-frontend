@@ -1,92 +1,92 @@
 <template>
-  <div class="dashboard-container">
+  <div class="flex flex-col gap-8 p-6 min-h-screen">
     <!-- Stats Grid - Matches Prody layout -->
-    <div class="stats-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <!-- Main Stats Cards -->
-      <div class="stat-card">
-        <div class="stat-card-content">
-          <div class="stat-label">Totalt Prospects</div>
-          <div class="stat-value">{{ totalProspects }}</div>
+      <div class="bg-white rounded-lg border border-gray-200 p-6 transition-shadow duration-150 ease-in-out hover:shadow-md">
+        <div class="text-right">
+          <div class="text-sm text-gray-500 font-medium mb-2">Total Prospects</div>
+          <div class="text-3xl font-bold text-gray-800">{{ totalProspects }}</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-card-content">
-          <div class="stat-label">E-post Skickade</div>
-          <div class="stat-value">{{ emailsSent }}</div>
+      <div class="bg-white rounded-lg border border-gray-200 p-6 transition-shadow duration-150 ease-in-out hover:shadow-md">
+        <div class="text-right">
+          <div class="text-sm text-gray-500 font-medium mb-2">Emails Sent</div>
+          <div class="text-3xl font-bold text-gray-800">{{ emailsSent }}</div>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-card-content">
-          <div class="stat-label">Svar</div>
-          <div class="stat-value">{{ responses }}</div>
+      <div class="bg-white rounded-lg border border-gray-200 p-6 transition-shadow duration-150 ease-in-out hover:shadow-md">
+        <div class="text-right">
+          <div class="text-sm text-gray-500 font-medium mb-2">Responses</div>
+          <div class="text-3xl font-bold text-gray-800">{{ responses }}</div>
         </div>
       </div>
 
       <!-- Empty space for balance like in Prody -->
-      <div class="stat-card-empty">
+      <div class="invisible">
         <!-- Could add another metric here -->
       </div>
     </div>
 
     <!-- Recent Activity - Clean table like Prody -->
-    <div class="activity-container">
-      <div class="activity-header">
-        <h2 class="activity-title">Senaste Aktivitet</h2>
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div class="p-4 px-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800">Recent Activity</h2>
       </div>
       
-      <div v-if="loading" class="loading-state">
-        <svg class="loading-icon animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div v-if="loading" class="text-center py-12">
+        <svg class="w-6 h-6 mb-2 text-gray-500 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        <p class="loading-text">Laddar data...</p>
+        <p class="text-sm text-gray-500">Loading data...</p>
       </div>
       
-      <div v-else-if="error" class="error-state">
-        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div v-else-if="error" class="text-center py-12">
+        <svg class="w-6 h-6 mb-2 text-amber-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
-        <p class="error-message">Network Error</p>
-        <button @click="refreshData" class="btn btn-secondary retry-btn">
-          Försök igen
+        <p class="text-gray-700 font-medium mb-3">Network Error</p>
+        <button @click="refreshData" class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium leading-5 rounded-md border border-gray-300 bg-white text-gray-700 transition-all duration-200 ease-in-out cursor-pointer hover:bg-gray-50 hover:border-gray-400 mt-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+          Try again
         </button>
       </div>
 
-      <div v-else-if="prospects.length === 0" class="empty-state">
-        <p class="empty-message">Inga prospects ännu</p>
+      <div v-else-if="prospects.length === 0" class="text-center py-12">
+        <p class="text-gray-500 text-sm mb-3">No prospects yet</p>
         <router-link 
           to="/prospects"
-          class="empty-action-link"
+          class="inline-flex items-center px-4 py-2 text-sm text-blue-500 hover:text-blue-600 transition-colors"
         >
-          Lägg till första prospect →
+          Add first prospect →
         </router-link>
       </div>
 
-      <div v-else class="table-wrapper">
+      <div v-else class="overflow-hidden">
         <!-- Clean table like in Prody -->
-        <table class="activity-table">
-          <tbody class="activity-tbody">
-            <tr v-for="prospect in recentProspects" :key="prospect.id" class="activity-row">
-              <td class="activity-cell">
-                <div class="company-name">{{ prospect.name }}</div>
-                <div class="contact-info">{{ prospect.emailAddresses[0]?.address || prospect.about || 'Ingen kontakt' }}</div>
+        <table class="w-full border-collapse">
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="prospect in recentProspects" :key="prospect.id" class="transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-0">
+              <td class="p-4 px-6 text-left">
+                <div class="font-medium text-gray-900 text-sm">{{ prospect.name }}</div>
+                <div class="text-xs text-gray-500 mt-1">{{ prospect.contactPersons?.[0]?.email || prospect.about || 'No contact info' }}</div>
               </td>
-              <td class="activity-cell-right">
-                <span :class="['status-badge', getStatusClass(prospect.status)]">
+              <td class="p-4 px-6 text-right">
+                <span :class="['inline-flex items-center px-2 py-1 rounded text-xs font-medium', getStatusClass(prospect.status)]">
                   {{ getStatusLabel(prospect.status) }}
                 </span>
               </td>
-              <td class="activity-cell-right date-cell">
+              <td class="p-4 px-6 text-right text-sm text-gray-500">
                 {{ formatDate(prospect.createdUtc) }}
               </td>
             </tr>
           </tbody>
         </table>
         
-        <div class="table-footer">
-          <router-link to="/prospects" class="view-all-link">
-            Visa alla prospects →
+        <div class="p-3 px-6 bg-gray-50 border-t border-gray-100">
+          <router-link to="/prospects" class="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors">
+            View all prospects →
           </router-link>
         </div>
       </div>
@@ -112,7 +112,7 @@ const fetchProspects = async () => {
   try {
     prospects.value = await prospectsAPI.getAll()
   } catch (err: any) {
-    error.value = err.response?.data?.error || err.message || 'Ett fel uppstod'
+    error.value = err.response?.data?.error || err.message || 'An error occurred'
   } finally {
     loading.value = false
   }
@@ -141,23 +141,23 @@ const recentProspects = computed(() =>
 
 // Helper functions using imported constants
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('sv-SE', {
+  return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   })
 }
 
-const getStatusLabel = (status: ProspectStatus) => statusLabels[status] || 'Okänd'
+const getStatusLabel = (status: ProspectStatus) => statusLabels[status] || 'Unknown'
 
 const getStatusClass = (status: ProspectStatus) => {
   switch (status) {
-    case 0: return 'status-new'
-    case 1: return 'status-researched'
-    case 2: return 'status-emailed'
-    case 3: return 'status-responded'
-    case 4: return 'status-archived'
-    default: return 'status-unknown'
+    case 0: return 'bg-blue-100 text-blue-800' // New
+    case 1: return 'bg-amber-100 text-amber-800' // Researched
+    case 2: return 'bg-purple-100 text-purple-800' // Emailed
+    case 3: return 'bg-emerald-100 text-emerald-800' // Responded
+    case 4: return 'bg-gray-100 text-gray-600' // Archived
+    default: return 'bg-gray-100 text-gray-500' // Unknown
   }
 }
 
@@ -166,260 +166,3 @@ onMounted(() => {
   fetchProspects()
 })
 </script>
-
-<style scoped>
-/* Dashboard Styles */
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  padding: 1.5rem;
-  min-height: 100vh;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.stat-card {
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  transition: box-shadow 0.15s ease-in-out;
-}
-
-.stat-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card-content {
-  text-align: right;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.stat-value {
-  font-size: 1.875rem;
-  font-weight: bold;
-  color: #1f2937;
-}
-
-.stat-card-empty {
-  visibility: hidden;
-}
-
-.activity-container {
-  background-color: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
-}
-
-.activity-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.activity-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 3rem 0;
-}
-
-.loading-icon,
-.error-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: #6b7280;
-}
-
-.error-icon {
-  color: #f59e0b;
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.error-message {
-  color: #374151;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 0;
-}
-
-.empty-message {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
-.empty-action-link {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: #3b82f6;
-  text-decoration: none;
-  transition: color 0.15s ease-in-out;
-}
-
-.empty-action-link:hover {
-  color: #2563eb;
-}
-
-.retry-btn {
-  margin-top: 0.75rem;
-}
-
-/* Table styles */
-.table-wrapper {
-  overflow: hidden;
-}
-
-.activity-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.activity-tbody {
-  border-top: 1px solid #f3f4f6;
-}
-
-.activity-row {
-  transition: background-color 0.15s ease-in-out;
-}
-
-.activity-row:hover {
-  background-color: #f9fafb;
-}
-
-.activity-row:not(:last-child) {
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.activity-cell {
-  padding: 1rem 1.5rem;
-  text-align: left;
-}
-
-.activity-cell-right {
-  padding: 1rem 1.5rem;
-  text-align: right;
-}
-
-.company-name {
-  font-weight: 500;
-  color: #111827;
-  font-size: 0.875rem;
-}
-
-.contact-info {
-  color: #6b7280;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.date-cell {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-new {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-researched {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-emailed {
-  background-color: #e9d5ff;
-  color: #6b21a8;
-}
-
-.status-responded {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-archived {
-  background-color: #f3f4f6;
-  color: #4b5563;
-}
-
-.status-unknown {
-  background-color: #f3f4f6;
-  color: #6b7280;
-}
-
-.table-footer {
-  padding: 0.75rem 1.5rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #f3f4f6;
-}
-
-.view-all-link {
-  font-size: 0.875rem;
-  color: #3b82f6;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.15s ease-in-out;
-}
-
-.view-all-link:hover {
-  color: #2563eb;
-}
-</style>

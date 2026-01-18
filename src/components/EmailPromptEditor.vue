@@ -1,41 +1,41 @@
 <template>
-  <div class="prompt-editor">
-    <div class="editor-header">
-      <h3 class="editor-title">{{ isNew ? 'Ny Email Prompt' : 'Redigera Email Prompt' }}</h3>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-100">
+    <div class="p-6 border-b border-gray-200">
+      <h3 class="m-0 text-xl font-semibold text-gray-900">{{ isNew ? 'New Email Prompt' : 'Edit Email Prompt' }}</h3>
     </div>
 
-    <div class="editor-content">
-      <div class="form-group">
-        <label class="form-label">
-          Instruktioner <span class="required">*</span>
+    <div class="p-6">
+      <div class="mb-6">
+        <label class="block mb-2 text-sm font-medium text-gray-700">
+          Instructions <span class="text-red-500">*</span>
         </label>
         <textarea
           v-model="localInstructions"
-          class="form-textarea"
-          :class="{ 'input-error': showError }"
-          placeholder="Skriv instruktioner för hur AI ska generera email..."
+          class="w-full p-3 border border-gray-300 rounded-md text-sm font-mono resize-y transition-colors focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': showError }"
+          placeholder="Write instructions for how AI should generate emails..."
           rows="15"
         ></textarea>
-        <p v-if="showError" class="error-message">Instruktioner kan inte vara tomma</p>
-        <p class="help-text">
-          Dessa instruktioner läggs till efter systemkontexten och företagsinformation.
+        <p v-if="showError" class="mt-2 text-sm text-red-500">Instructions cannot be empty</p>
+        <p class="mt-2 text-sm text-gray-500">
+          These instructions are added after the system context and company information.
         </p>
       </div>
 
-      <div class="editor-actions">
+      <div class="flex gap-3 justify-end">
         <button
           @click="handleSave"
           :disabled="isSaving || !isValid"
-          class="btn-save"
+          class="px-5 py-2.5 bg-blue-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {{ isSaving ? 'Sparar...' : 'Spara' }}
+          {{ isSaving ? 'Saving...' : 'Save' }}
         </button>
         <button
           @click="handleCancel"
           :disabled="isSaving"
-          class="btn-cancel"
+          class="px-5 py-2.5 bg-gray-100 text-gray-700 border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Avbryt
+          Cancel
         </button>
       </div>
     </div>
@@ -83,126 +83,3 @@ const handleCancel = () => {
   emit('cancel')
 }
 </script>
-
-<style scoped>
-.prompt-editor {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.editor-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.editor-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.editor-content {
-  padding: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.form-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-family: 'Monaco', 'Menlo', monospace;
-  resize: vertical;
-  transition: border-color 0.2s;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.input-error {
-  border-color: #ef4444;
-}
-
-.input-error:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.error-message {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #ef4444;
-}
-
-.help-text {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.editor-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-}
-
-.btn-save,
-.btn-cancel {
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-save {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.btn-save:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.btn-save:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.btn-cancel {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background-color: #e5e7eb;
-}
-
-.btn-cancel:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>

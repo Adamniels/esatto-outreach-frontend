@@ -1,66 +1,77 @@
 <template>
-  <div class="register-container">
-    <div class="logo-header">
-      <img src="/EsattoOutreachLogo2.png" alt="Esatto Outreach" class="logo-image" />
+  <div class="flex justify-center items-center min-h-screen bg-neutral-50 relative font-sans">
+    <div class="absolute top-0 left-0 z-10">
+      <img src="/EsattoOutreachLogo2.png" alt="Esatto Outreach" class="h-[400px] w-auto block -mt-[120px] -ml-[70px]" />
     </div>
-    <div class="register-card">
-      <h1>Skapa konto</h1>
+    <div class="bg-white px-10 py-12 rounded-xl shadow-[0_2px_20px_rgba(0,0,0,0.08)] w-full max-w-[420px] border border-gray-100">
+      <h1 class="text-center mb-10 text-gray-900 text-[2.5rem] font-bold tracking-tight">Create account</h1>
       <form @submit.prevent="handleRegister">
-        <div class="form-group">
-          <label for="fullName">Namn (valfritt)</label>
+        <div class="mb-7">
+          <label for="fullName" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Name (optional)</label>
           <input 
             id="fullName"
             v-model="fullName" 
             type="text" 
-            placeholder="Ditt namn"
+            placeholder="Your name"
+            class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg text-base transition-all bg-neutral-50 focus:outline-none focus:border-[#ffb3c8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,179,200,0.15)]"
           />
         </div>
 
-        <div class="form-group">
-          <label for="email">Email</label>
+        <div class="mb-7">
+          <label for="email" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Email</label>
           <input 
             id="email"
             v-model="email" 
             type="email" 
             required 
-            placeholder="din@email.com"
+            placeholder="your@email.com"
+            class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg text-base transition-all bg-neutral-50 focus:outline-none focus:border-[#ffb3c8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,179,200,0.15)]"
           />
         </div>
         
-        <div class="form-group">
-          <label for="password">Password</label>
+        <div class="mb-7">
+          <label for="password" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Password</label>
           <input 
             id="password"
             v-model="password" 
             type="password" 
             required 
-            placeholder="Minst 8 tecken"
+            placeholder="At least 8 characters"
+            class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg text-base transition-all bg-neutral-50 focus:outline-none focus:border-[#ffb3c8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,179,200,0.15)]"
           />
-          <small>Måste innehålla minst 8 tecken, en stor bokstav, en liten bokstav och en siffra</small>
+          <small class="block mt-2 text-gray-500 text-[0.85rem] leading-snug">Must contain at least 8 characters, one uppercase letter, one lowercase letter, and one number</small>
         </div>
 
-        <div class="form-group">
-          <label for="confirmPassword">Bekräfta password</label>
+        <div class="mb-7">
+          <label for="confirmPassword" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Confirm password</label>
           <input 
             id="confirmPassword"
             v-model="confirmPassword" 
             type="password" 
             required 
-            placeholder="Samma som ovan"
+            placeholder="Same as above"
+            class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg text-base transition-all bg-neutral-50 focus:outline-none focus:border-[#ffb3c8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,179,200,0.15)]"
           />
         </div>
 
-        <div v-if="error" class="error-message">
+        <div v-if="error" class="bg-red-50 text-red-800 p-4 rounded-lg mb-5 border-l-4 border-red-500 text-[0.9rem]">
           {{ error }}
         </div>
 
-        <button type="submit" :disabled="loading || !isValidForm" class="btn-primary">
-          {{ loading ? 'Skapar konto...' : 'Registrera' }}
+        <button 
+          type="submit" 
+          :disabled="loading || !isValidForm" 
+          class="w-full p-4 bg-gray-900 text-white border-none rounded-lg text-[1.05rem] font-semibold cursor-pointer transition-all tracking-wide hover:bg-gray-800 hover:-translate-y-px hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {{ loading ? 'Creating account...' : 'Register' }}
         </button>
       </form>
 
-      <div class="login-link">
-        Har du redan ett konto? <router-link to="/login">Logga in</router-link>
+      <div class="text-center mt-8 text-gray-500 text-[0.95rem]">
+        Already have an account? 
+        <router-link to="/login" class="text-gray-900 no-underline font-semibold transition-colors hover:text-[#ff6b9d] hover:underline">
+          Login
+        </router-link>
       </div>
     </div>
   </div>
@@ -87,7 +98,7 @@ const isValidForm = computed(() => {
 
 const handleRegister = async () => {
   if (password.value !== confirmPassword.value) {
-    error.value = 'Lösenorden matchar inte';
+    error.value = 'Passwords do not match';
     return;
   }
 
@@ -103,146 +114,7 @@ const handleRegister = async () => {
   loading.value = false;
 
   if (!result.success) {
-    error.value = result.error || 'Registrering misslyckades';
+    error.value = result.error || 'Registration failed';
   }
 };
 </script>
-
-<style scoped>
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: #fafafa;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  position: relative;
-}
-
-.logo-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 10;
-}
-
-.logo-image {
-  height: 400px;
-  width: auto;
-  display: block;
-  margin-top: -120px;
-  margin-left: -70px;
-}
-
-.register-card {
-  background: white;
-  padding: 3rem 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  max-width: 420px;
-  border: 1px solid #f0f0f0;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 2.5rem;
-  color: #1a1a1a;
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.form-group {
-  margin-bottom: 1.75rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.625rem;
-  color: #1a1a1a;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e5e5e5;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background: #fafafa;
-}
-
-input:focus {
-  outline: none;
-  border-color: #ffb3c8;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(255, 179, 200, 0.15);
-}
-
-small {
-  display: block;
-  margin-top: 0.5rem;
-  color: #666;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.error-message {
-  background: #ffebee;
-  color: #c62828;
-  padding: 0.875rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.25rem;
-  border-left: 4px solid #ef5350;
-  font-size: 0.9rem;
-}
-
-.btn-primary {
-  width: 100%;
-  padding: 1rem;
-  background: #1a1a1a;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.05rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: none;
-  letter-spacing: 0.3px;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #333;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.login-link {
-  text-align: center;
-  margin-top: 2rem;
-  color: #666;
-  font-size: 0.95rem;
-}
-
-.login-link a {
-  color: #1a1a1a;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
-}
-
-.login-link a:hover {
-  color: #ff6b9d;
-  text-decoration: underline;
-}
-</style>

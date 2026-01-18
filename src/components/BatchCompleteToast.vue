@@ -1,22 +1,29 @@
 <template>
-  <Transition name="toast-slide">
-    <div v-if="show" class="batch-complete-toast" :class="type">
-      <div class="toast-icon">
-        <svg v-if="type === 'success'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <Transition 
+    enter-active-class="transition ease-out duration-300"
+    enter-from-class="translate-x-full opacity-0"
+    enter-to-class="translate-x-0 opacity-100"
+    leave-active-class="transition ease-in duration-300"
+    leave-from-class="translate-x-0 opacity-100"
+    leave-to-class="translate-x-full opacity-0"
+  >
+    <div v-if="show" class="fixed top-8 right-8 z-50 max-w-[400px] bg-white rounded-xl shadow-xl border border-gray-200 p-5 flex gap-4 items-start" :class="type === 'success' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-amber-500'">
+      <div class="shrink-0 w-8 h-8">
+        <svg v-if="type === 'success'" class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <svg v-else-if="type === 'partial'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg v-else-if="type === 'partial'" class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.082 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
       </div>
       
-      <div class="toast-content">
-        <div class="toast-title">{{ title }}</div>
-        <div class="toast-message">{{ message }}</div>
-        <button @click="viewDetails" class="btn-view-details">Visa detaljer</button>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-gray-900 mb-1">{{ title }}</div>
+        <div class="text-xs text-gray-500 mb-3">{{ message }}</div>
+        <button @click="viewDetails" class="bg-gray-100 border border-gray-300 rounded-md px-3 py-1.5 text-xs font-semibold text-gray-700 cursor-pointer transition-colors hover:bg-gray-200 hover:border-gray-400">View details</button>
       </div>
       
-      <button @click="close" class="toast-close">
+      <button @click="close" class="shrink-0 w-5 h-5 text-gray-400 bg-transparent border-none cursor-pointer p-0 transition-colors hover:text-gray-600">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
@@ -42,110 +49,3 @@ const emit = defineEmits<{
 const close = () => emit('close')
 const viewDetails = () => emit('viewDetails')
 </script>
-
-<style scoped>
-.batch-complete-toast {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  z-index: 100;
-  max-width: 400px;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e5e7eb;
-  padding: 1.25rem;
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.batch-complete-toast.success {
-  border-left: 4px solid #10b981;
-}
-
-.batch-complete-toast.partial {
-  border-left: 4px solid #f59e0b;
-}
-
-.toast-icon {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-}
-
-.success .toast-icon {
-  color: #10b981;
-}
-
-.partial .toast-icon {
-  color: #f59e0b;
-}
-
-.toast-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.toast-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.25rem;
-}
-
-.toast-message {
-  font-size: 0.813rem;
-  color: #6b7280;
-  margin-bottom: 0.75rem;
-}
-
-.btn-view-details {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-view-details:hover {
-  background: #e5e7eb;
-  border-color: #9ca3af;
-}
-
-.toast-close {
-  flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #9ca3af;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.15s;
-}
-
-.toast-close:hover {
-  color: #6b7280;
-}
-
-/* Toast transitions */
-.toast-slide-enter-active,
-.toast-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.toast-slide-enter-from {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-.toast-slide-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-</style>

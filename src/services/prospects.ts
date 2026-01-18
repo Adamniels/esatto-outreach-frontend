@@ -1,5 +1,5 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, SoftCompanyDataDto, PendingProspectDto } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto } from '@/types/prospect';
 
 // Batch operation types
 export interface BatchOperationResult<TData> {
@@ -53,7 +53,7 @@ export const prospectsAPI = {
 
   // Generera mejlutkast
   generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
-    const url = type 
+    const url = type
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
     const response = await api.post(url, {});
@@ -82,25 +82,41 @@ export const prospectsAPI = {
     await api.post(`/prospects/${id}/chat/reset`);
   },
 
-  // Generera soft company data (research via AI providers)
-  generateSoftCompanyData: async (id: string, provider?: 'OpenAI' | 'Claude' | 'Hybrid'): Promise<SoftCompanyDataDto> => {
-    const url = provider 
-      ? `/prospects/${id}/soft-data/generate?provider=${provider}`
-      : `/prospects/${id}/soft-data/generate`;
+  // Enrich Prospect (Entity Intelligence)
+  enrichProspect: async (id: string): Promise<EntityIntelligenceDto> => {
+    const url = `/prospects/${id}/soft-data/generate`;
     const response = await api.post(url);
+    return response.data;
+  },
+
+  // Add manual contact person
+  addContact: async (prospectId: string, data: CreateContactPersonRequest): Promise<ContactPersonDto> => {
+    const response = await api.post(`/prospects/${prospectId}/contacts`, data);
+    return response.data;
+  },
+
+  updateContact: async (prospectId: string, contactId: string, data: CreateContactPersonRequest): Promise<ContactPersonDto> => {
+    const response = await api.put(`/prospects/${prospectId}/contacts/${contactId}`, data);
+    return response.data;
+  },
+
+  deleteContact: async (prospectId: string, contactId: string): Promise<void> => {
+    await api.delete(`/prospects/${prospectId}/contacts/${contactId}`);
+  },
+
+  enrichContact: async (prospectId: string, contactId: string): Promise<ContactPersonDto> => {
+    const response = await api.post(`/prospects/${prospectId}/contacts/${contactId}/enrich`);
     return response.data;
   },
 
   // ============ BATCH OPERATIONS ============
 
-  // Batch: Generera soft data för flera prospects
-  generateSoftDataBatch: async (
-    prospectIds: string[],
-    provider?: 'OpenAI' | 'Claude' | 'Hybrid'
-  ): Promise<BatchOperationResult<SoftCompanyDataDto>> => {
+  // Batch: Enrich prospects
+  enrichProspectBatch: async (
+    prospectIds: string[]
+  ): Promise<BatchOperationResult<EntityIntelligenceDto>> => {
     const response = await api.post('/prospects/batch/soft-data/generate', {
-      prospectIds,
-      provider
+      prospectIds
     });
     return response.data;
   },
@@ -109,14 +125,12 @@ export const prospectsAPI = {
   generateEmailBatch: async (
     prospectIds: string[],
     type?: 'WebSearch' | 'UseCollectedData',
-    autoGenerateSoftData: boolean = true,
-    softDataProvider: string = 'Claude'
+    autoGenerateSoftData: boolean = true
   ): Promise<BatchOperationResult<EmailDraft>> => {
     const response = await api.post('/prospects/batch/email/generate', {
       prospectIds,
       type,
-      autoGenerateSoftData,
-      softDataProvider
+      autoGenerateSoftData
     });
     return response.data;
   },

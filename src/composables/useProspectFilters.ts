@@ -17,7 +17,7 @@ export function useProspectFilters(prospects: Ref<Prospect[]>) {
       const query = filterState.value.search.toLowerCase().trim()
       result = result.filter((p) =>
         p.name.toLowerCase().includes(query) ||
-        p.emailAddresses.some(e => e.address?.toLowerCase().includes(query)) ||
+        p.contactPersons?.some(cp => cp.email?.toLowerCase().includes(query)) ||
         p.websites.some(w => w.url?.toLowerCase().includes(query))
       )
     }
@@ -30,14 +30,14 @@ export function useProspectFilters(prospects: Ref<Prospect[]>) {
     // Filter by hasEmail
     if (filterState.value.hasEmail !== 'all') {
       result = result.filter((p) =>
-        filterState.value.hasEmail ? p.emailAddresses.length > 0 : p.emailAddresses.length === 0
+        filterState.value.hasEmail ? (p.contactPersons?.some(cp => cp.email) ?? false) : (p.contactPersons?.every(cp => !cp.email) ?? true)
       )
     }
 
     // Filter by hasContact
     if (filterState.value.hasContact !== 'all') {
       result = result.filter((p) =>
-        filterState.value.hasContact ? p.emailAddresses.length > 0 : p.emailAddresses.length === 0
+        filterState.value.hasContact ? (p.contactPersons?.length ?? 0) > 0 : (p.contactPersons?.length ?? 0) === 0
       )
     }
 

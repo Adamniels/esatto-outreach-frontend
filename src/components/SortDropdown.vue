@@ -1,7 +1,7 @@
 <template>
-  <div class="sort-dropdown" ref="dropdownRef">
-    <button @click="toggleDropdown" class="sort-button" :class="{ 'active': isOpen || !isDefaultSort }">
-      <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="relative" ref="dropdownRef">
+    <button @click="toggleDropdown" class="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-md cursor-pointer transition-all text-sm font-medium text-gray-700 min-w-[11rem] justify-start hover:bg-gray-50 hover:border-gray-300" :class="{ 'bg-blue-50 border-blue-500 text-blue-600': isOpen || !isDefaultSort }">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -9,30 +9,37 @@
           d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"
         ></path>
       </svg>
-      <span class="sort-label">{{ currentSortLabel }}</span>
+      <span class="flex-1 text-left font-medium">{{ currentSortLabel }}</span>
     </button>
 
-    <transition name="dropdown">
-      <div v-if="isOpen" class="dropdown-menu">
-        <div class="dropdown-header">
-          <h4 class="dropdown-title">Sortera prospects</h4>
-          <button v-if="!isDefaultSort" @click="handleResetSort" class="reset-button">
-            Återställ
+    <transition 
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-150"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div v-if="isOpen" class="absolute top-[calc(100%+0.5rem)] left-0 min-w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+        <div class="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
+          <h4 class="text-sm font-semibold text-gray-900 m-0">Sort prospects</h4>
+          <button v-if="!isDefaultSort" @click="handleResetSort" class="px-2 py-1 text-xs font-medium text-blue-600 bg-transparent border-none rounded cursor-pointer transition-all hover:bg-blue-50">
+            Reset
           </button>
         </div>
 
-        <div class="sort-options">
+        <div class="p-2 flex flex-col gap-0.5">
           <button
             v-for="option in sortOptions"
             :key="option.value"
             @click="handleSortChange(option.value)"
-            class="sort-option"
-            :class="{ 'selected': currentSortValue === option.value }"
+            class="flex items-center justify-between px-3 py-2.5 bg-white border-none rounded-md cursor-pointer transition-all text-left text-sm text-gray-700 hover:bg-gray-50"
+            :class="{ 'bg-blue-50 text-blue-600 font-medium': currentSortValue === option.value }"
           >
-            <span class="option-label">{{ option.label }}</span>
+            <span class="flex-1">{{ option.label }}</span>
             <svg
               v-if="currentSortValue === option.value"
-              class="check-icon"
+              class="w-4 h-4 text-blue-600 shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -73,7 +80,7 @@ const currentSortValue = computed(() => {
 
 const currentSortLabel = computed(() => {
   const option = sortOptions.find((opt) => opt.value === currentSortValue.value)
-  return option ? option.label : 'Sortera'
+  return option ? option.label : 'Sort'
 })
 
 const isDefaultSort = computed(() => {
@@ -116,149 +123,3 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
-
-<style scoped>
-.sort-dropdown {
-  position: relative;
-}
-
-.sort-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  min-width: 11rem;
-  justify-content: flex-start;
-}
-
-.sort-button:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.sort-button.active {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  color: #2563eb;
-}
-
-.sort-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
-
-.sort-label {
-  flex: 1;
-  text-align: left;
-  font-weight: 500;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  min-width: 100%;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  z-index: 50;
-  overflow: hidden;
-}
-
-.dropdown-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.dropdown-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.reset-button {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #2563eb;
-  background: transparent;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.reset-button:hover {
-  background: #eff6ff;
-}
-
-.sort-options {
-  padding: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.sort-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 0.75rem;
-  background: white;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: left;
-  font-size: 0.875rem;
-  color: #374151;
-}
-
-.sort-option:hover {
-  background: #f9fafb;
-}
-
-.sort-option.selected {
-  background: #eff6ff;
-  color: #2563eb;
-  font-weight: 500;
-}
-
-.option-label {
-  flex: 1;
-}
-
-.check-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #2563eb;
-  flex-shrink: 0;
-}
-
-/* Dropdown animation */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-0.5rem);
-}
-</style>
