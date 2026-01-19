@@ -109,6 +109,29 @@ export const prospectsAPI = {
     return response.data;
   },
 
+  // Set contact as active for email generation
+  setActiveContact: async (prospectId: string, contactId: string): Promise<void> => {
+    await api.post(`/prospects/${prospectId}/contacts/${contactId}/activate`);
+  },
+
+  // Clear active contact
+  clearActiveContact: async (prospectId: string): Promise<void> => {
+    await api.delete(`/prospects/${prospectId}/contacts/active`);
+  },
+
+  // Get active contact
+  getActiveContact: async (prospectId: string): Promise<ContactPersonDto | null> => {
+    try {
+      const response = await api.get(`/prospects/${prospectId}/contacts/active`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
   // ============ BATCH OPERATIONS ============
 
   // Batch: Enrich prospects

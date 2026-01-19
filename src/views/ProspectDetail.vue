@@ -194,6 +194,8 @@
             @edit="openEditContactModal"
             @delete="handleDeleteContact"
             @enrich="handleEnrichContact"
+            @set-active="handleSetActiveContact"
+            @clear-active="handleClearActiveContact"
           />
         </div>
 
@@ -986,6 +988,57 @@ async function handleEnrichContact(contact: ContactPersonDto) {
    } finally {
       enrichingContactId.value = null
    }
+}
+
+
+async function handleSetActiveContact(contact: ContactPersonDto) {
+  if (!prospect.value) return
+  
+  try {
+    await prospectsAPI.setActiveContact(prospect.value.id, contact.id)
+    
+    if (prospect.value.contactPersons) {
+      prospect.value.contactPersons = prospect.value.contactPersons.map(c => ({
+        ...c,
+        isActive: c.id === contact.id
+      }))
+    }
+    
+    const successMsg = document.createElement('div')
+    successMsg.textContent = `${contact.name} is now the active contact`
+    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
+    document.body.appendChild(successMsg)
+    setTimeout(() => successMsg.remove(), 3000)
+  } catch (err: any) {
+    const errMsg = err.response?.data?.error || 'Failed to set active contact'
+    alert(`Error: ${errMsg}`)
+    console.error('Error setting active contact:', err)
+  }
+}
+
+async function handleClearActiveContact(contact: ContactPersonDto) {
+  if (!prospect.value) return
+  
+  try {
+    await prospectsAPI.clearActiveContact(prospect.value.id)
+    
+    if (prospect.value.contactPersons) {
+      prospect.value.contactPersons = prospect.value.contactPersons.map(c => ({
+        ...c,
+        isActive: false
+      }))
+    }
+    
+    const successMsg = document.createElement('div')
+    successMsg.textContent = 'Active contact cleared'
+    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
+    document.body.appendChild(successMsg)
+    setTimeout(() => successMsg.remove(), 3000)
+  } catch (err: any) {
+    const errMsg = err.response?.data?.error || 'Failed to clear active contact'
+    alert(`Error: ${errMsg}`)
+    console.error('Error clearing active contact:', err)
+  }
 }
 
 onMounted(() => {
