@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { authService } from './auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_BASE_URL environment variable is required. Please configure it in your .env file.');
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -38,9 +42,9 @@ api.interceptors.response.use(
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
             refreshToken
           });
-          
+
           authService.saveTokens(response.data);
-          
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           return api(originalRequest);
