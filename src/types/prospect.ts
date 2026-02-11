@@ -232,6 +232,7 @@ export interface ContactPersonDto {
   personalNews?: string[] | null;
   generalInfo?: string | null;
   researchedAt?: string | null;
+  isActive: boolean;
 }
 
 export interface CreateContactPersonRequest {

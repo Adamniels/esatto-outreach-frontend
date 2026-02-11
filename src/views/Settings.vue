@@ -34,7 +34,7 @@
             Email Prompts
           </button>
           <button
-            @click="switchToCompanyInfo"
+            @click="activeTab = 'companyInfo'"
             :class="[
               activeTab === 'companyInfo'
                 ? 'border-blue-500 text-blue-600'
@@ -43,6 +43,17 @@
             ]"
           >
             Company Info
+          </button>
+          <button
+            @click="activeTab = 'workflows'"
+            :class="[
+              activeTab === 'workflows'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer bg-transparent'
+            ]"
+          >
+            Workflow Templates
           </button>
         </nav>
       </div>
@@ -280,16 +291,21 @@
           </div>
         </div>
       </div>
+      <!-- Workflow Templates Tab -->
+      <div v-if="activeTab === 'workflows'">
+        <WorkflowTemplates />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { emailPromptsAPI } from '@/services/emailPrompts'
 import { companyInfoAPI, type CompanyInfo, type CaseItem } from '@/services/companyInfo'
 import type { EmailPrompt } from '@/types/emailPrompt'
 import EmailPromptEditor from '@/components/EmailPromptEditor.vue'
+import WorkflowTemplates from '@/components/settings/WorkflowTemplates.vue'
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -435,12 +451,12 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const switchToCompanyInfo = async () => {
-  activeTab.value = 'companyInfo'
-  if (!companyInfo.value) {
+// Watch active tab to load data on demand
+watch(activeTab, async (newTab) => {
+  if (newTab === 'companyInfo' && !companyInfo.value) {
     await loadCompanyInfo()
   }
-}
+})
 
 const loadCompanyInfo = async () => {
   try {

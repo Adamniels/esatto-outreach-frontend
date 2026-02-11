@@ -1,7 +1,39 @@
 <template>
-  <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm group relative">
+  <div class="p-4 bg-white border rounded-lg shadow-sm group relative"
+       :class="person.isActive ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+    
+    <!-- Active Badge -->
+    <div v-if="person.isActive" class="absolute top-2 left-2">
+      <span class="px-2 py-1 text-xs font-bold text-green-700 bg-green-200 rounded-full">
+        ✓ Active
+      </span>
+    </div>
+    
     <!-- Actions -->
     <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <!-- Set/Unset Active Button -->
+      <button 
+        v-if="!person.isActive"
+        @click="$emit('set-active', person)"
+        class="p-1.5 text-gray-400 hover:text-green-600 rounded-full hover:bg-gray-100"
+        title="Set as Active Contact"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </button>
+      
+      <button 
+        v-else
+        @click="$emit('clear-active', person)"
+        class="p-1.5 text-green-600 hover:text-gray-600 rounded-full hover:bg-gray-100"
+        title="Remove Active Status"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      
       <button 
         @click="$emit('enrich', person)"
         :disabled="isEnriching"
@@ -93,5 +125,7 @@ defineEmits<{
   (e: 'edit', person: ContactPersonDto): void
   (e: 'delete', person: ContactPersonDto): void
   (e: 'enrich', person: ContactPersonDto): void
+  (e: 'set-active', person: ContactPersonDto): void
+  (e: 'clear-active', person: ContactPersonDto): void
 }>()
 </script>
