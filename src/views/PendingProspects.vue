@@ -49,8 +49,8 @@
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-xl font-bold text-gray-900 mb-1 truncate">{{ prospect.name }}</h3>
-              <span v-if="prospect.capsuleId" class="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
-                Capsule ID: {{ prospect.capsuleId }}
+              <span v-if="prospect.externalCrmId" class="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
+                CRM ID: {{ prospect.externalCrmId }}
               </span>
             </div>
           </div>

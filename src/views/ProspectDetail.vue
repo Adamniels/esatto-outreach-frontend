@@ -120,7 +120,7 @@
 
       <!-- Tags Section -->
       <div v-if="prospect.tags && prospect.tags.length > 0" class="pb-6 border-b-2 border-gray-100">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tags from Capsule:</label>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tags:</label>
         <div class="flex flex-wrap gap-2">
           <span 
             v-for="tag in prospect.tags" 
@@ -135,7 +135,7 @@
 
       <!-- Custom Fields Section -->
       <div v-if="prospect.customFields && prospect.customFields.length > 0" class="pb-6 border-b-2 border-gray-100">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Custom Fields from Capsule:</label>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Custom Fields:</label>
         <div class="flex flex-col gap-2">
           <div 
             v-for="field in prospect.customFields" 
@@ -390,9 +390,9 @@ const splitLines = (text: string): string[] => {
     .filter(line => line.length > 0)
 }
 
-const arrayToText = (arr: Array<{ url?: string | null; address?: string | null; number?: string | null }>): string => {
+const arrayToText = (arr: Array<{ url?: string | null }>): string => {
   return arr
-    .map(item => item.url || item.address || item.number || '')
+    .map(item => item.url || '')
     .filter(Boolean)
     .join('\n')
 }
