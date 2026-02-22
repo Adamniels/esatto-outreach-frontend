@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6 p-7 min-h-screen">
-    <!-- Top Controls - Like Prody -->
+    <!-- Top Controls -->
     <div class="flex items-center justify-between p-4 px-7 bg-white rounded-lg border border-gray-200">
       <div class="flex items-center gap-4 flex-wrap">
         <!-- Filter Dropdown Component -->
@@ -35,40 +35,6 @@
       </div>
     </div>
 
-    <!-- Batch Action Toolbar (shown when prospects are selected) -->
-    <div v-if="selectedCount > 0" class="flex items-center justify-between p-4 px-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md transition-all">
-      <div class="flex items-center gap-4">
-        <span class="text-base font-semibold text-white">{{ selectedCount }} selected</span>
-        <button @click="clearSelection" class="bg-white/20 text-white border border-white/30 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer hover:bg-white/30 transition-colors">Clear</button>
-      </div>
-      
-      <!-- Show batch progress button when processing -->
-      <div v-if="isBatchProcessing" class="flex items-center gap-3">
-        <button 
-          @click="showBatchProgressModal = true" 
-          class="flex items-center gap-2 px-6 py-2.5 bg-white text-blue-500 border border-white rounded-md text-sm font-semibold cursor-pointer shadow-sm hover:bg-gray-50 hover:-translate-y-px transition-all"
-        >
-          <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-          </svg>
-          <span>Batch in progress ({{ batchProgress.completed }} / {{ batchProgress.total }})</span>
-        </button>
-      </div>
-      
-      <!-- Show batch action controls when not processing -->
-      <div v-else class="flex items-center gap-3">
-        <BatchActionDropdown v-model="batchAction" />
-        
-        <button 
-          @click="runBatchOperation" 
-          :disabled="!batchAction"
-          class="bg-white text-blue-500 border border-white px-6 py-2.5 rounded-md text-sm font-semibold cursor-pointer shadow-sm hover:bg-gray-50 hover:-translate-y-px transition-all disabled:opacity-50 disabled:bg-white/50 disabled:text-gray-400 disabled:border-white/50 disabled:cursor-not-allowed disabled:shadow-none"
-        >
-          Run Batch
-        </button>
-      </div>
-    </div>
-
     <!-- Main Table -->
     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div v-if="loading" class="text-center py-12">
@@ -89,7 +55,6 @@
       <div v-else class="overflow-x-auto">
         <table class="w-full border-collapse">
           <colgroup>
-            <col class="w-12" />
             <col class="w-16" />
             <col class="" />
             <col class="w-64" />
@@ -98,15 +63,6 @@
           </colgroup>
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th class="px-6 py-3 text-left">
-                <input 
-                  type="checkbox" 
-                  :checked="allSelected"
-                  :indeterminate.prop="someSelected"
-                  @change="allSelected ? clearSelection() : selectAll()"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                />
-              </th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Company</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Websites</th>
@@ -116,14 +72,6 @@
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <tr v-for="prospect in sortedProspects" :key="prospect.id" class="transition-colors hover:bg-gray-50">
-              <td class="px-6 py-4">
-                <input 
-                  type="checkbox" 
-                  :checked="isSelected(prospect.id)"
-                  @change="toggleSelection(prospect.id)"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                />
-              </td>
               <td class="px-6 py-4 whitespace-nowrap"><span class="font-mono text-xs text-gray-400" :title="prospect.id">{{ prospect.id }}</span></td>
               <td class="px-6 py-4 font-medium text-gray-900 text-sm">{{ prospect.name }}</td>
               <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-[200px]">{{ prospect.websites[0]?.url || '-' }}</td>
@@ -146,14 +94,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Batch Progress Modal -->
-    <BatchProgressModal
-      :show="showBatchProgressModal"
-      :progress="batchProgress"
-      :results="lastBatchResults"
-      @close="closeBatchProgressModal"
-    />
 
     <!-- Create / Edit Modal -->
     <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center">
@@ -202,17 +142,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProspects } from '@/composables/useProspects'
 import { useProspectFilters } from '@/composables/useProspectFilters'
-import { useProspectSelection } from '@/composables/useProspectSelection'
-import { useBatchOperations } from '@/composables/useBatchOperations'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
 import FilterDropdown from '@/components/FilterDropdown.vue'
 import SortDropdown from '@/components/SortDropdown.vue'
-import BatchProgressModal from '@/components/BatchProgressModal.vue'
-import BatchActionDropdown from '@/components/BatchActionDropdown.vue'
 
 const router = useRouter()
 
@@ -229,30 +165,6 @@ const {
   resetSort
 } = useProspectFilters(prospects)
 
-// Use composable for batch selection
-const {
-  selectedIds,
-  selectedCount,
-  selectedProspects,
-  allSelected,
-  someSelected,
-  isSelected,
-  toggleSelection,
-  selectAll,
-  clearSelection
-} = useProspectSelection(sortedProspects)
-
-// Use composable for batch operations
-const {
-  isBatchProcessing,
-  batchProgress,
-  lastBatchResults,
-  resetProgress,
-  runEnrichBatch,
-  runBatchEmailGeneration,
-  runCompleteFlow
-} = useBatchOperations()
-
 interface ProspectFormData {
   name: string
   websitesText: string
@@ -261,9 +173,7 @@ interface ProspectFormData {
 
 // State
 const showCreateModal = ref(false)
-const showBatchProgressModal = ref(false)
 const isSubmitting = ref(false)
-const batchAction = ref('')
 
 const statusLabels = STATUS_LABELS
 
@@ -340,54 +250,6 @@ const getStatusClass = (status: number) => {
 }
 
 const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Unknown'
-
-// Batch operations
-const runBatchOperation = async () => {
-  if (!batchAction.value || selectedCount.value === 0) return
-
-  const prospectIds = Array.from(selectedIds.value)
-  const estimatedCost = prospectIds.length * 0.05 // ~5 öre per operation
-  
-  if (estimatedCost > 1 && !confirm(`This will cost approximately ${estimatedCost.toFixed(2)} kr. Continue?`)) {
-    return
-  }
-
-  showBatchProgressModal.value = true
-  resetProgress()
-
-  try {
-    switch (batchAction.value) {
-      case 'enrich-prospects':
-        await runEnrichBatch(prospectIds, handleBatchSuccess)
-        break
-      case 'email-websearch':
-        await runBatchEmailGeneration(prospectIds, 'WebSearch', false, handleBatchSuccess)
-        break
-      case 'email-collected':
-        await runBatchEmailGeneration(prospectIds, 'UseCollectedData', true, handleBatchSuccess)
-        break
-      case 'complete-flow':
-        await runCompleteFlow(prospectIds, 'UseCollectedData', handleBatchSuccess, handleBatchSuccess)
-        break
-    }
-  } catch (error) {
-    console.error('Batch operation error:', error)
-  }
-
-  // Clear selection after batch completes
-  clearSelection()
-  batchAction.value = ''
-}
-
-const handleBatchSuccess = () => {
-  // Reload prospects to reflect changes
-  fetchProspects()
-}
-
-const closeBatchProgressModal = () => {
-  showBatchProgressModal.value = false
-  // Don't reset progress here - let it persist so the status button shows correct info
-}
 
 const formatDateTime = (dateString?: string) => {
   if (!dateString) return '-'

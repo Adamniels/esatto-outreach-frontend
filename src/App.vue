@@ -104,16 +104,6 @@
           <router-view />
         </main>
       </div>
-      
-      <!-- Global Batch Complete Toast -->
-      <BatchCompleteToast
-        :show="completeNotification.show"
-        :type="completeNotification.type"
-        :title="completeNotification.title"
-        :message="completeNotification.message"
-        @close="hideCompleteNotification"
-        @view-details="navigateToProspects"
-      />
     </div>
 
     <!-- Auth views (login/register) without sidebar -->
@@ -126,19 +116,11 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBackendStatus } from '@/composables/useBackendStatus'
 import { useAuth } from '@/composables/useAuth'
-import { useBatchOperations } from '@/composables/useBatchOperations'
-import BatchCompleteToast from '@/components/BatchCompleteToast.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { isOnline, isChecking } = useBackendStatus()
 const { user, isAuthenticated, logout } = useAuth()
-const { completeNotification, hideCompleteNotification } = useBatchOperations()
-
-const navigateToProspects = () => {
-  hideCompleteNotification()
-  router.push('/prospects')
-}
 
 const pageTitle = computed(() => {
   switch (route.path) {

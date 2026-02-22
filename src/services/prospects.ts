@@ -1,25 +1,6 @@
 import api from './api';
 import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto } from '@/types/prospect';
 
-// Batch operation types
-export interface BatchOperationResult<TData> {
-  successes: SuccessResult<TData>[]
-  failures: FailureResult[]
-  totalCount: number
-  successCount: number
-  failureCount: number
-}
-
-export interface SuccessResult<TData> {
-  prospectId: string
-  data: TData
-}
-
-export interface FailureResult {
-  prospectId: string
-  errorMessage: string
-}
-
 export interface EmailDraft {
   title: string
   bodyPlain: string
@@ -130,32 +111,6 @@ export const prospectsAPI = {
       }
       throw error;
     }
-  },
-
-  // ============ BATCH OPERATIONS ============
-
-  // Batch: Enrich prospects
-  enrichProspectBatch: async (
-    prospectIds: string[]
-  ): Promise<BatchOperationResult<EntityIntelligenceDto>> => {
-    const response = await api.post('/prospects/batch/soft-data/generate', {
-      prospectIds
-    });
-    return response.data;
-  },
-
-  // Batch: Generera emails för flera prospects
-  generateEmailBatch: async (
-    prospectIds: string[],
-    type?: 'WebSearch' | 'UseCollectedData',
-    autoGenerateSoftData: boolean = true
-  ): Promise<BatchOperationResult<EmailDraft>> => {
-    const response = await api.post('/prospects/batch/email/generate', {
-      prospectIds,
-      type,
-      autoGenerateSoftData
-    });
-    return response.data;
   },
 
   // ============ CAPSULE CRM INTEGRATION ============
