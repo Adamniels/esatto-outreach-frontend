@@ -1,9 +1,34 @@
 import api from './api';
-import type { AuthResponse, RegisterRequest, LoginRequest, RefreshTokenRequest } from '../types/auth';
+import type {
+  AuthResponse,
+  RegisterRequest,
+  LoginRequest,
+  RefreshTokenRequest,
+  ValidateInvitationResponse,
+  AcceptInvitationRequest,
+  CreateInvitationResponse
+} from '../types/auth';
 
 export const authService = {
   async register(data: RegisterRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  },
+
+  async validateInvitation(token: string): Promise<ValidateInvitationResponse> {
+    const response = await api.get<ValidateInvitationResponse>('/invitations/validate', {
+      params: { token }
+    });
+    return response.data;
+  },
+
+  async acceptInvitation(data: AcceptInvitationRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/invitations/accept', data);
+    return response.data;
+  },
+
+  async createInvitation(email: string): Promise<CreateInvitationResponse> {
+    const response = await api.post<CreateInvitationResponse>('/company/invitations', { email });
     return response.data;
   },
 

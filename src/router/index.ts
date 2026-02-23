@@ -5,8 +5,10 @@ import Prospects from '../views/Prospects.vue'
 import ProspectDetail from '../views/ProspectDetail.vue'
 import PendingProspects from '../views/PendingProspects.vue'
 import Settings from '../views/Settings.vue'
+import Invite from '../views/Invite.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import AcceptInvite from '../views/AcceptInvite.vue'
 
 const routes = [
   {
@@ -19,6 +21,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/accept-invite',
+    name: 'AcceptInvite',
+    component: AcceptInvite,
     meta: { requiresGuest: true }
   },
   {
@@ -43,6 +51,12 @@ const routes = [
     path: '/prospects/:id',
     name: 'ProspectDetail',
     component: ProspectDetail,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/invite',
+    name: 'Invite',
+    component: Invite,
     meta: { requiresAuth: true }
   },
   {

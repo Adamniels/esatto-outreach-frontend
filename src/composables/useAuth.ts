@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth';
-import type { RegisterRequest, LoginRequest, User } from '../types/auth';
+import type { RegisterRequest, LoginRequest, AcceptInvitationRequest, User } from '../types/auth';
 
 const user = ref<User | null>(authService.getUser());
 const isAuthenticated = computed(() => !!user.value);
@@ -16,10 +16,10 @@ export function useAuth() {
       user.value = response.user;
       router.push('/');
       return { success: true };
-    } catch (error: any) {
+    } catch (err: any) {
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Registration failed' 
+        error: err.response?.data?.error || err.response?.data?.message || 'Registration failed' 
       };
     }
   };
@@ -31,10 +31,25 @@ export function useAuth() {
       user.value = response.user;
       router.push('/');
       return { success: true };
-    } catch (error: any) {
+    } catch (err: any) {
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed' 
+        error: err.response?.data?.error || err.response?.data?.message || 'Login failed' 
+      };
+    }
+  };
+
+  const acceptInvitation = async (data: AcceptInvitationRequest) => {
+    try {
+      const response = await authService.acceptInvitation(data);
+      authService.saveTokens(response);
+      user.value = response.user;
+      router.push('/');
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || 'Failed to accept invitation'
       };
     }
   };
@@ -68,6 +83,7 @@ export function useAuth() {
     isAuthenticated,
     register,
     login,
+    acceptInvitation,
     logout,
     refreshToken
   };

@@ -15,6 +15,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   fullName?: string;
+  companyName: string;
 }
 
 export interface LoginRequest {
@@ -24,4 +25,21 @@ export interface LoginRequest {
 
 export interface RefreshTokenRequest {
   refreshToken: string;
+}
+
+export interface ValidateInvitationResponse {
+  companyName: string;
+  email: string;
+}
+
+export interface AcceptInvitationRequest {
+  token: string;
+  email: string;
+  password: string;
+  fullName?: string;
+}
+
+export interface CreateInvitationResponse {
+  token: string;
+  inviteLink: string | null;
 }
