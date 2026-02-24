@@ -4,7 +4,8 @@ import Dashboard from '../views/Dashboard.vue'
 import Prospects from '../views/Prospects.vue'
 import ProspectDetail from '../views/ProspectDetail.vue'
 import PendingProspects from '../views/PendingProspects.vue'
-import Settings from '../views/Settings.vue'
+import UserSettings from '../views/UserSettings.vue'
+import CompanySettings from '../views/CompanySettings.vue'
 import Invite from '../views/Invite.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
@@ -36,7 +37,7 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/prospects', 
+    path: '/prospects',
     name: 'Prospects',
     component: Prospects,
     meta: { requiresAuth: true }
@@ -61,8 +62,14 @@ const routes = [
   },
   {
     path: '/settings',
-    name: 'Settings',
-    component: Settings,
+    name: 'UserSettings',
+    component: UserSettings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/company-settings',
+    name: 'CompanySettings',
+    component: CompanySettings,
     meta: { requiresAuth: true }
   }
 ]
