@@ -1,207 +1,194 @@
 <template>
   <div class="max-w-7xl mx-auto p-8">
-    <div v-if="loadingCompanyInfo" class="text-center p-12">
+    <div v-if="loading" class="text-center p-12">
       <p class="text-gray-500">Laddar företagsinformation...</p>
     </div>
 
-    <div v-else-if="companyInfoError" class="text-center p-12">
-      <p class="text-red-500 mb-4">{{ companyInfoError }}</p>
-      <button @click="loadCompanyInfo" class="px-5 py-2.5 bg-blue-500 text-white border-0 rounded-md text-sm font-medium cursor-pointer hover:bg-blue-600 transition-colors">Try again</button>
+    <div v-else-if="error" class="text-center p-12">
+      <p class="text-red-500 mb-4">{{ error }}</p>
+      <button @click="loadData" class="px-5 py-2.5 bg-blue-500 text-white border-0 rounded-md text-sm font-medium cursor-pointer hover:bg-blue-600 transition-colors">Try again</button>
     </div>
 
-    <div v-else-if="companyInfo" class="flex flex-col gap-6">
-      <!-- Overview Section -->
+    <div v-else class="flex flex-col gap-6">
+      
+      <!-- Company Info Section -->
       <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Overview</h3>
-        <div class="text-gray-700 leading-relaxed">
-          <p class="whitespace-pre-wrap m-0">{{ companyInfo.overview }}</p>
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Company Information</h3>
+        <div v-if="companyInfo" class="flex flex-col gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+            <input v-model="companyInfo.name" type="text" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Value Proposition</label>
+            <input v-model="companyInfo.valueProposition" type="text" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Overview</label>
+            <textarea v-model="companyInfo.overview" rows="4" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button @click="saveCompanyInfo" :disabled="savingInfo" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50">
+              {{ savingInfo ? 'Saving...' : 'Save Info' }}
+            </button>
+          </div>
+        </div>
+        <div v-else class="text-gray-500 italic">No company information found. Create it by saving below.
+          <div class="mt-4 flex flex-col gap-4">
+            <input v-model="newCompanyInfo.name" placeholder="Company Name" class="w-full p-2 border border-gray-300 rounded-md" />
+            <input v-model="newCompanyInfo.valueProposition" placeholder="Value Proposition" class="w-full p-2 border border-gray-300 rounded-md" />
+            <textarea v-model="newCompanyInfo.overview" placeholder="Overview" rows="4" class="w-full p-2 border border-gray-300 rounded-md"></textarea>
+            <button @click="createCompanyInfo" :disabled="savingInfo" class="px-4 py-2 bg-blue-600 text-white rounded-md w-fit">Create Info</button>
+          </div>
         </div>
       </div>
 
-      <!-- Filter Section -->
-      <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+      <!-- Project Cases Section -->
+      <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-gray-900">Project Cases</h3>
+          <button @click="showAddCase = !showAddCase" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">
+            {{ showAddCase ? 'Cancel' : 'Add Case' }}
+          </button>
+        </div>
+
+        <div v-if="showAddCase" class="mb-6 p-4 border border-blue-100 bg-blue-50 rounded-md flex flex-col gap-3">
+          <input v-model="newCase.clientName" placeholder="Client Name" class="p-2 border border-gray-300 rounded-md" />
+          <textarea v-model="newCase.text" placeholder="Case Text" rows="3" class="p-2 border border-gray-300 rounded-md"></textarea>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" v-model="newCase.isActive" /> Active
+          </label>
+          <button @click="addCase" :disabled="savingCase" class="px-4 py-2 bg-blue-600 text-white rounded-md w-fit">Save new case</button>
+        </div>
+
         <div class="flex flex-col gap-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search for case name, industry..."
-            class="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1)]"
-          />
-          <div class="flex gap-2 flex-wrap">
-            <button
-              @click="filterType = 'all'"
-              class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
-              :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'all' }"
-            >
-              All ({{ companyInfo.cases.length }})
-            </button>
-            <button
-              @click="filterType = 'case'"
-              class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
-              :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'case' }"
-            >
-              Cases ({{ companyInfo.cases.filter(c => c.pageType === 'case').length }})
-            </button>
-            <button
-              @click="filterType = 'service'"
-              class="px-4 py-2 border border-gray-300 rounded-md bg-white cursor-pointer text-sm transition-all hover:bg-gray-50"
-              :class="{ 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600': filterType === 'service' }"
-            >
-              Services ({{ companyInfo.cases.filter(c => c.pageType === 'service').length }})
-            </button>
+          <div v-for="pc in cases" :key="pc.id" class="p-4 border border-gray-200 rounded-md relative flex flex-col gap-2">
+            <button @click="deleteCase(pc.id)" class="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm">Delete</button>
+            
+            <input v-model="pc.clientName" class="font-semibold text-lg p-1 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded" />
+            <textarea v-model="pc.text" rows="3" class="w-full p-1 border border-transparent hover:border-gray-300 focus:border-blue-500 rounded leading-relaxed text-gray-700"></textarea>
+            
+            <div class="flex justify-between items-center mt-2">
+              <label class="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" v-model="pc.isActive" /> Active
+              </label>
+              <button @click="updateCase(pc)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition-colors">
+                Update
+              </button>
+            </div>
+          </div>
+
+          <div v-if="cases.length === 0" class="text-center p-8 text-gray-500 bg-gray-50 rounded border border-dashed border-gray-300">
+            No project cases added yet.
           </div>
         </div>
       </div>
 
-      <!-- Cases List -->
-      <div class="flex flex-col gap-4">
-        <div
-          v-for="(caseItem, index) in filteredCases"
-          :key="index"
-          class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-shadow hover:shadow-md"
-        >
-          <div class="flex justify-between items-center p-4 px-6 cursor-pointer" @click="toggleCase(index)">
-            <div class="flex items-center gap-4 flex-1">
-              <span 
-                class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold uppercase"
-                :class="{ 'bg-blue-100 text-blue-800': caseItem.pageType === 'case', 'bg-purple-100 text-purple-800': caseItem.pageType === 'service' }"
-              >
-                {{ caseItem.pageType === 'case' ? 'Case' : 'Service' }}
-              </span>
-              <h4 class="text-lg font-semibold text-gray-900 m-0">{{ caseItem.case.name || caseItem.pageTitle }}</h4>
-              <span v-if="caseItem.case.industry" class="text-sm text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
-                {{ caseItem.case.industry }}
-              </span>
-            </div>
-            <button class="bg-transparent border-none p-1 text-gray-400 cursor-pointer">
-              <svg
-                class="w-6 h-6 transition-transform duration-200"
-                :class="{ 'rotate-180': expandedCases.has(index) }"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-
-          <div v-if="expandedCases.has(index)" class="p-6 border-t border-gray-100 bg-gray-50/50">
-            <div v-if="caseItem.case.challenge" class="mb-4 last:mb-0">
-              <strong class="block text-sm font-semibold text-gray-900 mb-1">Challenge:</strong>
-              <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.challenge }}</p>
-            </div>
-
-            <div v-if="caseItem.case.solution" class="mb-4 last:mb-0">
-              <strong class="block text-sm font-semibold text-gray-900 mb-1">Solution:</strong>
-              <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.solution }}</p>
-            </div>
-
-            <div v-if="caseItem.case.result" class="mb-4 last:mb-0">
-              <strong class="block text-sm font-semibold text-gray-900 mb-1">Result:</strong>
-              <p class="m-0 text-gray-700 leading-relaxed">{{ caseItem.case.result }}</p>
-            </div>
-
-            <div v-if="caseItem.services.length > 0" class="mt-6">
-              <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Services:</strong>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="service in caseItem.services" :key="service" class="px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded text-xs">
-                  {{ service }}
-                </span>
-              </div>
-            </div>
-
-            <div v-if="caseItem.industries.length > 0" class="mt-4">
-              <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Industries:</strong>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="industry in caseItem.industries" :key="industry" class="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
-                  {{ industry }}
-                </span>
-              </div>
-            </div>
-
-            <div v-if="caseItem.methodsOrTech.length > 0" class="mt-4">
-              <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Methods/Tech:</strong>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="method in caseItem.methodsOrTech" :key="method" class="px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-xs">
-                  {{ method }}
-                </span>
-              </div>
-            </div>
-
-            <div v-if="caseItem.valuesOrTone.length > 0" class="mt-4">
-              <strong class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Values/Tone:</strong>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="value in caseItem.valuesOrTone" :key="value" class="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-xs">
-                  {{ value }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="filteredCases.length === 0" class="text-center p-12 bg-white border-2 border-dashed border-gray-300 rounded-lg">
-          <p class="text-gray-500">No cases found</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { companyInfoAPI, type CompanyInfo, type CaseItem } from '@/services/companyInfo'
+import { ref, onMounted } from 'vue'
+import { companyInfoAPI, type CompanyInfo, type ProjectCase, type CompanyInfoUpdateDto, type ProjectCaseUpdateDto } from '@/services/companyInfo'
 
-const loadingCompanyInfo = ref(false)
-const companyInfoError = ref<string | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
+
 const companyInfo = ref<CompanyInfo | null>(null)
-const expandedCases = ref<Set<number>>(new Set())
-const searchQuery = ref('')
-const filterType = ref<'all' | 'case' | 'service'>('all')
+const newCompanyInfo = ref<CompanyInfoUpdateDto>({ name: '', overview: '', valueProposition: '' })
+const savingInfo = ref(false)
 
-const filteredCases = computed(() => {
-  if (!companyInfo.value) return []
-  
-  let cases = companyInfo.value.cases
-  
-  if (filterType.value !== 'all') {
-    cases = cases.filter(c => c.pageType === filterType.value)
-  }
-  
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase()
-    cases = cases.filter(c =>
-      c.case.name.toLowerCase().includes(query) ||
-      c.case.industry.toLowerCase().includes(query) ||
-      c.pageTitle.toLowerCase().includes(query)
-    )
-  }
-  
-  return cases
-})
+const cases = ref<ProjectCase[]>([])
+const showAddCase = ref(false)
+const newCase = ref<ProjectCaseUpdateDto>({ clientName: '', text: '', isActive: true })
+const savingCase = ref(false)
 
 onMounted(async () => {
-  await loadCompanyInfo()
+  await loadData()
 })
 
-const loadCompanyInfo = async () => {
+const loadData = async () => {
   try {
-    loadingCompanyInfo.value = true
-    companyInfoError.value = null
-    companyInfo.value = await companyInfoAPI.get()
+    loading.value = true
+    error.value = null
+    // Fallback if no company info is perfectly normal -> handle 404
+    try {
+      companyInfo.value = await companyInfoAPI.getCompanyInfo()
+    } catch (e: any) {
+      if (e.response?.status !== 404) throw e
+    }
+    cases.value = await companyInfoAPI.getProjectCases()
   } catch (e: any) {
-    companyInfoError.value = e.response?.data?.error || 'Could not load company info'
-    console.error('Failed to load company info:', e)
+    error.value = e.response?.data?.error || 'Could not load data'
   } finally {
-    loadingCompanyInfo.value = false
+    loading.value = false
   }
 }
 
-const toggleCase = (index: number) => {
-  if (expandedCases.value.has(index)) {
-    expandedCases.value.delete(index)
-  } else {
-    expandedCases.value.add(index)
+const saveCompanyInfo = async () => {
+  if (!companyInfo.value) return
+  savingInfo.value = true
+  try {
+    companyInfo.value = await companyInfoAPI.updateCompanyInfo({
+      name: companyInfo.value.name,
+      overview: companyInfo.value.overview,
+      valueProposition: companyInfo.value.valueProposition
+    })
+    alert('Company info saved!')
+  } catch (e: any) {
+    alert('Failed to save company info')
+  } finally {
+    savingInfo.value = false
+  }
+}
+
+const createCompanyInfo = async () => {
+  savingInfo.value = true
+  try {
+    companyInfo.value = await companyInfoAPI.updateCompanyInfo(newCompanyInfo.value)
+    alert('Company info created!')
+  } catch (e: any) {
+    alert('Failed to create company info')
+  } finally {
+    savingInfo.value = false
+  }
+}
+
+const addCase = async () => {
+  savingCase.value = true
+  try {
+    const created = await companyInfoAPI.createProjectCase(newCase.value)
+    cases.value.unshift(created)
+    showAddCase.value = false
+    newCase.value = { clientName: '', text: '', isActive: true }
+  } catch (e) {
+    alert('Failed to create case')
+  } finally {
+    savingCase.value = false
+  }
+}
+
+const updateCase = async (pc: ProjectCase) => {
+  try {
+    await companyInfoAPI.updateProjectCase(pc.id, {
+      clientName: pc.clientName,
+      text: pc.text,
+      isActive: pc.isActive
+    })
+    alert('Case updated')
+  } catch (e) {
+    alert('Failed to update case')
+  }
+}
+
+const deleteCase = async (id: string) => {
+  if (!confirm('Are you sure you want to delete this case?')) return
+  try {
+    await companyInfoAPI.deleteProjectCase(id)
+    cases.value = cases.value.filter(c => c.id !== id)
+  } catch (e) {
+    alert('Failed to delete case')
   }
 }
 </script>
