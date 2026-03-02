@@ -25,7 +25,7 @@
               'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer bg-transparent'
             ]"
           >
-            Email Prompts
+            Outreach Prompts
           </button>
           <button
             @click="activeTab = 'workflows'"
@@ -55,8 +55,9 @@
 
         <!-- Create/Edit Prompt Form -->
         <div v-if="isCreating || editingPromptId" class="mb-8">
-          <EmailPromptEditor
+          <OutreachPromptEditor
             :instructions="editingPromptId ? prompts.find(p => p.id === editingPromptId)?.instructions : ''"
+            :type="editingPromptId ? prompts.find(p => p.id === editingPromptId)?.type : 'Email'"
             :is-new="isCreating"
             :is-saving="isSaving"
             @save="handleSavePrompt"
@@ -74,7 +75,7 @@
           >
             <div class="flex justify-between items-center mb-4">
               <div class="flex items-center gap-4 flex-wrap">
-                <span v-if="prompt.isActive" class="inline-block px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-semibold uppercase">Active</span>
+                <span class="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-md">Type: {{ prompt.type }}</span>
                 <span class="text-sm text-gray-500">
                   Created: {{ formatDate(prompt.createdUtc) }}
                 </span>
@@ -120,7 +121,7 @@
           </div>
 
           <div v-if="prompts.length === 0" class="text-center p-12 bg-white border-2 border-dashed border-gray-300 rounded-lg">
-            <p class="text-gray-500 mb-4">Inga email prompts hittades</p>
+            <p class="text-gray-500 mb-4">Inga outreach prompts hittades</p>
             <button @click="startCreating" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-600">Skapa din första prompt</button>
           </div>
         </div>
@@ -136,14 +137,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { emailPromptsAPI } from '@/services/emailPrompts'
-import type { EmailPrompt } from '@/types/emailPrompt'
-import EmailPromptEditor from '@/components/EmailPromptEditor.vue'
+import { outreachPromptsAPI } from '@/services/outreachPrompts'
+import type { OutreachPrompt, PromptType } from '@/types/outreachPrompt'
+import OutreachPromptEditor from '@/components/OutreachPromptEditor.vue'
 import WorkflowTemplates from '@/components/settings/WorkflowTemplates.vue'
 
 const loading = ref(true)
 const error = ref<string | null>(null)
-const prompts = ref<EmailPrompt[]>([])
+const prompts = ref<OutreachPrompt[]>([])
 const activeTab = ref('prompts')
 const isCreating = ref(false)
 const editingPromptId = ref<string | null>(null)
@@ -159,9 +160,9 @@ const loadPrompts = async () => {
   try {
     loading.value = true
     error.value = null
-    prompts.value = await emailPromptsAPI.getAll()
+    prompts.value = await outreachPromptsAPI.getAll()
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'Could not load email prompts'
+    error.value = e.response?.data?.error || 'Could not load outreach prompts'
     console.error('Failed to load prompts:', e)
   } finally {
     loading.value = false
@@ -183,14 +184,14 @@ const handleCancelEdit = () => {
   editingPromptId.value = null
 }
 
-const handleSavePrompt = async (instructions: string) => {
+const handleSavePrompt = async (instructions: string, type: string) => {
   try {
     isSaving.value = true
     
     if (isCreating.value) {
-      await emailPromptsAPI.create({ instructions, isActive: false })
+      await outreachPromptsAPI.create({ instructions, type: type as PromptType, isActive: false })
     } else if (editingPromptId.value) {
-      await emailPromptsAPI.update(editingPromptId.value, { instructions })
+      await outreachPromptsAPI.update(editingPromptId.value, { instructions })
     }
     
     await loadPrompts()
@@ -212,7 +213,7 @@ const handleActivatePrompt = async (promptId: string) => {
   
   try {
     isActivating.value = true
-    await emailPromptsAPI.activate(promptId)
+    await outreachPromptsAPI.activate(promptId)
     await loadPrompts()
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Could not activate prompt'
@@ -229,7 +230,7 @@ const handleDeletePrompt = async (promptId: string) => {
   
   try {
     isDeleting.value = true
-    await emailPromptsAPI.delete(promptId)
+    await outreachPromptsAPI.delete(promptId)
     await loadPrompts()
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Could not delete prompt'
