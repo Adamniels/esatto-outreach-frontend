@@ -285,13 +285,38 @@
       </div>
 
       <!-- Write LinkedIn Message Tab -->
-      <div v-else-if="activeView === 'linkedin'" class="flex items-center justify-center h-[400px] bg-white rounded-xl border border-gray-200 border-dashed">
-        <div class="text-center">
-          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">LinkedIn Message</h3>
-          <p class="mt-1 text-sm text-gray-500">Feature coming soon.</p>
+      <div v-else-if="activeView === 'linkedin'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[850px]">
+        <!-- Left Column: Settings & Preview -->
+        <div class="lg:col-span-2 flex flex-col gap-4 h-full overflow-hidden">
+          <LinkedInGeneratorControls
+            v-model:selected-type="selectedLinkedInGeneratorType"
+            :is-generating="isGeneratingLinkedIn"
+            :show-clear="canResetLinkedInToBackend"
+            @generate="handleGenerateLinkedIn"
+            @clear="resetToBackendLinkedInDraft"
+          />
+
+          <LinkedInEditor
+            :body="generatedLinkedInMessage || ''"
+            :has-unsaved-changes="hasUnsavedLinkedInChanges"
+            :can-save="canSaveGeneratedLinkedIn"
+            :can-send="canSendLinkedIn"
+            :is-sending="isSendingLinkedIn"
+            @update:body="generatedLinkedInMessage = $event"
+            @save="saveGeneratedLinkedInMessage"
+            @send="handleSendLinkedIn"
+          />
+        </div>
+
+        <!-- Chat Section (Right) -->
+        <div class="lg:col-span-1 h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <ChatBox 
+            v-if="prospect"
+            :prospectId="prospect.id"
+            :mailTitle="''"
+            :mailBodyPlain="generatedLinkedInMessage || ''"
+            @emailUpdated="handleLinkedInChatUpdated"
+          />
         </div>
       </div>
 
@@ -334,6 +359,8 @@ import ContactPersonModal from '../components/ContactPersonModal.vue'
 import ContactPersonCard from '../components/prospect/ContactPersonCard.vue'
 import EmailEditor from '../components/prospect/EmailEditor.vue'
 import EmailGeneratorControls from '../components/prospect/EmailGeneratorControls.vue'
+import LinkedInEditor from '../components/prospect/LinkedInEditor.vue'
+import LinkedInGeneratorControls from '../components/prospect/LinkedInGeneratorControls.vue'
 import WorkflowTab from '../components/prospect/WorkflowTab.vue'
 import { useEntityIntelligence } from '../composables/useEntityIntelligence'
 
@@ -351,7 +378,14 @@ const isGenerating = ref(false)
 const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
+
+const isGeneratingLinkedIn = ref(false)
+const isSendingLinkedIn = ref(false)
+const generatedLinkedInMessage = ref<string | null>(null)
+const originalServerLinkedInDraft = ref<string | null>(null)
+
 const hasUnsavedChatChanges = ref(false)
+const hasUnsavedLinkedInChatChanges = ref(false)
 const activeView = ref<'email' | 'linkedin' | 'workflow'>('email')
 
 // Entity Intelligence State
@@ -371,6 +405,7 @@ const emailGeneratorTypes = [
   { value: 'EsattoRag' as const, label: 'Esatto RAG' }
 ]
 const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
+const selectedLinkedInGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
 
 // Edit Mode State
 const isEditing = ref(false)
@@ -584,6 +619,39 @@ const canSendEmail = computed(() => {
   return hasSavedContent && !isSendingEmail.value
 })
 
+const hasGeneratedLinkedInContent = computed(() => !!generatedLinkedInMessage.value?.trim())
+
+const hasUnsavedLinkedInChanges = computed(() => {
+  if (hasUnsavedLinkedInChatChanges.value) return true
+  
+  const current = generatedLinkedInMessage.value?.trim() || ''
+  const original = originalServerLinkedInDraft.value?.trim() || ''
+
+  return current !== original
+})
+
+const canSaveGeneratedLinkedIn = computed(() => 
+  hasGeneratedLinkedInContent.value && !isGeneratingLinkedIn.value && hasUnsavedLinkedInChanges.value
+)
+
+const canResetLinkedInToBackend = computed(() => {
+  const serverDraft = originalServerLinkedInDraft.value
+  if (!serverDraft?.trim()) return false
+  
+  const current = generatedLinkedInMessage.value?.trim() || ''
+  const serverText = serverDraft.trim() || ''
+  
+  return current !== serverText
+})
+
+const canSendLinkedIn = computed(() => {
+  const p = prospect.value
+  if (!p) return false
+  
+  const hasSavedContent = Boolean(p.linkedInMessage && p.linkedInMessage.trim())
+  return hasSavedContent && !isSendingLinkedIn.value
+})
+
 const generatedEmailSubject = computed({
   get: () => generatedEmail.value?.mailTitle ?? '',
   set: value => {
@@ -778,6 +846,9 @@ async function fetchProspect(background = false) {
         generatedEmail.value = loadDraftFromStorage(prospect.value.id)
       }
     }
+
+    originalServerLinkedInDraft.value = prospect.value.linkedInMessage || null
+    generatedLinkedInMessage.value = originalServerLinkedInDraft.value
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Kunde inte ladda prospect'
     console.error('Error fetching prospect:', err)
@@ -908,6 +979,99 @@ const handleEmailUpdated = (data: { mailTitle?: string; mailBodyPlain?: string; 
   generatedEmail.value = next
   hasUnsavedChatChanges.value = true
   syncDraftState()
+}
+
+const handleGenerateLinkedIn = async () => {
+  if (!prospect.value) return
+  const prospectId = prospect.value.id
+  isGeneratingLinkedIn.value = true
+  try {
+    const response = await prospectsAPI.generateLinkedInDraft(prospect.value.id, selectedLinkedInGeneratorType.value)
+    
+    // response is the updated Prospect object containing linkedInMessage
+    const message = (response as any).linkedInMessage
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      throw new Error('Ingen LinkedIn-text genererades')
+    }
+
+    generatedLinkedInMessage.value = message.trim()
+    prospect.value = { ...prospect.value, linkedInMessage: message.trim() }
+    hasUnsavedLinkedInChatChanges.value = false
+  } catch (err: any) {
+    const message = err.response?.data?.error || err.message || 'Kunde inte generera LinkedIn-meddelande'
+    alert(message)
+  } finally {
+    isGeneratingLinkedIn.value = false
+  }
+}
+
+const clearGeneratedLinkedIn = () => {
+  if (!prospect.value) return
+  generatedLinkedInMessage.value = null
+  originalServerLinkedInDraft.value = null
+  hasUnsavedLinkedInChatChanges.value = false
+  prospect.value = {
+    ...prospect.value,
+    linkedInMessage: undefined
+  }
+}
+
+const resetToBackendLinkedInDraft = () => {
+  if (!originalServerLinkedInDraft.value) return
+  generatedLinkedInMessage.value = originalServerLinkedInDraft.value
+  hasUnsavedLinkedInChatChanges.value = false
+}
+
+const saveGeneratedLinkedInMessage = async () => {
+  if (!prospect.value) return
+  const draftBody = generatedLinkedInMessage.value
+  if (!draftBody) return
+  
+  isGeneratingLinkedIn.value = true
+  try {
+    const updatePayload: Record<string, any> = {
+      linkedInMessage: draftBody.trim() || undefined
+    }
+
+    if (prospect.value.status === ProspectStatusEnum.Researched || prospect.value.status === ProspectStatusEnum.New) {
+      updatePayload.status = ProspectStatusEnum.Drafted
+    }
+
+    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    prospect.value = updated
+    originalServerLinkedInDraft.value = updated.linkedInMessage || null
+    generatedLinkedInMessage.value = originalServerLinkedInDraft.value
+    hasUnsavedLinkedInChatChanges.value = false
+  } catch (err: any) {
+    const message = err.response?.data?.error || err.message || 'Kunde inte spara LinkedIn-meddelande'
+    alert(message)
+  } finally {
+    isGeneratingLinkedIn.value = false
+  }
+}
+
+const handleSendLinkedIn = async () => {
+  if (!prospect.value) return
+  const recipient = prospect.value.contactPersons?.[0]?.name || prospect.value.name
+  if (!confirm(`This is a mock. Should we simulate sending a LinkedIn message to ${recipient}?`)) {
+    return
+  }
+
+  isSendingLinkedIn.value = true
+  
+  // Simulate network request
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  
+  alert('Mock LinkedIn message sent successfully!')
+  isSendingLinkedIn.value = false
+}
+
+const handleLinkedInChatUpdated = (data: { mailBodyPlain?: string }) => {
+  if (!prospect.value || !data.mailBodyPlain) return
+  
+  generatedLinkedInMessage.value = data.mailBodyPlain
+  hasUnsavedLinkedInChatChanges.value = true
 }
 
 function openAddContactModal() {

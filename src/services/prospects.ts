@@ -32,11 +32,19 @@ export const prospectsAPI = {
     return response.data;
   },
 
-  // Generera mejlutkast
   generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
     const url = type
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
+    const response = await api.post(url, {});
+    return response.data;
+  },
+
+  // Generera LinkedIn-utkast
+  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
+    const url = type
+      ? `/prospects/${id}/linkedin/draft?type=${type}`
+      : `/prospects/${id}/linkedin/draft`;
     const response = await api.post(url, {});
     return response.data;
   },

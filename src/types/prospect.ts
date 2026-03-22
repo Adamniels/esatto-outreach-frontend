@@ -63,6 +63,7 @@ export interface Prospect {
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  linkedInMessage?: string | null;
   ownerId?: string | null;
   entityIntelligence?: EntityIntelligenceDto | null;
   contactPersons?: ContactPersonDto[];
@@ -85,6 +86,7 @@ export interface UpdateProspectRequest {
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  linkedInMessage?: string | null;
 }
 
 export interface PendingProspectDto {
