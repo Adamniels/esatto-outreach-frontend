@@ -32,7 +32,7 @@ export const prospectsAPI = {
     return response.data;
   },
 
-  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
     const url = type
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
@@ -41,7 +41,7 @@ export const prospectsAPI = {
   },
 
   // Generera LinkedIn-utkast
-  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
+  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
     const url = type
       ? `/prospects/${id}/linkedin/draft?type=${type}`
       : `/prospects/${id}/linkedin/draft`;

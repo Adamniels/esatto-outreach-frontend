@@ -210,7 +210,6 @@
                                             <select v-model="addForm.generationStrategy" class="w-full text-sm border-gray-300 rounded h-9">
                                                 <option value="WebSearch">Web Search</option>
                                                 <option value="UseCollectedData">Use Collected Data</option>
-                                                <option value="EsattoRag">Esatto RAG</option>
                                             </select>
                                         </div>
                                     </div>
@@ -258,7 +257,6 @@
                     <select v-model="configEditForm.generationStrategy" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
                         <option value="WebSearch">Web Search</option>
                         <option value="UseCollectedData">Use Collected Data</option>
-                        <option value="EsattoRag">Esatto RAG</option>
                     </select>
                 </div>
                 
@@ -512,7 +510,6 @@ const formatStrategy = (s?: string) => {
     switch (s) {
         case ContentGenerationStrategy.WebSearch: return 'Web Search';
         case ContentGenerationStrategy.UseCollectedData: return 'Collected Data';
-        case ContentGenerationStrategy.EsattoRag: return 'Esatto RAG';
         default: return s;
     }
 };

@@ -401,11 +401,10 @@ const enrichingContactId = ref<string | null>(null)
 // Email Generator Type State
 const emailGeneratorTypes = [
   { value: 'WebSearch' as const, label: 'Web Search' },
-  { value: 'UseCollectedData' as const, label: 'Use Collected Data' },
-  { value: 'EsattoRag' as const, label: 'Esatto RAG' }
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
 ]
-const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
-const selectedLinkedInGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
+const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
+const selectedLinkedInGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
 
 // Edit Mode State
 const isEditing = ref(false)

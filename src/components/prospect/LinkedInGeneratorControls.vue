@@ -40,20 +40,19 @@
 
 <script setup lang="ts">
 defineProps<{
-  selectedType: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'
+  selectedType: 'WebSearch' | 'UseCollectedData'
   isGenerating: boolean
   showClear: boolean
 }>()
 
 defineEmits<{
-  (e: 'update:selectedType', value: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): void
+  (e: 'update:selectedType', value: 'WebSearch' | 'UseCollectedData'): void
   (e: 'generate'): void
   (e: 'clear'): void
 }>()
 
 const generatorTypes = [
   { value: 'WebSearch' as const, label: 'Web Search' },
-  { value: 'UseCollectedData' as const, label: 'Use Collected Data' },
-  { value: 'EsattoRag' as const, label: 'Esatto RAG' }
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
 ]
 </script>

@@ -124,7 +124,6 @@
                                         <select v-model="step.generationStrategy" class="w-full text-sm border-gray-300 rounded p-1.5 border">
                                             <option value="WebSearch">Web Search</option>
                                             <option value="UseCollectedData">Use Collected Data</option>
-                                            <option value="EsattoRag">Esatto RAG</option>
                                         </select>
                                     </div>
                                 </div>
@@ -209,7 +208,6 @@ const formatStrategy = (s?: string) => {
     switch (s) {
         case ContentGenerationStrategy.WebSearch: return 'Web Search';
         case ContentGenerationStrategy.UseCollectedData: return 'Collected Data';
-        case ContentGenerationStrategy.EsattoRag: return 'Esatto RAG';
         default: return s;
     }
 };
