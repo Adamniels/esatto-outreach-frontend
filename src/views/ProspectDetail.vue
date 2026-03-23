@@ -645,7 +645,7 @@ const canResetLinkedInToBackend = computed(() => {
 
 const canSendLinkedIn = computed(() => {
   const p = prospect.value
-  if (!p) return false
+  if (!p || !p.contactPersons || p.contactPersons.length === 0) return false
   
   const hasSavedContent = Boolean(p.linkedInMessage && p.linkedInMessage.trim())
   return hasSavedContent && !isSendingLinkedIn.value
@@ -936,25 +936,19 @@ const saveGeneratedEmail = async () => {
 
 const handleSendEmail = async () => {
   if (!prospect.value) return
-  // Beuser bekräfta först
+  // Ask for confirmation before simulating a send
   const recipient = prospect.value.contactPersons?.[0]?.email || prospect.value.name
-  if (!confirm(`Ska vi skicka mejlet till ${recipient}?`)) {
+  if (!confirm(`This is a mock. Should we simulate sending an email to ${recipient}?`)) {
     return
   }
 
   isSendingEmail.value = true
-  try {
-    await prospectsAPI.sendEmail(prospect.value.id)
-    alert('Mejl skickat via n8n!')
-    
-    const updated = await prospectsAPI.getById(prospect.value.id)
-    prospect.value = updated
-  } catch (err: any) {
-    const message = err.response?.data?.error || err.message || 'Kunde inte skicka mejl'
-    alert(message)
-  } finally {
-    isSendingEmail.value = false
-  }
+
+  // Simulate network request
+  await new Promise(resolve => setTimeout(resolve, 1500))
+
+  alert('Mock email sent successfully!')
+  isSendingEmail.value = false
 }
 
 // Hantera uppdateringar från chatten
