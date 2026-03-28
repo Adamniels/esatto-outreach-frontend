@@ -149,6 +149,10 @@ import { useProspectFilters } from '@/composables/useProspectFilters'
 import { statusLabels as STATUS_LABELS, type Prospect, type ProspectStatus } from '@/types/prospect'
 import FilterDropdown from '@/components/FilterDropdown.vue'
 import SortDropdown from '@/components/SortDropdown.vue'
+import { splitLines } from '@/shared/utils/text'
+import { getProspectStatusClass } from '@/shared/utils/prospectStatus'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { confirmDialog } from '@/shared/utils/dialog'
 
 const router = useRouter()
 
@@ -177,14 +181,6 @@ const isSubmitting = ref(false)
 
 const statusLabels = STATUS_LABELS
 
-// Helper function to split textarea into array
-const splitLines = (text: string): string[] => {
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-}
-
 const createEmptyForm = (): ProspectFormData => ({
   name: '',
   websitesText: '',
@@ -209,8 +205,8 @@ const saveProspect = async () => {
     
     closeModal()
     closeModal()
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Could not save prospect'
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Could not save prospect')
   } finally {
     isSubmitting.value = false
   }
@@ -222,10 +218,10 @@ const openCreateModal = () => {
 }
 
 const confirmDelete = async (prospect: Prospect) => {
-  if (confirm(`Are you sure you want to delete "${prospect.name}"?`)) {
+  if (confirmDialog(`Are you sure you want to delete "${prospect.name}"?`)) {
     try {
       await deleteProspect(prospect.id)
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Error already handled by composable
     }
   }
@@ -237,17 +233,7 @@ const closeModal = () => {
 }
 
 // Status -> local CSS class names
-const getStatusClass = (status: number) => {
-  switch (status) {
-    case 0: return 'bg-blue-100 text-blue-800'
-    case 1: return 'bg-amber-100 text-amber-800'
-    case 2: return 'bg-purple-100 text-purple-800'
-    case 3: return 'bg-indigo-100 text-indigo-800'
-    case 4: return 'bg-emerald-100 text-emerald-800'
-    case 5: return 'bg-gray-100 text-gray-600'
-    default: return 'bg-gray-100 text-gray-500'
-  }
-}
+const getStatusClass = (status: ProspectStatus) => getProspectStatusClass(status)
 
 const getStatusLabel = (status: number) => statusLabels[status as ProspectStatus] || 'Unknown'
 

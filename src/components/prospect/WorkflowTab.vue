@@ -291,7 +291,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
-import { workflowAPI } from '@/services/workflowService';
+import { workflowApi } from '@/features/workflow/api/workflowApi';
+import { getApiErrorMessage } from '@/shared/utils/apiError';
+import { confirmDialog } from '@/shared/utils/dialog';
 import { type WorkflowInstance, type WorkflowTemplate, ContentGenerationStrategy } from '@/types/workflow';
 import Toast from '@/components/Toast.vue';
 
@@ -344,7 +346,7 @@ onMounted(async () => {
 const loadWorkflows = async () => {
     loading.value = true;
     try {
-        instances.value = await workflowAPI.getInstances(props.prospectId);
+        instances.value = await workflowApi.getInstances(props.prospectId);
     } catch (e) {
         console.error(e);
     } finally {
@@ -354,7 +356,7 @@ const loadWorkflows = async () => {
 
 const loadTemplates = async () => {
     try {
-        templates.value = await workflowAPI.getAllTemplates();
+        templates.value = await workflowApi.getAllTemplates();
         const def = templates.value.find(t => t.isDefault);
         if (def) selectedTemplateId.value = def.id;
     } catch (e) {
@@ -366,11 +368,11 @@ const createInstance = async () => {
     if (!selectedTemplateId.value) return;
     creating.value = true;
     try {
-        await workflowAPI.createInstance(props.prospectId, selectedTemplateId.value);
+        await workflowApi.createInstance(props.prospectId, selectedTemplateId.value);
         await loadWorkflows();
         showToast('success', 'Workflow Created', 'The workflow has been created successfully.');
-    } catch (e: any) {
-        const msg = e.response?.data?.error || e.message || 'Failed to create workflow';
+    } catch (e: unknown) {
+        const msg = getApiErrorMessage(e, 'Failed to create workflow');
         showToast('error', 'Creation Failed', msg);
     } finally {
         creating.value = false;
@@ -381,19 +383,20 @@ const activateInstance = async (id: string) => {
     activating.value = id;
     try {
         // Validation check
-        const validation = await workflowAPI.validateCanActivate(id);
+        const validation = await workflowApi.validateCanActivate(id);
         if (!validation.canActivate) {
              showToast('error', 'Cannot Activate', validation.errors.join('. '));
              return;
         }
 
-        await workflowAPI.activateInstance(id);
+        await workflowApi.activateInstance(id);
         await loadWorkflows();
         showToast('success', 'Workflow Activated', 'The workflow has been activated and will start running.');
-    } catch (e: any) {
-         const msg = e.response?.data?.error || e.message || 'Failed to activate';
-         if (e.response?.data?.validationErrors) {
-             showToast('error', 'Activation Failed', e.response.data.validationErrors.join('. '));
+    } catch (e: unknown) {
+         const err = e as { response?: { data?: { validationErrors?: string[] } } };
+         const msg = getApiErrorMessage(e, 'Failed to activate');
+         if (err.response?.data?.validationErrors) {
+             showToast('error', 'Activation Failed', err.response.data.validationErrors.join('. '));
          } else {
              showToast('error', 'Activation Failed', msg);
          }
@@ -403,13 +406,13 @@ const activateInstance = async (id: string) => {
 };
 
 const regenerateDraft = async (stepId: string) => {
-    if (!confirm('Regenerate draft? Current content will be lost.')) return;
+    if (!confirmDialog('Regenerate draft? Current content will be lost.')) return;
     try {
-        await workflowAPI.regenerateDraft(stepId);
+        await workflowApi.regenerateDraft(stepId);
         await loadWorkflows();
         showToast('success', 'Draft Regenerated', 'The draft has been regenerated successfully.');
-    } catch (e: any) {
-        const msg = e.response?.data?.error || e.message || 'Failed to regenerate';
+    } catch (e: unknown) {
+        const msg = getApiErrorMessage(e, 'Failed to regenerate');
         showToast('error', 'Regeneration Failed', msg);
     }
 };
@@ -427,29 +430,29 @@ const cancelEdit = () => {
 
 const saveStep = async (stepId: string) => {
     try {
-        await workflowAPI.updateStepContent(stepId, editForm.subject, editForm.body);
+        await workflowApi.updateStepContent(stepId, editForm.subject, editForm.body);
         await loadWorkflows();
         editingStepId.value = null;
         showToast('success', 'Step Updated', 'Content save successfully.');
-    } catch (e: any) {
-        showToast('error', 'Save Failed', e.message);
+    } catch (e: unknown) {
+        showToast('error', 'Save Failed', getApiErrorMessage(e, 'Failed to save step'));
     }
 };
 
 const deleteStep = async (instanceId: string, stepId: string) => {
-    if (!confirm('Are you sure you want to delete this step?')) return;
+    if (!confirmDialog('Are you sure you want to delete this step?')) return;
     try {
-        await workflowAPI.deleteStep(instanceId, stepId);
+        await workflowApi.deleteStep(instanceId, stepId);
         await loadWorkflows();
         showToast('success', 'Step Deleted', 'Step removed successfully.');
-    } catch (e: any) {
-        showToast('error', 'Delete Failed', e.message);
+    } catch (e: unknown) {
+        showToast('error', 'Delete Failed', getApiErrorMessage(e, 'Failed to delete step'));
     }
 };
 
 const addStep = async (instanceId: string) => {
     try {
-        await workflowAPI.addStep(
+        await workflowApi.addStep(
             instanceId, 
             addForm.type, 
             addForm.dayOffset, 
@@ -459,8 +462,8 @@ const addStep = async (instanceId: string) => {
         await loadWorkflows();
         addingStep.value = false;
         showToast('success', 'Step Added', 'New step added to workflow.');
-    } catch (e: any) {
-        showToast('error', 'Add Failed', e.message);
+    } catch (e: unknown) {
+        showToast('error', 'Add Failed', getApiErrorMessage(e, 'Failed to add step'));
     }
 };
 
@@ -530,7 +533,7 @@ const saveConfigEdit = async () => {
     if (!editingConfigStepId.value) return;
     
     try {
-        await workflowAPI.updateStepConfig(
+        await workflowApi.updateStepConfig(
             editingConfigStepId.value,
             configEditForm.type,
             configEditForm.dayOffset,
@@ -540,8 +543,8 @@ const saveConfigEdit = async () => {
         editingConfigStepId.value = null;
         await loadWorkflows();
         showToast('success', 'Success', 'Step configuration updated');
-    } catch (error: any) {
-        showToast('error', 'Error', error.message || 'Failed to update step configuration');
+    } catch (error: unknown) {
+        showToast('error', 'Error', getApiErrorMessage(error, 'Failed to update step configuration'));
     }
 };
 
@@ -557,21 +560,21 @@ const sortedSteps = (instance: WorkflowInstance) => {
 };
 
 const deleteWorkflowInstance = async (instanceId: string) => {
-    if (!confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
+    if (!confirmDialog('Are you sure you want to delete this workflow? This action cannot be undone.')) {
         return;
     }
     
     deleting.value = instanceId;
     try {
-        await workflowAPI.deleteWorkflow(props.prospectId);
+        await workflowApi.deleteWorkflow(props.prospectId);
         await loadWorkflows();
         // Load templates if no instances remain
         if (instances.value.length === 0) {
             await loadTemplates();
         }
         showToast('success', 'Success', 'Workflow deleted successfully');
-    } catch (error: any) {
-        showToast('error', 'Error', error.message || 'Failed to delete workflow');
+    } catch (error: unknown) {
+        showToast('error', 'Error', getApiErrorMessage(error, 'Failed to delete workflow'));
     } finally {
         deleting.value = null;
     }

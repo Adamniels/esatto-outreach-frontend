@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ContactPersonDto } from '../../types/prospect'
+import type { ContactPersonDto } from '@/types/prospect'
 
 defineProps<{
   person: ContactPersonDto

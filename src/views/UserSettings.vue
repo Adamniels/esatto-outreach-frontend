@@ -137,10 +137,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { outreachPromptsAPI } from '@/services/outreachPrompts'
+import { outreachPromptsApi } from '@/features/settings/api/outreachPromptsApi'
 import type { OutreachPrompt, PromptType } from '@/types/outreachPrompt'
 import OutreachPromptEditor from '@/components/OutreachPromptEditor.vue'
 import WorkflowTemplates from '@/components/settings/WorkflowTemplates.vue'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { confirmDialog } from '@/shared/utils/dialog'
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -160,9 +162,9 @@ const loadPrompts = async () => {
   try {
     loading.value = true
     error.value = null
-    prompts.value = await outreachPromptsAPI.getAll()
-  } catch (e: any) {
-    error.value = e.response?.data?.error || 'Could not load outreach prompts'
+    prompts.value = await outreachPromptsApi.getAll()
+  } catch (e: unknown) {
+    error.value = getApiErrorMessage(e, 'Could not load outreach prompts')
     console.error('Failed to load prompts:', e)
   } finally {
     loading.value = false
@@ -189,17 +191,17 @@ const handleSavePrompt = async (instructions: string, type: string) => {
     isSaving.value = true
     
     if (isCreating.value) {
-      await outreachPromptsAPI.create({ instructions, type: type as PromptType, isActive: false })
+      await outreachPromptsApi.create({ instructions, type: type as PromptType, isActive: false })
     } else if (editingPromptId.value) {
-      await outreachPromptsAPI.update(editingPromptId.value, { instructions })
+      await outreachPromptsApi.update(editingPromptId.value, { instructions })
     }
     
     await loadPrompts()
     
     isCreating.value = false
     editingPromptId.value = null
-  } catch (e: any) {
-    error.value = e.response?.data?.error || 'Kunde inte spara prompt'
+  } catch (e: unknown) {
+    error.value = getApiErrorMessage(e, 'Kunde inte spara prompt')
     console.error('Failed to save prompt:', e)
   } finally {
     isSaving.value = false
@@ -207,16 +209,16 @@ const handleSavePrompt = async (instructions: string, type: string) => {
 }
 
 const handleActivatePrompt = async (promptId: string) => {
-  if (!confirm('Are you sure you want to activate this prompt? The current active prompt will be deactivated.')) {
+  if (!confirmDialog('Are you sure you want to activate this prompt? The current active prompt will be deactivated.')) {
     return
   }
   
   try {
     isActivating.value = true
-    await outreachPromptsAPI.activate(promptId)
+    await outreachPromptsApi.activate(promptId)
     await loadPrompts()
-  } catch (e: any) {
-    error.value = e.response?.data?.error || 'Could not activate prompt'
+  } catch (e: unknown) {
+    error.value = getApiErrorMessage(e, 'Could not activate prompt')
     console.error('Failed to activate prompt:', e)
   } finally {
     isActivating.value = false
@@ -224,16 +226,16 @@ const handleActivatePrompt = async (promptId: string) => {
 }
 
 const handleDeletePrompt = async (promptId: string) => {
-  if (!confirm('Are you sure you want to delete this prompt? This cannot be undone.')) {
+  if (!confirmDialog('Are you sure you want to delete this prompt? This cannot be undone.')) {
     return
   }
   
   try {
     isDeleting.value = true
-    await outreachPromptsAPI.delete(promptId)
+    await outreachPromptsApi.delete(promptId)
     await loadPrompts()
-  } catch (e: any) {
-    error.value = e.response?.data?.error || 'Could not delete prompt'
+  } catch (e: unknown) {
+    error.value = getApiErrorMessage(e, 'Could not delete prompt')
     console.error('Failed to delete prompt:', e)
   } finally {
     isDeleting.value = false

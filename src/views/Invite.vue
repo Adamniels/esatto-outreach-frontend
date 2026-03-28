@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { authService } from '../services/auth'
+import { authService } from '@/services/auth'
 
 const email = ref('')
 const loading = ref(false)

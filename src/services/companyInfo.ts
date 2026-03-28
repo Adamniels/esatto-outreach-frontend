@@ -1,32 +1,7 @@
 import api from './api'
+import type { CompanyInfo, CompanyInfoUpdateDto, ProjectCase, ProjectCaseUpdateDto } from '@/types/companyInfo'
 
-export interface CompanyInfo {
-  id: string
-  name: string
-  overview: string
-  valueProposition: string
-}
-
-export interface CompanyInfoUpdateDto {
-  name: string
-  overview: string
-  valueProposition: string
-}
-
-export interface ProjectCase {
-  id: string
-  clientName: string
-  text: string
-  isActive: boolean
-}
-
-export interface ProjectCaseUpdateDto {
-  clientName: string
-  text: string
-  isActive: boolean
-}
-
-export const companyInfoAPI = {
+export const companyInfoApi = {
   // --- COMPANY INFO ---
   getCompanyInfo: async (): Promise<CompanyInfo> => {
     const response = await api.get('/settings/company-info')
@@ -58,3 +33,6 @@ export const companyInfoAPI = {
     await api.delete(`/settings/company-info/cases/${id}`)
   }
 }
+
+// Backward-compatible alias during migration
+export const companyInfoAPI = companyInfoApi

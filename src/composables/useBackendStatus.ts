@@ -17,7 +17,7 @@ export function useBackendStatus() {
       
       isOnline.value = response.status >= 200 && response.status < 500
       isChecking.value = false
-    } catch (error) {
+    } catch {
       isOnline.value = false
       isChecking.value = false
     }

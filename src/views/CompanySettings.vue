@@ -90,7 +90,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { companyInfoAPI, type CompanyInfo, type ProjectCase, type CompanyInfoUpdateDto, type ProjectCaseUpdateDto } from '@/services/companyInfo'
+import { companyInfoApi } from '@/features/settings/api/companyInfoApi'
+import type { CompanyInfo, ProjectCase, CompanyInfoUpdateDto, ProjectCaseUpdateDto } from '@/types/companyInfo'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { alertDialog, confirmDialog } from '@/shared/utils/dialog'
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -114,13 +117,14 @@ const loadData = async () => {
     error.value = null
     // Fallback if no company info is perfectly normal -> handle 404
     try {
-      companyInfo.value = await companyInfoAPI.getCompanyInfo()
-    } catch (e: any) {
-      if (e.response?.status !== 404) throw e
+      companyInfo.value = await companyInfoApi.getCompanyInfo()
+    } catch (e: unknown) {
+      const apiErr = e as { response?: { status?: number } }
+      if (apiErr.response?.status !== 404) throw e
     }
-    cases.value = await companyInfoAPI.getProjectCases()
-  } catch (e: any) {
-    error.value = e.response?.data?.error || 'Could not load data'
+    cases.value = await companyInfoApi.getProjectCases()
+  } catch (e: unknown) {
+    error.value = getApiErrorMessage(e, 'Could not load data')
   } finally {
     loading.value = false
   }
@@ -130,14 +134,14 @@ const saveCompanyInfo = async () => {
   if (!companyInfo.value) return
   savingInfo.value = true
   try {
-    companyInfo.value = await companyInfoAPI.updateCompanyInfo({
+    companyInfo.value = await companyInfoApi.updateCompanyInfo({
       name: companyInfo.value.name,
       overview: companyInfo.value.overview,
       valueProposition: companyInfo.value.valueProposition
     })
-    alert('Company info saved!')
-  } catch (e: any) {
-    alert('Failed to save company info')
+    alertDialog('Company info saved!')
+  } catch (e: unknown) {
+    alertDialog('Failed to save company info')
   } finally {
     savingInfo.value = false
   }
@@ -146,10 +150,10 @@ const saveCompanyInfo = async () => {
 const createCompanyInfo = async () => {
   savingInfo.value = true
   try {
-    companyInfo.value = await companyInfoAPI.updateCompanyInfo(newCompanyInfo.value)
-    alert('Company info created!')
-  } catch (e: any) {
-    alert('Failed to create company info')
+    companyInfo.value = await companyInfoApi.updateCompanyInfo(newCompanyInfo.value)
+    alertDialog('Company info created!')
+  } catch (e: unknown) {
+    alertDialog('Failed to create company info')
   } finally {
     savingInfo.value = false
   }
@@ -158,12 +162,12 @@ const createCompanyInfo = async () => {
 const addCase = async () => {
   savingCase.value = true
   try {
-    const created = await companyInfoAPI.createProjectCase(newCase.value)
+    const created = await companyInfoApi.createProjectCase(newCase.value)
     cases.value.unshift(created)
     showAddCase.value = false
     newCase.value = { clientName: '', text: '', isActive: true }
-  } catch (e) {
-    alert('Failed to create case')
+  } catch (e: unknown) {
+    alertDialog('Failed to create case')
   } finally {
     savingCase.value = false
   }
@@ -171,24 +175,24 @@ const addCase = async () => {
 
 const updateCase = async (pc: ProjectCase) => {
   try {
-    await companyInfoAPI.updateProjectCase(pc.id, {
+    await companyInfoApi.updateProjectCase(pc.id, {
       clientName: pc.clientName,
       text: pc.text,
       isActive: pc.isActive
     })
-    alert('Case updated')
-  } catch (e) {
-    alert('Failed to update case')
+    alertDialog('Case updated')
+  } catch (e: unknown) {
+    alertDialog('Failed to update case')
   }
 }
 
 const deleteCase = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this case?')) return
+  if (!confirmDialog('Are you sure you want to delete this case?')) return
   try {
-    await companyInfoAPI.deleteProjectCase(id)
+    await companyInfoApi.deleteProjectCase(id)
     cases.value = cases.value.filter(c => c.id !== id)
-  } catch (e) {
-    alert('Failed to delete case')
+  } catch (e: unknown) {
+    alertDialog('Failed to delete case')
   }
 }
 </script>

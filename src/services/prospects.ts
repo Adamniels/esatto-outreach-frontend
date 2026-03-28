@@ -1,13 +1,7 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto, EmailDraft } from '@/types/prospect';
 
-export interface EmailDraft {
-  title: string
-  bodyPlain: string
-  bodyHTML: string
-}
-
-export const prospectsAPI = {
+export const prospectsApi = {
   // Lista alla prospects
   getAll: async (): Promise<Prospect[]> => {
     const response = await api.get('/prospects');
@@ -32,7 +26,7 @@ export const prospectsAPI = {
     return response.data;
   },
 
-  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<EmailDraft | Prospect | string> => {
     const url = type
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
@@ -41,7 +35,7 @@ export const prospectsAPI = {
   },
 
   // Generera LinkedIn-utkast
-  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<unknown> => {
+  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<Prospect | { linkedInMessage?: string }> => {
     const url = type
       ? `/prospects/${id}/linkedin/draft?type=${type}`
       : `/prospects/${id}/linkedin/draft`;
@@ -136,9 +130,13 @@ export const prospectsAPI = {
 };
 
 // Health check
-export const healthAPI = {
+export const healthApi = {
   check: async () => {
     const response = await api.get('/healthz');
     return response.data;
   }
 };
+
+// Backward-compatible aliases during migration
+export const prospectsAPI = prospectsApi;
+export const healthAPI = healthApi;

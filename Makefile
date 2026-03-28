@@ -1,4 +1,4 @@
-.PHONY: install dev build preview
+.PHONY: install dev build preview test lint typecheck
 
 # Frontend Makefile
 
@@ -18,6 +18,14 @@ preview:
 	@echo "Previewing Production Build..."
 	npm run preview
 
-# Placeholder for when you add frontend tests (like Vitest)
 test:
-	@echo "No tests configured yet. Install Vitest -> npm i -D vitest"
+	@echo "Running frontend tests..."
+	npm run test
+
+lint:
+	@echo "Linting frontend..."
+	npm run lint
+
+typecheck:
+	@echo "Typechecking frontend..."
+	npm run typecheck

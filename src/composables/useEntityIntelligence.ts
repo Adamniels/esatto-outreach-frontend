@@ -1,6 +1,7 @@
 import { ref } from 'vue';
-import { prospectsAPI } from '@/services/prospects';
+import { prospectsApi } from '@/features/prospects/api/prospectsApi';
 import type { EntityIntelligenceDto } from '@/types/prospect';
+import { getApiErrorMessage } from '@/shared/utils/apiError';
 
 export function useEntityIntelligence() {
     const loading = ref(false);
@@ -14,10 +15,10 @@ export function useEntityIntelligence() {
         error.value = null;
 
         try {
-            const data = await prospectsAPI.enrichProspect(prospectId);
+            const data = await prospectsApi.enrichProspect(prospectId);
             return data;
-        } catch (err: any) {
-            error.value = err.response?.data?.error || err.response?.data?.detail || err.message || 'Failed to enrich prospect data';
+        } catch (err: unknown) {
+            error.value = getApiErrorMessage(err, 'Failed to enrich prospect data');
             throw err;
         } finally {
             loading.value = false;

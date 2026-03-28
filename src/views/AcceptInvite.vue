@@ -106,8 +106,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuth } from '../composables/useAuth';
-import { authService } from '../services/auth';
+import { useAuth } from '@/composables/useAuth';
+import { authService } from '@/services/auth';
 
 const route = useRoute();
 const { acceptInvitation } = useAuth();

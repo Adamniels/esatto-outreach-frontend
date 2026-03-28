@@ -1,7 +1,7 @@
 import api from './api';
 import type { OutreachPrompt, CreateOutreachPromptRequest, UpdateOutreachPromptRequest, PromptType } from '@/types/outreachPrompt';
 
-export const outreachPromptsAPI = {
+export const outreachPromptsApi = {
   // Hämta aktiv prompt per typ
   getActive: async (type: PromptType): Promise<OutreachPrompt | null> => {
     try {
@@ -44,3 +44,6 @@ export const outreachPromptsAPI = {
     await api.delete(`/settings/outreach-prompts/${id}`);
   }
 };
+
+// Backward-compatible alias during migration
+export const outreachPromptsAPI = outreachPromptsApi;

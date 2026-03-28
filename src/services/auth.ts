@@ -6,8 +6,9 @@ import type {
   RefreshTokenRequest,
   ValidateInvitationResponse,
   AcceptInvitationRequest,
-  CreateInvitationResponse
-} from '../types/auth';
+  CreateInvitationResponse,
+  User
+} from '@/types/auth';
 
 export const authService = {
   async register(data: RegisterRequest): Promise<AuthResponse> {
@@ -57,9 +58,9 @@ export const authService = {
     return localStorage.getItem('refreshToken');
   },
 
-  getUser(): any {
+  getUser(): User | null {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    return userStr ? (JSON.parse(userStr) as User) : null;
   },
 
   clearTokens(): void {
