@@ -51,7 +51,29 @@
             </router-link>
             
             <router-link
+              to="/invite"
+              class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              active-class="bg-gray-100 text-gray-900"
+            >
+              <svg class="mr-3 w-5 h-5 text-gray-400 group-hover:text-gray-500 group-[.router-link-active]:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+              </svg>
+              Invite
+            </router-link>
+            
+            <router-link
               to="/settings"
+              class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              active-class="bg-gray-100 text-gray-900"
+            >
+              <svg class="mr-3 w-5 h-5 text-gray-400 group-hover:text-gray-500 group-[.router-link-active]:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              User Settings
+            </router-link>
+            
+            <router-link
+              to="/company-settings"
               class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               active-class="bg-gray-100 text-gray-900"
             >
@@ -59,7 +81,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               </svg>
-              Settings
+              Company Settings
             </router-link>
           </div>
 
@@ -104,16 +126,6 @@
           <router-view />
         </main>
       </div>
-      
-      <!-- Global Batch Complete Toast -->
-      <BatchCompleteToast
-        :show="completeNotification.show"
-        :type="completeNotification.type"
-        :title="completeNotification.title"
-        :message="completeNotification.message"
-        @close="hideCompleteNotification"
-        @view-details="navigateToProspects"
-      />
     </div>
 
     <!-- Auth views (login/register) without sidebar -->
@@ -126,19 +138,11 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBackendStatus } from '@/composables/useBackendStatus'
 import { useAuth } from '@/composables/useAuth'
-import { useBatchOperations } from '@/composables/useBatchOperations'
-import BatchCompleteToast from '@/components/BatchCompleteToast.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { isOnline, isChecking } = useBackendStatus()
 const { user, isAuthenticated, logout } = useAuth()
-const { completeNotification, hideCompleteNotification } = useBatchOperations()
-
-const navigateToProspects = () => {
-  hideCompleteNotification()
-  router.push('/prospects')
-}
 
 const pageTitle = computed(() => {
   switch (route.path) {
@@ -147,7 +151,11 @@ const pageTitle = computed(() => {
     case '/prospects':
       return 'Prospects'
     case '/settings':
-      return 'Settings'
+      return 'User Settings'
+    case '/company-settings':
+      return 'Company Settings'
+    case '/invite':
+      return 'Invite'
     default:
       return 'Esatto Outreach'
   }

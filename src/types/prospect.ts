@@ -10,30 +10,26 @@ export const ProspectStatus = {
 
 export type ProspectStatus = typeof ProspectStatus[keyof typeof ProspectStatus];
 
-// Nested types for Capsule CRM data
+// CrmProvider from backend enum
+export enum CrmProvider {
+  None = 0,
+  Capsule = 1
+}
+
+// Nested types for CRM data
 export interface WebsiteDto {
   url?: string | null;
   service?: string | null;
   type?: string | null;
 }
 
-
-export interface AddressDto {
-  street?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zip?: string | null;
-  country?: string | null;
-  type?: string | null;
-}
-
-export interface CapsuleTag {
+export interface Tag {
   id: number;
   name: string;
   dataTag: boolean;
 }
 
-export interface CapsuleCustomField {
+export interface CustomField {
   id: number;
   fieldName?: string | null;
   fieldDefinitionId?: number | null;
@@ -44,18 +40,22 @@ export interface CapsuleCustomField {
 export interface Prospect {
   id: string;
   name: string;
-  isFromCapsule: boolean;
-  capsuleId?: number | null;
+
+  // CRM Identity
+  crmSource: CrmProvider;
+  externalCrmId?: string | null;
+
   isPending: boolean;
   about?: string | null;
   websites: WebsiteDto[];
-  addresses: AddressDto[];
-  tags: CapsuleTag[];
-  customFields: CapsuleCustomField[];
+  tags: Tag[];
+  customFields: CustomField[];
   pictureURL?: string | null;
-  capsuleCreatedAt?: string | null;
-  capsuleUpdatedAt?: string | null;
+
+  crmCreatedAt?: string | null;
+  crmUpdatedAt?: string | null;
   lastContactedAt?: string | null;
+
   notes?: string | null;
   status: ProspectStatus;
   createdUtc: string;
@@ -63,9 +63,13 @@ export interface Prospect {
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  linkedInMessage?: string | null;
   ownerId?: string | null;
   entityIntelligence?: EntityIntelligenceDto | null;
   contactPersons?: ContactPersonDto[];
+
+  // Helpers (frontend only)
+  isFromCrm?: boolean;
 }
 
 export interface CreateProspectRequest {
@@ -82,12 +86,14 @@ export interface UpdateProspectRequest {
   mailTitle?: string | null;
   mailBodyPlain?: string | null;
   mailBodyHTML?: string | null;
+  linkedInMessage?: string | null;
 }
 
 export interface PendingProspectDto {
   id: string;
   name: string;
-  capsuleId: number;
+  externalCrmId: string;
+  crmSource: CrmProvider;
   about?: string | null;
   pictureURL?: string | null;
   websites: WebsiteDto[];

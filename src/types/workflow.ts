@@ -22,8 +22,7 @@ export enum WorkflowStepType {
 
 export enum ContentGenerationStrategy {
     WebSearch = "WebSearch",
-    UseCollectedData = "UseCollectedData",
-    EsattoRag = "EsattoRag"
+    UseCollectedData = "UseCollectedData"
 }
 
 export interface WorkflowTemplateStep {

@@ -1,6 +1,7 @@
 import { ref, onMounted } from 'vue';
-import { prospectsAPI } from '@/services/prospects';
+import { prospectsApi } from '@/features/prospects/api/prospectsApi';
 import type { Prospect, CreateProspectRequest, UpdateProspectRequest, PendingProspectDto } from '@/types/prospect';
+import { getApiErrorMessage } from '@/shared/utils/apiError';
 
 export function useProspects() {
   const prospects = ref<Prospect[]>([]);
@@ -11,9 +12,9 @@ export function useProspects() {
     loading.value = true;
     error.value = null;
     try {
-      prospects.value = await prospectsAPI.getAll();
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Ett fel uppstod';
+      prospects.value = await prospectsApi.getAll();
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Ett fel uppstod');
     } finally {
       loading.value = false;
     }
@@ -22,11 +23,11 @@ export function useProspects() {
   const createProspect = async (data: CreateProspectRequest): Promise<Prospect | null> => {
     error.value = null;
     try {
-      const newProspect = await prospectsAPI.create(data);
+      const newProspect = await prospectsApi.create(data);
       prospects.value.push(newProspect);
       return newProspect;
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte skapa prospect';
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte skapa prospect');
       throw err;
     }
   };
@@ -34,14 +35,14 @@ export function useProspects() {
   const updateProspect = async (id: string, data: UpdateProspectRequest): Promise<Prospect | null> => {
     error.value = null;
     try {
-      const updatedProspect = await prospectsAPI.update(id, data);
+      const updatedProspect = await prospectsApi.update(id, data);
       const index = prospects.value.findIndex(p => p.id === id);
       if (index !== -1) {
         prospects.value[index] = updatedProspect;
       }
       return updatedProspect;
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte uppdatera prospect';
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte uppdatera prospect');
       throw err;
     }
   };
@@ -49,10 +50,10 @@ export function useProspects() {
   const deleteProspect = async (id: string): Promise<void> => {
     error.value = null;
     try {
-      await prospectsAPI.delete(id);
+      await prospectsApi.delete(id);
       prospects.value = prospects.value.filter(p => p.id !== id);
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte ta bort prospect';
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte ta bort prospect');
       throw err;
     }
   };
@@ -62,9 +63,9 @@ export function useProspects() {
   const fetchPendingProspects = async (): Promise<PendingProspectDto[]> => {
     error.value = null;
     try {
-      return await prospectsAPI.getPending();
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte hämta pending prospects';
+      return await prospectsApi.getPending();
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte hämta pending prospects');
       throw err;
     }
   };
@@ -72,11 +73,11 @@ export function useProspects() {
   const claimProspect = async (id: string): Promise<Prospect | null> => {
     error.value = null;
     try {
-      const claimed = await prospectsAPI.claimPending(id);
+      const claimed = await prospectsApi.claimPending(id);
       prospects.value.push(claimed);
       return claimed;
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte claima prospect';
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte claima prospect');
       throw err;
     }
   };
@@ -84,9 +85,9 @@ export function useProspects() {
   const rejectProspect = async (id: string): Promise<void> => {
     error.value = null;
     try {
-      await prospectsAPI.rejectPending(id);
-    } catch (err: any) {
-      error.value = err.response?.data?.error || err.message || 'Kunde inte avvisa prospect';
+      await prospectsApi.rejectPending(id);
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, 'Kunde inte avvisa prospect');
       throw err;
     }
   };

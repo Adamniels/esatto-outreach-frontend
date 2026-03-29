@@ -7,7 +7,19 @@
       <h1 class="text-center mb-10 text-gray-900 text-[2.5rem] font-bold tracking-tight">Create account</h1>
       <form @submit.prevent="handleRegister">
         <div class="mb-7">
-          <label for="fullName" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Name (optional)</label>
+          <label for="companyName" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Company name</label>
+          <input 
+            id="companyName"
+            v-model="companyName" 
+            type="text" 
+            required 
+            placeholder="Your company name"
+            class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-lg text-base transition-all bg-neutral-50 focus:outline-none focus:border-[#ffb3c8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,179,200,0.15)]"
+          />
+        </div>
+
+        <div class="mb-7">
+          <label for="fullName" class="block mb-2.5 text-gray-900 font-medium text-[0.95rem]">Your name (optional)</label>
           <input 
             id="fullName"
             v-model="fullName" 
@@ -79,10 +91,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useAuth } from '../composables/useAuth';
+import { useAuth } from '@/composables/useAuth';
 
 const { register } = useAuth();
 
+const companyName = ref('');
 const fullName = ref('');
 const email = ref('');
 const password = ref('');
@@ -91,7 +104,8 @@ const error = ref('');
 const loading = ref(false);
 
 const isValidForm = computed(() => {
-  return email.value && 
+  return companyName.value.trim() &&
+         email.value && 
          password.value.length >= 8 && 
          password.value === confirmPassword.value;
 });
@@ -108,7 +122,8 @@ const handleRegister = async () => {
   const result = await register({
     email: email.value,
     password: password.value,
-    fullName: fullName.value || undefined
+    fullName: fullName.value || undefined,
+    companyName: companyName.value.trim()
   });
 
   loading.value = false;

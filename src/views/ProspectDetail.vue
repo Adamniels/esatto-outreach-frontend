@@ -120,7 +120,7 @@
 
       <!-- Tags Section -->
       <div v-if="prospect.tags && prospect.tags.length > 0" class="pb-6 border-b-2 border-gray-100">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tags from Capsule:</label>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tags:</label>
         <div class="flex flex-wrap gap-2">
           <span 
             v-for="tag in prospect.tags" 
@@ -135,7 +135,7 @@
 
       <!-- Custom Fields Section -->
       <div v-if="prospect.customFields && prospect.customFields.length > 0" class="pb-6 border-b-2 border-gray-100">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Custom Fields from Capsule:</label>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Custom Fields:</label>
         <div class="flex flex-col gap-2">
           <div 
             v-for="field in prospect.customFields" 
@@ -285,13 +285,38 @@
       </div>
 
       <!-- Write LinkedIn Message Tab -->
-      <div v-else-if="activeView === 'linkedin'" class="flex items-center justify-center h-[400px] bg-white rounded-xl border border-gray-200 border-dashed">
-        <div class="text-center">
-          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">LinkedIn Message</h3>
-          <p class="mt-1 text-sm text-gray-500">Feature coming soon.</p>
+      <div v-else-if="activeView === 'linkedin'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[850px]">
+        <!-- Left Column: Settings & Preview -->
+        <div class="lg:col-span-2 flex flex-col gap-4 h-full overflow-hidden">
+          <LinkedInGeneratorControls
+            v-model:selected-type="selectedLinkedInGeneratorType"
+            :is-generating="isGeneratingLinkedIn"
+            :show-clear="canResetLinkedInToBackend"
+            @generate="handleGenerateLinkedIn"
+            @clear="resetToBackendLinkedInDraft"
+          />
+
+          <LinkedInEditor
+            :body="generatedLinkedInMessage || ''"
+            :has-unsaved-changes="hasUnsavedLinkedInChanges"
+            :can-save="canSaveGeneratedLinkedIn"
+            :can-send="canSendLinkedIn"
+            :is-sending="isSendingLinkedIn"
+            @update:body="generatedLinkedInMessage = $event"
+            @save="saveGeneratedLinkedInMessage"
+            @send="handleSendLinkedIn"
+          />
+        </div>
+
+        <!-- Chat Section (Right) -->
+        <div class="lg:col-span-1 h-full bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <ChatBox 
+            v-if="prospect"
+            :prospectId="prospect.id"
+            :mailTitle="''"
+            :mailBodyPlain="generatedLinkedInMessage || ''"
+            @emailUpdated="handleLinkedInChatUpdated"
+          />
         </div>
       </div>
 
@@ -324,18 +349,27 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Prospect, EmailDraft, ProspectStatus, CreateContactPersonRequest, ContactPersonDto } from '../types/prospect'
-import { ProspectStatus as ProspectStatusEnum, statusLabels } from '../types/prospect'
-import { prospectsAPI } from '../services/prospects'
-import ChatBox from '../components/ChatBox.vue'
-import EnrichDataButton from '../components/EnrichDataButton.vue'
-import EntityIntelligenceModal from '../components/EntityIntelligenceModal.vue'
-import ContactPersonModal from '../components/ContactPersonModal.vue'
-import ContactPersonCard from '../components/prospect/ContactPersonCard.vue'
-import EmailEditor from '../components/prospect/EmailEditor.vue'
-import EmailGeneratorControls from '../components/prospect/EmailGeneratorControls.vue'
-import WorkflowTab from '../components/prospect/WorkflowTab.vue'
-import { useEntityIntelligence } from '../composables/useEntityIntelligence'
+import type { Prospect, EmailDraft, ProspectStatus, CreateContactPersonRequest, ContactPersonDto } from '@/types/prospect'
+import { ProspectStatus as ProspectStatusEnum, statusLabels } from '@/types/prospect'
+import { prospectsApi } from '@/features/prospects/api/prospectsApi'
+import ChatBox from '@/components/ChatBox.vue'
+import EnrichDataButton from '@/components/EnrichDataButton.vue'
+import EntityIntelligenceModal from '@/components/EntityIntelligenceModal.vue'
+import ContactPersonModal from '@/components/ContactPersonModal.vue'
+import ContactPersonCard from '@/components/prospect/ContactPersonCard.vue'
+import EmailEditor from '@/components/prospect/EmailEditor.vue'
+import EmailGeneratorControls from '@/components/prospect/EmailGeneratorControls.vue'
+import LinkedInEditor from '@/components/prospect/LinkedInEditor.vue'
+import LinkedInGeneratorControls from '@/components/prospect/LinkedInGeneratorControls.vue'
+import WorkflowTab from '@/components/prospect/WorkflowTab.vue'
+import { useEntityIntelligence } from '@/composables/useEntityIntelligence'
+import { useProspectEditForm } from '@/features/prospects/composables/useProspectEditForm'
+import { clearStoredDraft, loadDraftFromStorage, storeDraft } from '@/features/prospects/composables/useProspectDraftStorage'
+import { draftFromProspect, draftHasContent, extractEmailDraft, htmlToPlainText } from '@/features/prospects/composables/useProspectDraftUtils'
+import { getProspectStatusClass } from '@/shared/utils/prospectStatus'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { alertDialog, confirmDialog } from '@/shared/utils/dialog'
+import { splitLines } from '@/shared/utils/text'
 
 const route = useRoute()
 const router = useRouter()
@@ -351,7 +385,14 @@ const isGenerating = ref(false)
 const isSendingEmail = ref(false)
 const generatedEmail = ref<EmailDraft | null>(null)
 const originalServerDraft = ref<EmailDraft | null>(null)
+
+const isGeneratingLinkedIn = ref(false)
+const isSendingLinkedIn = ref(false)
+const generatedLinkedInMessage = ref<string | null>(null)
+const originalServerLinkedInDraft = ref<string | null>(null)
+
 const hasUnsavedChatChanges = ref(false)
+const hasUnsavedLinkedInChatChanges = ref(false)
 const activeView = ref<'email' | 'linkedin' | 'workflow'>('email')
 
 // Entity Intelligence State
@@ -367,136 +408,22 @@ const enrichingContactId = ref<string | null>(null)
 // Email Generator Type State
 const emailGeneratorTypes = [
   { value: 'WebSearch' as const, label: 'Web Search' },
-  { value: 'UseCollectedData' as const, label: 'Use Collected Data' },
-  { value: 'EsattoRag' as const, label: 'Esatto RAG' }
+  { value: 'UseCollectedData' as const, label: 'Use Collected Data' }
 ]
-const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData' | 'EsattoRag'>('WebSearch')
+const selectedEmailGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
+const selectedLinkedInGeneratorType = ref<'WebSearch' | 'UseCollectedData'>('WebSearch')
 
 // Edit Mode State
-const isEditing = ref(false)
-const isSaving = ref(false)
-const formData = ref({
-  name: '',
-  websitesText: '',
-  status: 0 as ProspectStatus,
-  notes: ''
-})
-
-// Helper functions for array conversion
-const splitLines = (text: string): string[] => {
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-}
-
-const arrayToText = (arr: Array<{ url?: string | null; address?: string | null; number?: string | null }>): string => {
-  return arr
-    .map(item => item.url || item.address || item.number || '')
-    .filter(Boolean)
-    .join('\n')
-}
-
-// Storage helper
-const storageKey = (id: string) => `generatedEmail_${id}`
-
-// Helper functions
-function pickString(source: Record<string, unknown>, keys: readonly string[]) {
-  for (const key of keys) {
-    const value = source[key]
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
-  }
-  return undefined
-}
-
-function extractEmailDraft(payload: unknown): EmailDraft | null {
-  if (!payload) return null
-
-  if (typeof payload === 'string') {
-    const plain = payload.trim()
-    return plain ? { mailBodyPlain: plain } : null
-  }
-
-  if (typeof payload === 'object') {
-    const data = payload as Record<string, unknown>
-
-    let mailTitle = pickString(data, ['mailTitle', 'MailTitle'])
-    let mailBodyPlain = pickString(data, ['mailBodyPlain', 'MailBodyPlain'])
-    let mailBodyHTML = pickString(data, ['mailBodyHTML', 'MailBodyHTML'])
-
-    if (!mailTitle) {
-      mailTitle = pickString(data, ['subject', 'title', 'mail_title'])
-    }
-
-    if (!mailBodyPlain) {
-      mailBodyPlain = pickString(data, ['draft', 'email', 'body', 'text', 'content', 'MailBodyPlain', 'mail_body_plain'])
-    }
-
-    if (!mailBodyHTML) {
-      mailBodyHTML = pickString(data, ['html', 'mailBodyHTML', 'MailBodyHTML', 'mail_body_html'])
-    }
-
-    if (mailTitle || mailBodyPlain || mailBodyHTML) {
-      return { mailTitle, mailBodyPlain, mailBodyHTML }
-    }
-  }
-
-  return null
-}
-
-function htmlToPlainText(html: string) {
-  return html
-    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-    .replace(/<\s*\/p\s*>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function draftHasContent(draft: EmailDraft | null | undefined): draft is EmailDraft {
-  if (!draft) return false
-  return Boolean(
-    (draft.mailTitle && draft.mailTitle.trim()) ||
-    (draft.mailBodyPlain && draft.mailBodyPlain.trim()) ||
-    (draft.mailBodyHTML && draft.mailBodyHTML.trim())
-  )
-}
-
-function loadDraftFromStorage(id: string): EmailDraft | null {
-  try {
-    const stored = localStorage.getItem(storageKey(id))
-    if (!stored) return null
-    try {
-      return extractEmailDraft(JSON.parse(stored))
-    } catch (e) {
-      return extractEmailDraft(stored)
-    }
-  } catch (e) {
-    return null
-  }
-}
-
-function storeDraft(id: string, draft: EmailDraft) {
-  if (!draftHasContent(draft)) return
-  try { localStorage.setItem(storageKey(id), JSON.stringify(draft)) } catch (e) {}
-}
-
-function clearStoredDraft(id: string) {
-  try { localStorage.removeItem(storageKey(id)) } catch (e) {}
-}
-
-function draftFromProspect(p: Prospect | null): EmailDraft | null {
-  if (!p) return null
-  const { mailTitle, mailBodyPlain, mailBodyHTML } = p
-  if (!mailTitle && !mailBodyPlain && !mailBodyHTML) return null
-  return {
-    mailTitle: mailTitle?.trim() || undefined,
-    mailBodyPlain: mailBodyPlain?.trim() || undefined,
-    mailBodyHTML: mailBodyHTML?.trim() || undefined
-  }
-}
+const {
+  isEditing,
+  isSaving,
+  formData,
+  isFormValid,
+  startEditing,
+  hasUnsavedEditChanges,
+  cancelEditing,
+  buildUpdatePayload
+} = useProspectEditForm(prospect)
 
 function syncDraftState() {
   if (!prospect.value) return
@@ -524,10 +451,6 @@ function syncDraftState() {
 }
 
 // Computed properties
-const isFormValid = computed(() => {
-  return formData.value.name.trim().length > 0
-})
-
 const hasGeneratedEmail = computed(() => generatedEmail.value !== null)
 const hasGeneratedEmailContent = computed(() => draftHasContent(generatedEmail.value))
 
@@ -584,6 +507,39 @@ const canSendEmail = computed(() => {
   return hasSavedContent && !isSendingEmail.value
 })
 
+const hasGeneratedLinkedInContent = computed(() => !!generatedLinkedInMessage.value?.trim())
+
+const hasUnsavedLinkedInChanges = computed(() => {
+  if (hasUnsavedLinkedInChatChanges.value) return true
+  
+  const current = generatedLinkedInMessage.value?.trim() || ''
+  const original = originalServerLinkedInDraft.value?.trim() || ''
+
+  return current !== original
+})
+
+const canSaveGeneratedLinkedIn = computed(() => 
+  hasGeneratedLinkedInContent.value && !isGeneratingLinkedIn.value && hasUnsavedLinkedInChanges.value
+)
+
+const canResetLinkedInToBackend = computed(() => {
+  const serverDraft = originalServerLinkedInDraft.value
+  if (!serverDraft?.trim()) return false
+  
+  const current = generatedLinkedInMessage.value?.trim() || ''
+  const serverText = serverDraft.trim() || ''
+  
+  return current !== serverText
+})
+
+const canSendLinkedIn = computed(() => {
+  const p = prospect.value
+  if (!p || !p.contactPersons || p.contactPersons.length === 0) return false
+  
+  const hasSavedContent = Boolean(p.linkedInMessage && p.linkedInMessage.trim())
+  return hasSavedContent && !isSendingLinkedIn.value
+})
+
 const generatedEmailSubject = computed({
   get: () => generatedEmail.value?.mailTitle ?? '',
   set: value => {
@@ -628,53 +584,7 @@ const generatedEmailBody = computed({
 })
 
 // Status -> local CSS class names
-const getStatusClass = (status: number) => {
-  switch (status) {
-    case 0: return 'bg-blue-100 text-blue-800'
-    case 1: return 'bg-amber-100 text-amber-800'
-    case 2: return 'bg-purple-100 text-purple-800'
-    case 3: return 'bg-indigo-100 text-indigo-800'
-    case 4: return 'bg-emerald-100 text-emerald-800'
-    case 5: return 'bg-gray-100 text-gray-600'
-    default: return 'bg-gray-100 text-gray-600'
-  }
-}
-
-// Edit Mode Actions
-function startEditing() {
-  if (!prospect.value) return
-  
-  // Populate form with current values
-  formData.value = {
-    name: prospect.value.name,
-    websitesText: arrayToText(prospect.value.websites),
-    status: prospect.value.status,
-    notes: prospect.value.notes || ''
-  }
-  
-  isEditing.value = true
-}
-
-function cancelEditing() {
-  if (hasUnsavedEditChanges()) {
-    if (!confirm('You have unsaved changes. Do you really want to cancel?')) {
-      return
-    }
-  }
-  
-  isEditing.value = false
-}
-
-function hasUnsavedEditChanges(): boolean {
-  if (!prospect.value) return false
-  
-  return (
-    formData.value.name !== prospect.value.name ||
-    formData.value.websitesText !== arrayToText(prospect.value.websites) ||
-    formData.value.status !== prospect.value.status ||
-    formData.value.notes !== (prospect.value.notes || '')
-  )
-}
+const getStatusClass = (status: ProspectStatus) => getProspectStatusClass(status)
 
 async function saveChanges() {
   if (!prospect.value || !isFormValid.value) return
@@ -683,26 +593,12 @@ async function saveChanges() {
   error.value = null
   
   try {
-    const updatePayload: Record<string, any> = {
-      name: formData.value.name.trim(),
-      websites: splitLines(formData.value.websitesText),
-      status: formData.value.status,
-      notes: formData.value.notes.trim() || undefined
-    }
-    
-    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    const updated = await prospectsApi.update(prospect.value.id, buildUpdatePayload())
     prospect.value = updated
     isEditing.value = false
-    
-    // Show success message briefly
-    const successMsg = document.createElement('div')
-    successMsg.textContent = 'Changes saved'
-    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
-    document.body.appendChild(successMsg)
-    setTimeout(() => successMsg.remove(), 3000)
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Could not save changes'
-    alert(`Error: ${error.value}`)
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Could not save changes')
+    alertDialog(`Error: ${error.value}`)
   } finally {
     isSaving.value = false
   }
@@ -756,7 +652,7 @@ async function fetchProspect(background = false) {
   try {
     if (!background) loading.value = true
     error.value = null
-    prospect.value = await prospectsAPI.getById(id)
+    prospect.value = await prospectsApi.getById(id)
     
     console.log('ProspectDetail: Loaded prospect', {
       id: prospect.value.id,
@@ -778,8 +674,11 @@ async function fetchProspect(background = false) {
         generatedEmail.value = loadDraftFromStorage(prospect.value.id)
       }
     }
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Kunde inte ladda prospect'
+
+    originalServerLinkedInDraft.value = prospect.value.linkedInMessage || null
+    generatedLinkedInMessage.value = originalServerLinkedInDraft.value
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Kunde inte ladda prospect')
     console.error('Error fetching prospect:', err)
   } finally {
     loading.value = false
@@ -791,7 +690,7 @@ const handleGenerateEmail = async () => {
   const prospectId = prospect.value.id
   isGenerating.value = true
   try {
-    const response = await prospectsAPI.generateEmailDraft(prospect.value.id, selectedEmailGeneratorType.value)
+    const response = await prospectsApi.generateEmailDraft(prospect.value.id, selectedEmailGeneratorType.value)
     const draft = extractEmailDraft(response)
 
     if (!draft) {
@@ -803,9 +702,8 @@ const handleGenerateEmail = async () => {
     storeDraft(prospectId, draft)
     // Återställ chat-flaggan när nytt mejl genereras
     hasUnsavedChatChanges.value = false
-  } catch (err: any) {
-    const message = err.response?.data?.error || err.message || 'Kunde inte generera mejl'
-    alert(message)
+  } catch (err: unknown) {
+    alertDialog(getApiErrorMessage(err, 'Kunde inte generera mejl'))
   } finally {
     isGenerating.value = false
   }
@@ -850,15 +748,14 @@ const saveGeneratedEmail = async () => {
       updatePayload.status = ProspectStatusEnum.Drafted
     }
 
-    const updated = await prospectsAPI.update(prospect.value.id, updatePayload)
+    const updated = await prospectsApi.update(prospect.value.id, updatePayload)
     prospect.value = updated
     originalServerDraft.value = draftFromProspect(updated)
     generatedEmail.value = originalServerDraft.value
     storeDraft(updated.id, generatedEmail.value!)
     hasUnsavedChatChanges.value = false
-  } catch (err: any) {
-    const message = err.response?.data?.error || err.message || 'Kunde inte spara mejl'
-    alert(message)
+  } catch (err: unknown) {
+    alertDialog(getApiErrorMessage(err, 'Kunde inte spara mejl'))
   } finally {
     isGenerating.value = false
   }
@@ -866,25 +763,19 @@ const saveGeneratedEmail = async () => {
 
 const handleSendEmail = async () => {
   if (!prospect.value) return
-  // Beuser bekräfta först
+  // Ask for confirmation before simulating a send
   const recipient = prospect.value.contactPersons?.[0]?.email || prospect.value.name
-  if (!confirm(`Ska vi skicka mejlet till ${recipient}?`)) {
+  if (!confirmDialog(`This is a mock. Should we simulate sending an email to ${recipient}?`)) {
     return
   }
 
   isSendingEmail.value = true
-  try {
-    await prospectsAPI.sendEmail(prospect.value.id)
-    alert('Mejl skickat via n8n!')
-    
-    const updated = await prospectsAPI.getById(prospect.value.id)
-    prospect.value = updated
-  } catch (err: any) {
-    const message = err.response?.data?.error || err.message || 'Kunde inte skicka mejl'
-    alert(message)
-  } finally {
-    isSendingEmail.value = false
-  }
+
+  // Simulate network request
+  await new Promise(resolve => setTimeout(resolve, 1500))
+
+  alertDialog('Mock email sent successfully!')
+  isSendingEmail.value = false
 }
 
 // Hantera uppdateringar från chatten
@@ -910,6 +801,97 @@ const handleEmailUpdated = (data: { mailTitle?: string; mailBodyPlain?: string; 
   syncDraftState()
 }
 
+const handleGenerateLinkedIn = async () => {
+  if (!prospect.value) return
+  const prospectId = prospect.value.id
+  isGeneratingLinkedIn.value = true
+  try {
+    const response = await prospectsApi.generateLinkedInDraft(prospect.value.id, selectedLinkedInGeneratorType.value)
+    const message = typeof response === 'object' && response !== null && 'linkedInMessage' in response
+      ? response.linkedInMessage
+      : undefined
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      throw new Error('Ingen LinkedIn-text genererades')
+    }
+
+    generatedLinkedInMessage.value = message.trim()
+    prospect.value = { ...prospect.value, linkedInMessage: message.trim() }
+    hasUnsavedLinkedInChatChanges.value = false
+  } catch (err: unknown) {
+    alertDialog(getApiErrorMessage(err, 'Kunde inte generera LinkedIn-meddelande'))
+  } finally {
+    isGeneratingLinkedIn.value = false
+  }
+}
+
+const clearGeneratedLinkedIn = () => {
+  if (!prospect.value) return
+  generatedLinkedInMessage.value = null
+  originalServerLinkedInDraft.value = null
+  hasUnsavedLinkedInChatChanges.value = false
+  prospect.value = {
+    ...prospect.value,
+    linkedInMessage: undefined
+  }
+}
+
+const resetToBackendLinkedInDraft = () => {
+  if (!originalServerLinkedInDraft.value) return
+  generatedLinkedInMessage.value = originalServerLinkedInDraft.value
+  hasUnsavedLinkedInChatChanges.value = false
+}
+
+const saveGeneratedLinkedInMessage = async () => {
+  if (!prospect.value) return
+  const draftBody = generatedLinkedInMessage.value
+  if (!draftBody) return
+  
+  isGeneratingLinkedIn.value = true
+  try {
+    const updatePayload: Record<string, any> = {
+      linkedInMessage: draftBody.trim() || undefined
+    }
+
+    if (prospect.value.status === ProspectStatusEnum.Researched || prospect.value.status === ProspectStatusEnum.New) {
+      updatePayload.status = ProspectStatusEnum.Drafted
+    }
+
+    const updated = await prospectsApi.update(prospect.value.id, updatePayload)
+    prospect.value = updated
+    originalServerLinkedInDraft.value = updated.linkedInMessage || null
+    generatedLinkedInMessage.value = originalServerLinkedInDraft.value
+    hasUnsavedLinkedInChatChanges.value = false
+  } catch (err: unknown) {
+    alertDialog(getApiErrorMessage(err, 'Kunde inte spara LinkedIn-meddelande'))
+  } finally {
+    isGeneratingLinkedIn.value = false
+  }
+}
+
+const handleSendLinkedIn = async () => {
+  if (!prospect.value) return
+  const recipient = prospect.value.contactPersons?.[0]?.name || prospect.value.name
+  if (!confirmDialog(`This is a mock. Should we simulate sending a LinkedIn message to ${recipient}?`)) {
+    return
+  }
+
+  isSendingLinkedIn.value = true
+  
+  // Simulate network request
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  
+  alertDialog('Mock LinkedIn message sent successfully!')
+  isSendingLinkedIn.value = false
+}
+
+const handleLinkedInChatUpdated = (data: { mailBodyPlain?: string }) => {
+  if (!prospect.value || !data.mailBodyPlain) return
+  
+  generatedLinkedInMessage.value = data.mailBodyPlain
+  hasUnsavedLinkedInChatChanges.value = true
+}
+
 function openAddContactModal() {
   editingContact.value = null
   showContactModal.value = true
@@ -929,7 +911,7 @@ async function handleSaveContact(data: CreateContactPersonRequest) {
      
      if (editingContact.value) {
         // Update existing
-        savedContact = await prospectsAPI.updateContact(prospect.value.id, editingContact.value.id, data)
+        savedContact = await prospectsApi.updateContact(prospect.value.id, editingContact.value.id, data)
         // Update local list
         const index = prospect.value.contactPersons?.findIndex(c => c.id === savedContact.id)
         if (index !== undefined && index !== -1 && prospect.value.contactPersons) {
@@ -937,7 +919,7 @@ async function handleSaveContact(data: CreateContactPersonRequest) {
         }
      } else {
         // Create new
-        savedContact = await prospectsAPI.addContact(prospect.value.id, data)
+        savedContact = await prospectsApi.addContact(prospect.value.id, data)
         if (!prospect.value.contactPersons) {
            prospect.value.contactPersons = []
         }
@@ -945,22 +927,22 @@ async function handleSaveContact(data: CreateContactPersonRequest) {
      }
      
      showContactModal.value = false
-  } catch(err: any) {
-     alert('Failed to save contact: ' + (err.response?.data?.error || err.message))
+  } catch(err: unknown) {
+     alertDialog('Failed to save contact: ' + getApiErrorMessage(err, 'Unexpected error'))
   } finally {
      isSavingContact.value = false
   }
 }
 
 async function handleDeleteContact(contact: ContactPersonDto) {
-   if (!prospect.value || !confirm(`Are you sure you want to delete ${contact.name}?`)) return
+   if (!prospect.value || !confirmDialog(`Are you sure you want to delete ${contact.name}?`)) return
    
    try {
-      await prospectsAPI.deleteContact(prospect.value.id, contact.id)
+      await prospectsApi.deleteContact(prospect.value.id, contact.id)
       // Remove from local list
       prospect.value.contactPersons = prospect.value.contactPersons?.filter(c => c.id !== contact.id)
-   } catch(err: any) {
-      alert('Failed to delete contact: ' + (err.response?.data?.error || err.message))
+   } catch(err: unknown) {
+      alertDialog('Failed to delete contact: ' + getApiErrorMessage(err, 'Unexpected error'))
    }
 }
 
@@ -969,7 +951,7 @@ async function handleEnrichContact(contact: ContactPersonDto) {
    
    enrichingContactId.value = contact.id
    try {
-      const enriched = await prospectsAPI.enrichContact(prospect.value.id, contact.id)
+      const enriched = await prospectsApi.enrichContact(prospect.value.id, contact.id)
       
       // Update local contact with enriched data
       const index = prospect.value.contactPersons?.findIndex(c => c.id === enriched.id)
@@ -977,9 +959,9 @@ async function handleEnrichContact(contact: ContactPersonDto) {
          prospect.value.contactPersons[index] = enriched
       }
       
-      alert(`Successfully enriched ${contact.name}!`)
-   } catch(err: any) {
-      alert('Failed to enrich contact: ' + (err.response?.data?.error || err.message))
+      alertDialog(`Successfully enriched ${contact.name}!`)
+   } catch(err: unknown) {
+      alertDialog('Failed to enrich contact: ' + getApiErrorMessage(err, 'Unexpected error'))
    } finally {
       enrichingContactId.value = null
    }
@@ -990,7 +972,7 @@ async function handleSetActiveContact(contact: ContactPersonDto) {
   if (!prospect.value) return
   
   try {
-    await prospectsAPI.setActiveContact(prospect.value.id, contact.id)
+    await prospectsApi.setActiveContact(prospect.value.id, contact.id)
     
     if (prospect.value.contactPersons) {
       prospect.value.contactPersons = prospect.value.contactPersons.map(c => ({
@@ -999,14 +981,10 @@ async function handleSetActiveContact(contact: ContactPersonDto) {
       }))
     }
     
-    const successMsg = document.createElement('div')
-    successMsg.textContent = `${contact.name} is now the active contact`
-    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
-    document.body.appendChild(successMsg)
-    setTimeout(() => successMsg.remove(), 3000)
-  } catch (err: any) {
-    const errMsg = err.response?.data?.error || 'Failed to set active contact'
-    alert(`Error: ${errMsg}`)
+    alertDialog(`${contact.name} is now the active contact`)
+  } catch (err: unknown) {
+    const errMsg = getApiErrorMessage(err, 'Failed to set active contact')
+    alertDialog(`Error: ${errMsg}`)
     console.error('Error setting active contact:', err)
   }
 }
@@ -1015,7 +993,7 @@ async function handleClearActiveContact(contact: ContactPersonDto) {
   if (!prospect.value) return
   
   try {
-    await prospectsAPI.clearActiveContact(prospect.value.id)
+    await prospectsApi.clearActiveContact(prospect.value.id)
     
     if (prospect.value.contactPersons) {
       prospect.value.contactPersons = prospect.value.contactPersons.map(c => ({
@@ -1024,14 +1002,10 @@ async function handleClearActiveContact(contact: ContactPersonDto) {
       }))
     }
     
-    const successMsg = document.createElement('div')
-    successMsg.textContent = 'Active contact cleared'
-    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
-    document.body.appendChild(successMsg)
-    setTimeout(() => successMsg.remove(), 3000)
-  } catch (err: any) {
-    const errMsg = err.response?.data?.error || 'Failed to clear active contact'
-    alert(`Error: ${errMsg}`)
+    alertDialog('Active contact cleared')
+  } catch (err: unknown) {
+    const errMsg = getApiErrorMessage(err, 'Failed to clear active contact')
+    alertDialog(`Error: ${errMsg}`)
     console.error('Error clearing active contact:', err)
   }
 }

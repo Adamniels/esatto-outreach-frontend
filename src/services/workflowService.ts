@@ -1,7 +1,7 @@
 import api from './api';
 import type { WorkflowTemplate, CreateWorkflowTemplateRequest, WorkflowInstance, ContentGenerationStrategy } from '@/types/workflow';
 
-export const workflowAPI = {
+export const workflowApi = {
     // Templates
     getAllTemplates: async (): Promise<WorkflowTemplate[]> => {
         const response = await api.get('/workflow-templates');
@@ -85,3 +85,6 @@ export const workflowAPI = {
         return response.data;
     }
 };
+
+// Backward-compatible alias during migration
+export const workflowAPI = workflowApi;

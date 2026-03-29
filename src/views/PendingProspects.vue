@@ -49,8 +49,8 @@
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-xl font-bold text-gray-900 mb-1 truncate">{{ prospect.name }}</h3>
-              <span v-if="prospect.capsuleId" class="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
-                Capsule ID: {{ prospect.capsuleId }}
+              <span v-if="prospect.externalCrmId" class="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
+                CRM ID: {{ prospect.externalCrmId }}
               </span>
             </div>
           </div>
@@ -106,8 +106,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import type { PendingProspectDto } from '../types/prospect'
-import { useProspects } from '../composables/useProspects'
+import type { PendingProspectDto } from '@/types/prospect'
+import { useProspects } from '@/composables/useProspects'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { alertDialog, confirmDialog } from '@/shared/utils/dialog'
 
 const router = useRouter()
 const { fetchPendingProspects, claimProspect, rejectProspect } = useProspects()
@@ -127,8 +129,8 @@ const loadPendingProspects = async () => {
   try {
     const data = await fetchPendingProspects()
     pendingProspects.value = data
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Could not load pending prospects'
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Could not load pending prospects')
     console.error('Error fetching pending prospects:', err)
   } finally {
     loading.value = false
@@ -153,18 +155,12 @@ const handleClaim = async (id: string) => {
     // Remove from pending list
     pendingProspects.value = pendingProspects.value.filter(p => p.id !== id)
     
-    // Show success message
-    const successMsg = document.createElement('div')
-    successMsg.textContent = `${claimedProspect.name} has been added as a prospect`
-    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
-    document.body.appendChild(successMsg)
-    setTimeout(() => successMsg.remove(), 3000)
-    
     // Optionally redirect to the new prospect
     // router.push(`/prospects/${claimedProspect.id}`)
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Could not approve prospect'
-    alert(`Error: ${error.value}`)
+    alertDialog(`${claimedProspect.name} has been added as a prospect`)
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Could not approve prospect')
+    alertDialog(`Error: ${error.value}`)
   } finally {
     isProcessing.value = false
     processingId.value = null
@@ -178,7 +174,7 @@ const handleReject = async (id: string) => {
   const prospect = pendingProspects.value.find(p => p.id === id)
   if (!prospect) return
   
-  if (!confirm(`Are you sure you want to reject "${prospect.name}"?`)) {
+  if (!confirmDialog(`Are you sure you want to reject "${prospect.name}"?`)) {
     return
   }
   
@@ -192,15 +188,10 @@ const handleReject = async (id: string) => {
     // Remove from pending list
     pendingProspects.value = pendingProspects.value.filter(p => p.id !== id)
     
-    // Show success message
-    const successMsg = document.createElement('div')
-    successMsg.textContent = `${prospect.name} has been rejected`
-    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #6b7280; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 9999; font-weight: 500;'
-    document.body.appendChild(successMsg)
-    setTimeout(() => successMsg.remove(), 3000)
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Could not reject prospect'
-    alert(`Error: ${error.value}`)
+    alertDialog(`${prospect.name} has been rejected`)
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'Could not reject prospect')
+    alertDialog(`Error: ${error.value}`)
   } finally {
     isProcessing.value = false
     processingId.value = null

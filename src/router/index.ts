@@ -1,12 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authService } from '../services/auth'
-import Dashboard from '../views/Dashboard.vue'
-import Prospects from '../views/Prospects.vue'
-import ProspectDetail from '../views/ProspectDetail.vue'
-import PendingProspects from '../views/PendingProspects.vue'
-import Settings from '../views/Settings.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
+import { authService } from '@/services/auth'
+import Dashboard from '@/views/Dashboard.vue'
+import Prospects from '@/views/Prospects.vue'
+import ProspectDetail from '@/views/ProspectDetail.vue'
+import PendingProspects from '@/views/PendingProspects.vue'
+import UserSettings from '@/views/UserSettings.vue'
+import CompanySettings from '@/views/CompanySettings.vue'
+import Invite from '@/views/Invite.vue'
+import Login from '@/views/Login.vue'
+import Register from '@/views/Register.vue'
+import AcceptInvite from '@/views/AcceptInvite.vue'
 
 const routes = [
   {
@@ -22,13 +25,19 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/accept-invite',
+    name: 'AcceptInvite',
+    component: AcceptInvite,
+    meta: { requiresGuest: true }
+  },
+  {
     path: '/',
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true }
   },
   {
-    path: '/prospects', 
+    path: '/prospects',
     name: 'Prospects',
     component: Prospects,
     meta: { requiresAuth: true }
@@ -46,9 +55,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/invite',
+    name: 'Invite',
+    component: Invite,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/settings',
-    name: 'Settings',
-    component: Settings,
+    name: 'UserSettings',
+    component: UserSettings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/company-settings',
+    name: 'CompanySettings',
+    component: CompanySettings,
     meta: { requiresAuth: true }
   }
 ]

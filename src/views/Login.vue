@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useAuth } from '../composables/useAuth';
+import { useAuth } from '@/composables/useAuth';
 
 const { login } = useAuth();
 

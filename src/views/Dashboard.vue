@@ -98,7 +98,9 @@
 import { ref, computed, onMounted } from 'vue'
 import type { Prospect, ProspectStatus } from '@/types/prospect'
 import { statusLabels } from '@/types/prospect'
-import { prospectsAPI } from '@/services/prospects'
+import { prospectsApi } from '@/features/prospects/api/prospectsApi'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { getProspectStatusClass } from '@/shared/utils/prospectStatus'
 
 // Simple reactive state
 const prospects = ref<Prospect[]>([])
@@ -110,9 +112,9 @@ const fetchProspects = async () => {
   loading.value = true
   error.value = null
   try {
-    prospects.value = await prospectsAPI.getAll()
-  } catch (err: any) {
-    error.value = err.response?.data?.error || err.message || 'An error occurred'
+    prospects.value = await prospectsApi.getAll()
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, 'An error occurred')
   } finally {
     loading.value = false
   }
@@ -150,16 +152,7 @@ const formatDate = (dateString: string) => {
 
 const getStatusLabel = (status: ProspectStatus) => statusLabels[status] || 'Unknown'
 
-const getStatusClass = (status: ProspectStatus) => {
-  switch (status) {
-    case 0: return 'bg-blue-100 text-blue-800' // New
-    case 1: return 'bg-amber-100 text-amber-800' // Researched
-    case 2: return 'bg-purple-100 text-purple-800' // Emailed
-    case 3: return 'bg-emerald-100 text-emerald-800' // Responded
-    case 4: return 'bg-gray-100 text-gray-600' // Archived
-    default: return 'bg-gray-100 text-gray-500' // Unknown
-  }
-}
+const getStatusClass = (status: ProspectStatus) => getProspectStatusClass(status)
 
 // Load data on mount
 onMounted(() => {

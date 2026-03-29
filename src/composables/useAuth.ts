@@ -1,7 +1,8 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { authService } from '../services/auth';
-import type { RegisterRequest, LoginRequest, User } from '../types/auth';
+import { authService } from '@/services/auth';
+import type { RegisterRequest, LoginRequest, AcceptInvitationRequest, User } from '@/types/auth';
+import { getApiErrorMessage } from '@/shared/utils/apiError';
 
 const user = ref<User | null>(authService.getUser());
 const isAuthenticated = computed(() => !!user.value);
@@ -16,10 +17,10 @@ export function useAuth() {
       user.value = response.user;
       router.push('/');
       return { success: true };
-    } catch (error: any) {
+    } catch (err: unknown) {
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Registration failed' 
+        error: getApiErrorMessage(err, 'Registration failed')
       };
     }
   };
@@ -31,10 +32,25 @@ export function useAuth() {
       user.value = response.user;
       router.push('/');
       return { success: true };
-    } catch (error: any) {
+    } catch (err: unknown) {
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed' 
+        error: getApiErrorMessage(err, 'Login failed')
+      };
+    }
+  };
+
+  const acceptInvitation = async (data: AcceptInvitationRequest) => {
+    try {
+      const response = await authService.acceptInvitation(data);
+      authService.saveTokens(response);
+      user.value = response.user;
+      router.push('/');
+      return { success: true };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: getApiErrorMessage(err, 'Failed to accept invitation')
       };
     }
   };
@@ -57,7 +73,7 @@ export function useAuth() {
       authService.saveTokens(response);
       user.value = response.user;
       return true;
-    } catch (error) {
+    } catch {
       logout();
       return false;
     }
@@ -68,6 +84,7 @@ export function useAuth() {
     isAuthenticated,
     register,
     login,
+    acceptInvitation,
     logout,
     refreshToken
   };

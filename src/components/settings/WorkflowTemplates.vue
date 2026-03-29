@@ -124,7 +124,6 @@
                                         <select v-model="step.generationStrategy" class="w-full text-sm border-gray-300 rounded p-1.5 border">
                                             <option value="WebSearch">Web Search</option>
                                             <option value="UseCollectedData">Use Collected Data</option>
-                                            <option value="EsattoRag">Esatto RAG</option>
                                         </select>
                                     </div>
                                 </div>
@@ -159,8 +158,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { workflowAPI } from '@/services/workflowService';
+import { workflowApi } from '@/features/workflow/api/workflowApi';
 import { type WorkflowTemplate, type WorkflowTemplateStep, ContentGenerationStrategy } from '@/types/workflow';
+import { getApiErrorMessage } from '@/shared/utils/apiError';
+import { alertDialog, confirmDialog } from '@/shared/utils/dialog';
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -187,9 +188,9 @@ onMounted(() => {
 const loadTemplates = async () => {
     try {
         loading.value = true;
-        templates.value = await workflowAPI.getAllTemplates();
-    } catch (e: any) {
-        error.value = e.message || 'Failed to load templates';
+        templates.value = await workflowApi.getAllTemplates();
+    } catch (e: unknown) {
+        error.value = getApiErrorMessage(e, 'Failed to load templates');
     } finally {
         loading.value = false;
     }
@@ -209,7 +210,6 @@ const formatStrategy = (s?: string) => {
     switch (s) {
         case ContentGenerationStrategy.WebSearch: return 'Web Search';
         case ContentGenerationStrategy.UseCollectedData: return 'Collected Data';
-        case ContentGenerationStrategy.EsattoRag: return 'Esatto RAG';
         default: return s;
     }
 };
@@ -250,35 +250,35 @@ const saveTemplate = async () => {
     try {
         saving.value = true;
         if (editingId.value) {
-            await workflowAPI.updateTemplate(editingId.value, editForm.value);
+            await workflowApi.updateTemplate(editingId.value, editForm.value);
         } else {
-            await workflowAPI.createTemplate(editForm.value);
+            await workflowApi.createTemplate(editForm.value);
         }
         isEditing.value = false;
         await loadTemplates();
-    } catch (e: any) {
-        alert('Failed to save: ' + e.message);
+    } catch (e: unknown) {
+        alertDialog('Failed to save: ' + getApiErrorMessage(e, 'Unexpected error'));
     } finally {
         saving.value = false;
     }
 };
 
 const confirmDelete = async (tpl: WorkflowTemplate) => {
-    if (!confirm(`Delete template "${tpl.name}"?`)) return;
+    if (!confirmDialog(`Delete template "${tpl.name}"?`)) return;
     try {
-        await workflowAPI.deleteTemplate(tpl.id);
+        await workflowApi.deleteTemplate(tpl.id);
         await loadTemplates();
-    } catch (e: any) {
-        alert('Failed to delete: ' + e.message);
+    } catch (e: unknown) {
+        alertDialog('Failed to delete: ' + getApiErrorMessage(e, 'Unexpected error'));
     }
 };
 
 const setAsDefault = async (tpl: WorkflowTemplate) => {
     try {
-        await workflowAPI.setTemplateDefault(tpl.id);
+        await workflowApi.setTemplateDefault(tpl.id);
         await loadTemplates();
-    } catch (e: any) {
-        alert('Failed to set default: ' + e.message);
+    } catch (e: unknown) {
+        alertDialog('Failed to set default: ' + getApiErrorMessage(e, 'Unexpected error'));
     }
 };
 

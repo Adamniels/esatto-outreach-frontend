@@ -1,32 +1,7 @@
 import api from './api';
-import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto } from '@/types/prospect';
+import type { Prospect, CreateProspectRequest, UpdateProspectRequest, ChatRequest, ChatResponse, EntityIntelligenceDto, PendingProspectDto, CreateContactPersonRequest, ContactPersonDto, EmailDraft } from '@/types/prospect';
 
-// Batch operation types
-export interface BatchOperationResult<TData> {
-  successes: SuccessResult<TData>[]
-  failures: FailureResult[]
-  totalCount: number
-  successCount: number
-  failureCount: number
-}
-
-export interface SuccessResult<TData> {
-  prospectId: string
-  data: TData
-}
-
-export interface FailureResult {
-  prospectId: string
-  errorMessage: string
-}
-
-export interface EmailDraft {
-  title: string
-  bodyPlain: string
-  bodyHTML: string
-}
-
-export const prospectsAPI = {
+export const prospectsApi = {
   // Lista alla prospects
   getAll: async (): Promise<Prospect[]> => {
     const response = await api.get('/prospects');
@@ -51,8 +26,7 @@ export const prospectsAPI = {
     return response.data;
   },
 
-  // Generera mejlutkast
-  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData' | 'EsattoRag'): Promise<unknown> => {
+  generateEmailDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<EmailDraft | Prospect | string> => {
     const url = type
       ? `/prospects/${id}/email/draft?type=${type}`
       : `/prospects/${id}/email/draft`;
@@ -60,9 +34,12 @@ export const prospectsAPI = {
     return response.data;
   },
 
-  // Skicka email via n8n
-  sendEmail: async (id: string): Promise<{ success: boolean; message?: string }> => {
-    const response = await api.post(`/prospects/${id}/email/send`, {});
+  // Generera LinkedIn-utkast
+  generateLinkedInDraft: async (id: string, type?: 'WebSearch' | 'UseCollectedData'): Promise<Prospect | { linkedInMessage?: string }> => {
+    const url = type
+      ? `/prospects/${id}/linkedin/draft?type=${type}`
+      : `/prospects/${id}/linkedin/draft`;
+    const response = await api.post(url, {});
     return response.data;
   },
 
@@ -132,32 +109,6 @@ export const prospectsAPI = {
     }
   },
 
-  // ============ BATCH OPERATIONS ============
-
-  // Batch: Enrich prospects
-  enrichProspectBatch: async (
-    prospectIds: string[]
-  ): Promise<BatchOperationResult<EntityIntelligenceDto>> => {
-    const response = await api.post('/prospects/batch/soft-data/generate', {
-      prospectIds
-    });
-    return response.data;
-  },
-
-  // Batch: Generera emails för flera prospects
-  generateEmailBatch: async (
-    prospectIds: string[],
-    type?: 'WebSearch' | 'UseCollectedData',
-    autoGenerateSoftData: boolean = true
-  ): Promise<BatchOperationResult<EmailDraft>> => {
-    const response = await api.post('/prospects/batch/email/generate', {
-      prospectIds,
-      type,
-      autoGenerateSoftData
-    });
-    return response.data;
-  },
-
   // ============ CAPSULE CRM INTEGRATION ============
 
   // Get pending prospects from Capsule CRM
@@ -179,9 +130,13 @@ export const prospectsAPI = {
 };
 
 // Health check
-export const healthAPI = {
+export const healthApi = {
   check: async () => {
     const response = await api.get('/healthz');
     return response.data;
   }
 };
+
+// Backward-compatible aliases during migration
+export const prospectsAPI = prospectsApi;
+export const healthAPI = healthApi;

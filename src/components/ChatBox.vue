@@ -103,7 +103,9 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue'
 import type { ChatMessage, ChatRequest } from '@/types/prospect'
-import { prospectsAPI } from '@/services/prospects'
+import { prospectsApi } from '@/features/prospects/api/prospectsApi'
+import { getApiErrorMessage } from '@/shared/utils/apiError'
+import { alertDialog, confirmDialog } from '@/shared/utils/dialog'
 
 interface Props {
   prospectId: string
@@ -215,7 +217,7 @@ async function handleSend() {
       maxOutputTokens: 4000
     }
 
-    const response = await prospectsAPI.chat(props.prospectId, request)
+    const response = await prospectsApi.chat(props.prospectId, request)
 
     // Add assistant message
     const assistantMessage: ChatMessage = {
@@ -245,14 +247,14 @@ async function handleSend() {
     messages.value.push(assistantMessage)
     await scrollToBottom()
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Chat error:', error)
     
     // Add error message
     const errorMessage: ChatMessage = {
       id: `error-${Date.now()}`,
       role: 'assistant',
-      content: `Error: ${error.response?.data?.error || error.message || 'Could not send message'}`,
+      content: `Error: ${getApiErrorMessage(error, 'Could not send message')}`,
       timestamp: new Date()
     }
     messages.value.push(errorMessage)
@@ -263,16 +265,16 @@ async function handleSend() {
 }
 
 async function handleReset() {
-  if (!confirm('Do you want to reset the entire conversation?')) return
+  if (!confirmDialog('Do you want to reset the entire conversation?')) return
 
   isLoading.value = true
   try {
-    await prospectsAPI.resetChat(props.prospectId)
+    await prospectsApi.resetChat(props.prospectId)
     messages.value = []
     clearMessages()
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Reset error:', error)
-    alert('Could not reset conversation')
+    alertDialog('Could not reset conversation')
   } finally {
     isLoading.value = false
   }
