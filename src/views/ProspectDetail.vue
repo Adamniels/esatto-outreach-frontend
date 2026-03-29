@@ -229,17 +229,6 @@
           >
             Write LinkedIn Message
           </button>
-          <button
-            @click="activeView = 'workflow'"
-            :class="[
-              activeView === 'workflow'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200'
-            ]"
-          >
-            Workflow
-          </button>
         </nav>
       </div>
 
@@ -320,11 +309,6 @@
         </div>
       </div>
 
-      <!-- Workflow Tab -->
-      <div v-else-if="activeView === 'workflow'" class="h-[850px] bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <WorkflowTab :prospectId="prospect.id" />
-      </div>
-
       <!-- Entity Intelligence Modal -->
       <EntityIntelligenceModal
         v-if="prospect"
@@ -361,7 +345,6 @@ import EmailEditor from '@/components/prospect/EmailEditor.vue'
 import EmailGeneratorControls from '@/components/prospect/EmailGeneratorControls.vue'
 import LinkedInEditor from '@/components/prospect/LinkedInEditor.vue'
 import LinkedInGeneratorControls from '@/components/prospect/LinkedInGeneratorControls.vue'
-import WorkflowTab from '@/components/prospect/WorkflowTab.vue'
 import { useEntityIntelligence } from '@/composables/useEntityIntelligence'
 import { useProspectEditForm } from '@/features/prospects/composables/useProspectEditForm'
 import { clearStoredDraft, loadDraftFromStorage, storeDraft } from '@/features/prospects/composables/useProspectDraftStorage'
@@ -393,7 +376,7 @@ const originalServerLinkedInDraft = ref<string | null>(null)
 
 const hasUnsavedChatChanges = ref(false)
 const hasUnsavedLinkedInChatChanges = ref(false)
-const activeView = ref<'email' | 'linkedin' | 'workflow'>('email')
+const activeView = ref<'email' | 'linkedin'>('email')
 
 // Entity Intelligence State
 const showEntityModal = ref(false)

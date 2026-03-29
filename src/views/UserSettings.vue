@@ -27,17 +27,6 @@
           >
             Outreach Prompts
           </button>
-          <button
-            @click="activeTab = 'workflows'"
-            :class="[
-              activeTab === 'workflows'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer bg-transparent'
-            ]"
-          >
-            Workflow Templates
-          </button>
         </nav>
       </div>
 
@@ -127,10 +116,6 @@
         </div>
       </div>
 
-      <!-- Workflow Templates Tab -->
-      <div v-if="activeTab === 'workflows'">
-        <WorkflowTemplates />
-      </div>
     </div>
   </div>
 </template>
@@ -140,7 +125,6 @@ import { ref, onMounted } from 'vue'
 import { outreachPromptsApi } from '@/features/settings/api/outreachPromptsApi'
 import type { OutreachPrompt, PromptType } from '@/types/outreachPrompt'
 import OutreachPromptEditor from '@/components/OutreachPromptEditor.vue'
-import WorkflowTemplates from '@/components/settings/WorkflowTemplates.vue'
 import { getApiErrorMessage } from '@/shared/utils/apiError'
 import { confirmDialog } from '@/shared/utils/dialog'
 
