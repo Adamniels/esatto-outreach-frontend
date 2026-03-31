@@ -42,6 +42,20 @@ export function useSequenceBuilder() {
     }
   };
 
+  const resumeSequence = async (sequenceId: string) => {
+    try {
+      isSaving.value = true;
+      draftSequence.value = await sequenceApi.getById(sequenceId);
+      selectedMode.value = draftSequence.value.mode;
+      currentStep.value = draftSequence.value.currentBuilderStep;
+    } catch (e: any) {
+      notifyError('Failed to resume sequence');
+      router.push('/sequences');
+    } finally {
+      isSaving.value = false;
+    }
+  };
+
   const goNext = async () => {
     if (currentStep.value === 0) {
       if (selectedMode.value) {
@@ -60,6 +74,18 @@ export function useSequenceBuilder() {
 
     // Otherwise, validate and go next
     currentStep.value++;
+
+    // Save progress
+    if (draftSequence.value) {
+      try {
+        isSaving.value = true;
+        await sequenceApi.updateProgress(draftSequence.value.id, { currentBuilderStep: currentStep.value });
+      } catch (e: any) {
+        notifyError('Failed to save builder progress');
+      } finally {
+        isSaving.value = false;
+      }
+    }
   };
 
   const goBack = () => {
@@ -76,6 +102,8 @@ export function useSequenceBuilder() {
     try {
       isSaving.value = true;
       const sequenceId = draftSequence.value.id;
+
+      await sequenceApi.completeSetup(sequenceId);
       
       // Navigate eagerly so the user sees the "Generating... " screen immediately
       router.push(`/sequences/${sequenceId}`);
@@ -144,6 +172,7 @@ export function useSequenceBuilder() {
     draftSequence,
     canProceed,
     startSequence,
+    resumeSequence,
     goNext,
     goBack,
     resetBuilder

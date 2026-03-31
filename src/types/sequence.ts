@@ -4,6 +4,7 @@ export enum SequenceMode {
 }
 
 export enum SequenceStatus {
+    Setup = 'Setup',
     Draft = 'Draft',
     Active = 'Active',
     Paused = 'Paused',
@@ -42,6 +43,7 @@ export interface SequenceViewDto {
     status: SequenceStatus;
     settings: SequenceSettingsDto;
     prospectCount: number;
+    currentBuilderStep: number;
     createdUtc: string;
     updatedUtc?: string;
 }
@@ -79,6 +81,7 @@ export interface SequenceDetailsDto {
     settings: SequenceSettingsDto;
     steps: SequenceStepViewDto[];
     prospects: SequenceProspectViewDto[];
+    currentBuilderStep: number;
     createdUtc: string;
     updatedUtc?: string;
 }
@@ -122,4 +125,8 @@ export interface ReorderSequenceStepsRequest {
 export interface EnrollProspectRequest {
     prospectId: string;
     contactPersonId: string;
+}
+
+export interface SaveBuilderProgressRequest {
+    currentBuilderStep: number;
 }

@@ -72,7 +72,7 @@
       </div>
       <ul v-else role="list" class="divide-y divide-gray-200">
         <li v-for="sequence in sequences" :key="sequence.id">
-          <router-link :to="`/sequences/${sequence.id}`" class="block hover:bg-gray-50 transition-colors">
+          <router-link :to="sequence.status === 'Setup' ? `/sequences/build?id=${sequence.id}` : `/sequences/${sequence.id}`" class="block hover:bg-gray-50 transition-colors">
             <div class="px-4 py-4 sm:px-6">
               <div class="flex items-center justify-between">
                 <div class="flex items-center truncate">
@@ -160,6 +160,7 @@ const handleDelete = async (sequence: SequenceViewDto) => {
 
 const statusBadgeClass = (status: string) => {
   switch (status) {
+    case 'Setup': return 'bg-gray-100 text-gray-500'
     case 'Active': return 'bg-green-100 text-green-800'
     case 'Draft': return 'bg-gray-100 text-gray-800'
     case 'Paused': return 'bg-yellow-100 text-yellow-800'

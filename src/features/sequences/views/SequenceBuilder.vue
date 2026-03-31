@@ -65,14 +65,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSequenceBuilder } from '@/features/sequences/composables/useSequenceBuilder'
 import ModeSelection from '@/features/sequences/components/builder/ModeSelection.vue'
 import StepEditor from '@/features/sequences/components/builder/StepEditor.vue'
 import ProspectSelector from '@/features/sequences/components/builder/ProspectSelector.vue'
 import SequenceSettings from '@/features/sequences/components/builder/SequenceSettings.vue'
 
-const { currentStep, isSaving, goNext, goBack, canProceed } = useSequenceBuilder()
+const route = useRoute()
+const { currentStep, isSaving, goNext, goBack, canProceed, resumeSequence, resetBuilder } = useSequenceBuilder()
 
 const stepTitle = computed(() => {
   switch (currentStep.value) {
@@ -81,6 +83,15 @@ const stepTitle = computed(() => {
     case 2: return 'Add Prospects'
     case 3: return 'Configure Settings'
     default: return ''
+  }
+})
+
+onMounted(() => {
+  const sequenceId = route.query.id as string
+  if (sequenceId) {
+    resumeSequence(sequenceId)
+  } else {
+    resetBuilder()
   }
 })
 </script>

@@ -9,6 +9,7 @@ import type {
     UpdateSequenceStepContentRequest,
     ReorderSequenceStepsRequest,
     EnrollProspectRequest,
+    SaveBuilderProgressRequest,
     SequenceStepViewDto,
     SequenceProspectViewDto
 } from '@/types/sequence';
@@ -37,6 +38,16 @@ export const sequenceApi = {
 
     async delete(id: string): Promise<void> {
         await api.delete(`/sequences/${id}`);
+    },
+
+    // Builder Process
+    async updateProgress(id: string, request: SaveBuilderProgressRequest): Promise<void> {
+        await api.put(`/sequences/${id}/progress`, request);
+    },
+
+    async completeSetup(id: string): Promise<SequenceViewDto> {
+        const response = await api.post<SequenceViewDto>(`/sequences/${id}/complete-setup`);
+        return response.data;
     },
 
     // Step Management

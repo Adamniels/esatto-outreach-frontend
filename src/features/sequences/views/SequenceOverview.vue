@@ -190,6 +190,12 @@ const fetchSequence = async () => {
   try {
     sequence.value = await sequenceApi.getById(sequenceId)
     
+    // Safety redirect if still in setup
+    if (sequence.value.status === 'Setup') {
+      router.replace(`/sequences/build?id=${sequenceId}`)
+      return
+    }
+
     // Stop polling if generation is complete natively
     if (!isGenerating.value && pollingInterval) {
       clearInterval(pollingInterval)
@@ -252,6 +258,7 @@ const deleteSequence = async () => {
 
 const statusBadgeClass = (status: string) => {
   switch (status) {
+    case 'Setup': return 'bg-gray-100 text-gray-500'
     case 'Active': return 'bg-green-100 text-green-800'
     case 'Draft': return 'bg-gray-100 text-gray-800'
     case 'Paused': return 'bg-yellow-100 text-yellow-800'
