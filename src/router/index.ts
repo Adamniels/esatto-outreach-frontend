@@ -10,6 +10,9 @@ import Invite from '@/views/Invite.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 import AcceptInvite from '@/views/AcceptInvite.vue'
+import SequenceList from '@/features/sequences/views/SequenceList.vue'
+import SequenceBuilder from '@/features/sequences/views/SequenceBuilder.vue'
+import SequenceOverview from '@/features/sequences/views/SequenceOverview.vue'
 
 const routes = [
   {
@@ -70,6 +73,24 @@ const routes = [
     path: '/company-settings',
     name: 'CompanySettings',
     component: CompanySettings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/sequences',
+    name: 'SequenceList',
+    component: SequenceList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/sequences/build',
+    name: 'SequenceBuilder',
+    component: SequenceBuilder,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/sequences/:id',
+    name: 'SequenceOverview',
+    component: SequenceOverview,
     meta: { requiresAuth: true }
   }
 ]

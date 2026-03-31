@@ -38,6 +38,17 @@
               </svg>
               Prospects
             </router-link>
+
+            <router-link
+              to="/sequences"
+              class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              active-class="bg-gray-100 text-gray-900"
+            >
+              <svg class="mr-3 w-5 h-5 text-gray-400 group-hover:text-gray-500 group-[.router-link-active]:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+              </svg>
+              Sequences
+            </router-link>
             
             <router-link
               to="/prospects/pending"
@@ -130,6 +141,8 @@
 
     <!-- Auth views (login/register) without sidebar -->
     <router-view v-else />
+
+    <ToastContainer />
   </div>
 </template>
 
@@ -138,6 +151,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBackendStatus } from '@/composables/useBackendStatus'
 import { useAuth } from '@/composables/useAuth'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,6 +159,12 @@ const { isOnline, isChecking } = useBackendStatus()
 const { user, isAuthenticated, logout } = useAuth()
 
 const pageTitle = computed(() => {
+  if (route.path.startsWith('/sequences')) {
+    if (route.path === '/sequences/build') return 'Sequence Builder'
+    if (route.path === '/sequences') return 'Sequences'
+    return 'Sequence Overview'
+  }
+  
   switch (route.path) {
     case '/':
       return 'Dashboard'
