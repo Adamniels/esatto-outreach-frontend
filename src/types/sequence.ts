@@ -96,7 +96,8 @@ export interface CreateSequenceRequest {
 export interface UpdateSequenceRequest {
     title: string;
     description?: string;
-    settings: SequenceSettingsDto;
+    /** When omitted, server keeps existing sequence settings. */
+    settings?: SequenceSettingsDto;
 }
 
 export interface AddSequenceStepRequest {
