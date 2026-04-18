@@ -5,7 +5,9 @@ import type { RegisterRequest, LoginRequest, AcceptInvitationRequest, User } fro
 import { getApiErrorMessage } from '@/shared/utils/apiError';
 
 const user = ref<User | null>(authService.getUser());
-const isAuthenticated = computed(() => !!user.value);
+// Must read `user` so this recomputes after login/logout; `authService.isAuthenticated()`
+// alone only touches localStorage, which Vue does not track.
+const isAuthenticated = computed(() => !!user.value && authService.isAuthenticated());
 
 export function useAuth() {
   const router = useRouter();

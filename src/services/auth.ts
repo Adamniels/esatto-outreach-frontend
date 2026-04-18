@@ -29,7 +29,7 @@ export const authService = {
   },
 
   async createInvitation(email: string): Promise<CreateInvitationResponse> {
-    const response = await api.post<CreateInvitationResponse>('/company/invitations', { email });
+    const response = await api.post<CreateInvitationResponse>('/invitations', { email });
     return response.data;
   },
 
@@ -45,6 +45,10 @@ export const authService = {
 
   // Local storage helpers
   saveTokens(authResponse: AuthResponse): void {
+    if (!authResponse.accessToken || !authResponse.refreshToken || !authResponse.user) {
+      throw new Error('Invalid authentication response payload');
+    }
+
     localStorage.setItem('accessToken', authResponse.accessToken);
     localStorage.setItem('refreshToken', authResponse.refreshToken);
     localStorage.setItem('user', JSON.stringify(authResponse.user));
@@ -60,7 +64,20 @@ export const authService = {
 
   getUser(): User | null {
     const userStr = localStorage.getItem('user');
-    return userStr ? (JSON.parse(userStr) as User) : null;
+    if (!userStr) return null;
+
+    try {
+      const parsed = JSON.parse(userStr) as Partial<User>;
+      if (!parsed.id || !parsed.email || !parsed.fullName) {
+        this.clearTokens();
+        return null;
+      }
+
+      return parsed as User;
+    } catch {
+      this.clearTokens();
+      return null;
+    }
   },
 
   clearTokens(): void {
@@ -70,6 +87,6 @@ export const authService = {
   },
 
   isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+    return !!this.getAccessToken() && !!this.getUser();
   }
 };

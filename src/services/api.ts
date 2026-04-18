@@ -14,6 +14,31 @@ const api = axios.create({
   }
 });
 
+let refreshPromise: Promise<string> | null = null;
+
+const getFreshAccessToken = async (): Promise<string> => {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = authService.getRefreshToken();
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  refreshPromise = axios
+    .post(`${API_BASE_URL}/auth/refresh`, { refreshToken })
+    .then((response) => {
+      authService.saveTokens(response.data);
+      return response.data.accessToken as string;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -31,29 +56,22 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
     // If 401 and not already retried, try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = authService.getRefreshToken();
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken
-          });
-
-          authService.saveTokens(response.data);
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, logout user
-          authService.clearTokens();
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        }
+      try {
+        const accessToken = await getFreshAccessToken();
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        authService.clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
 
